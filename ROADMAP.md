@@ -14,8 +14,8 @@ measurement is recorded with its command and date.
 - An item is checked only when a commit or a pull request link is written next to it.
 - An item that depends on a measurement says "measure first"; it cannot be checked by an opinion.
 - New work is added to the section it belongs to, never silently retitled.
-- The scaffold items already checked were verified on disk on 2026-09-18, before any commit exists;
-  each of them is linked to the initial commit once that commit is pushed.
+- The scaffold items already checked were created by the initial commit
+  [6e98da5](https://github.com/StandarX-miralabs-tech/standarnav/commit/6e98da5) of 2026-09-18.
 
 ## v0: extraction and parity with miralabs-ui
 
