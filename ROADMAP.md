@@ -118,7 +118,7 @@ measurement is recorded with its command and date.
 
 ### Tests
 
-- [ ] Port **189 test cases across 16 files** and make them green on chromium, firefox and webkit.
+- [ ] Port **188 test cases across 16 files** and make them green on chromium, firefox and webkit.
       The 160 of `packages/core/src/input` reproduce exactly by
       `grep -cE "^\s*(it|test)\("` over its twelve test files (2026-09-18), but that census
       undercounts the port, because two modules of the planned layout have their tests outside that
@@ -126,11 +126,13 @@ measurement is recorded with its command and date.
       `focus/focus.browser.test.ts`, a 17-case file whose other 12 cover `trapFocus` and
       `proxyTabFocus` and stay behind) + 9 (the `trackInputModality` block of
       `interaction/interaction.browser.test.ts`, a 31-case file) + 6 (`interaction/modality.test.ts`,
-      a clean move) + 9 (the portable subset of `dom/dom.browser.test.ts`, a 22-case file over seven
-      describe blocks, of which 12 cover this group and 9 survive the narrowing of `dom/raf.ts` and
-      `dom/platform.ts`). With the geometry timing guard moved to the bench: 188 cases plus one
-      bench file. They run through the real input system; a fake host is kept for the plugin
-      contract alone ([ADR-0018](docs/adr/0018-testing-strategy.md))
+      a clean move) + 8 (the portable subset of `dom/dom.browser.test.ts`, a 22-case file over seven
+      describe blocks, of which 12 cover this group and 8 survive the narrowing: all 4 query cases,
+      2 of 3 event cases, 1 of 4 raf cases and the platform case, once `query`, `isModifiedEvent`,
+      `isPrimaryPointer`, `rafs`, `nextTick`, `timeout` and the seven user-agent sniffs are left
+      behind as unimported by the perimeter). With the geometry timing guard moved to the bench: 187
+      cases plus one bench file. They run through the real input system; a fake host is kept for the
+      plugin contract alone ([ADR-0018](docs/adr/0018-testing-strategy.md))
 - [ ] Nested containers, the largest hole and the one this list did not have: the whole 25-case
       spatial browser suite holds exactly two containers, `#left` and `#right`, and they are
       siblings (`spatial.browser.test.ts:169-179`, read 2026-09-18). So `childContainerOf`
