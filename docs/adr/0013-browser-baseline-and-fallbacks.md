@@ -27,12 +27,24 @@ APIs: four modern APIs appear in the code, and only some of them degrade.
 
 | API | Chrome | Safari | Firefox | Used at (miralabs-ui) | Behaviour when absent |
 |---|---|---|---|---|---|
-| `WeakRef` | 84 | 14.1 | 79 | `input/spatial/spatial.ts:198,235,293` | `ReferenceError` when the plugin is created — no fallback |
+| `WeakRef` | 84 | 14.1 | 79 | `input/spatial/spatial.ts:235` constructs it; `:198` is a type position and erases; `:293` reads through `deref()` | `ReferenceError` on the **first successful move**, not at construction — `new WeakRef` sits inside `remember()`, so an unguarded build mounts, renders and accepts focus, then throws the first time the user presses a direction |
 | `Element.checkVisibility()` | 105 | 17.4 | 106 | `focus/tabbable.ts:41-43` | Falls back to `offsetParent === null && getClientRects().length === 0`, which does not see `visibility: hidden` |
 | `inert` attribute | 102 | 15.5 | 112 | `focus/tabbable.ts:49` | `closest("[inert]")` works everywhere; only the native focus-blocking effect is missing |
-| `Array.prototype.at` | 92 | 15.4 | 90 | `focus/tabbable.ts:85` | `TypeError` |
+| `Array.prototype.at` | 92 | 15.4 | 90 | `focus/tabbable.ts:85` | `TypeError` — and the only row whose floor is **above** the supported tier below, so it throws on Chromium 85-91, Safari 15.0-15.3 and Firefox 79-89: runtimes this ADR promises to support. Not a `lib` question |
 
 Versions from caniuse / MDN BCD, fetched 2026-09-18; URLs in the Evidence section.
+
+These four rows are three different problems and were previously read as one. `WeakRef` sits inside
+the supported tier on all three engines but below the **parsing floor** this ADR also declares
+(Chromium 80, Safari 13.1, Firefox 74), so its fallback is what the best-effort band and the floor
+need, and keeping `lib` at `es2020` is what keeps the fallback from being deleted as dead code.
+`Array.prototype.at` is the one row above the supported tier, which makes rewriting it mandatory
+and makes a `lib` bump the wrong fix — raising `lib` would silence the compiler and ship the break.
+`Element.checkVisibility()` is above the supported tier on all three engines too, so the weaker
+`offsetParent` path is not a fallback for old runtimes but **the live path across the whole
+supported tier**; the table above should not be read as promising parity between the two branches,
+and [ADR-0009](0009-hidden-candidates.md) is where that divergence is decided. Only `inert` behaves
+the way a fallback row normally reads.
 
 Mapped onto television firmware (Samsung and LG published engine tables, fetched 2026-09-18):
 

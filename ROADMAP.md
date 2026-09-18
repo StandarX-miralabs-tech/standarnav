@@ -71,22 +71,45 @@ measurement is recorded with its command and date.
 
 ### Source extraction
 
-- [ ] Move the input system into `src/` with the planned layout: `src/intent-bus.ts`,
-      `src/input-system.ts`, `src/keymap.ts`, `src/engage.ts`, `src/modality.ts`, `src/tabbable.ts`,
-      `src/dom/*.ts`, `src/gamepad/*.ts`, `src/spatial/*.ts`, `src/focus-ring/*.ts`, `src/debug.ts`
+- [ ] Move the input system into `src/` with the planned layout: `src/index.ts`, `src/types.ts`,
+      `src/intent-bus.ts`, `src/input-system.ts`, `src/keymap.ts`, `src/engage.ts`,
+      `src/modality.ts`, `src/tabbable.ts`, `src/dom/*.ts`, `src/gamepad/*.ts`, `src/spatial/*.ts`
+      (including `spatial/geometry.bench.ts`, which `vitest.config.ts` already globs),
+      `src/focus-ring/*.ts`, `src/debug.ts`. `debug.ts` is hoisted out of `spatial/`, where the
+      source keeps it. There is no `src/invariant.ts` and no `src/utils/`: see the prefix item below
 - [ ] Rename read attributes to `data-snav="container"`, `data-snav-enter`, `data-snav-wrap`,
       `data-snav-block`, `data-snav-trap`, `data-snav-scroll`, `data-snav-ignore`,
       `data-snav-up/down/left/right`
 - [ ] Rename written attributes to `data-snav-focused`, `data-snav-active`, `data-snav-input`,
       `data-snav-focus-ring` (the source writes `data-focused` and `data-nav-active` unprefixed)
-- [ ] Rename the CSS custom properties to `--snav-focus-ring-*`
+- [ ] Rename the CSS custom properties to `--snav-focus-ring-*`. Three names in one file here: the
+      plugin reads `offset`, `duration` and `easing` and nothing else
+      (`focus-ring.ts:84`, `:112`, `:115`). The source-side family is a separate and much larger
+      decision that does not travel with this extraction — see step 3 of
+      [ADR-0004](docs/adr/0004-relationship-with-miralabs-ui.md)
 - [ ] Replace `WeakRef` (used for per-container focus memory) with a feature-detected fallback:
       strong reference validated with `isConnected` — see
-      [ADR-0013](docs/adr/0013-browser-baseline-and-fallbacks.md)
-- [ ] Remove `Array.prototype.at` (`tabbables.at(-1)` in the source `focus/tabbable.ts:85`, read
-      2026-09-18) — see [ADR-0013](docs/adr/0013-browser-baseline-and-fallbacks.md)
-- [ ] Split `types.ts` into the types each entry point actually needs
-- [ ] Strip the `[miralabs]` prefix from invariant messages
+      [ADR-0013](docs/adr/0013-browser-baseline-and-fallbacks.md). This is a `lib` coverage and
+      best-effort-tier fix, not a supported-tier one: `WeakRef` is Chromium 84 / Safari 14.1 /
+      Firefox 79, inside the supported tier but below the es2020 parsing floor the same ADR
+      declares. Keeping `lib` at `es2020` is what stops the fallback being deleted as dead code
+- [ ] Rewrite `tabbables.at(-1)` as index arithmetic (source `focus/tabbable.ts:85`, read
+      2026-09-18) — **mandatory, and a runtime break rather than a typing detail**.
+      `Array.prototype.at` is Chromium 92 / Safari 15.4 / Firefox 90, *above* the supported tier, so
+      it throws on Chromium 85-91, Safari 15.0-15.3 and Firefox 79-89, and `getTabbableEdges` is the
+      entry point for `getFirstTabbable` and `getLastTabbable`. Under `noUncheckedIndexedAccess` the
+      indexed read is already `HTMLElement | undefined`, so the existing `?? null` keeps the tuple
+      type with no cast. See [ADR-0013](docs/adr/0013-browser-baseline-and-fallbacks.md)
+- [ ] Split `types.ts` into the types each entry point actually needs: five names survive —
+      `InputModality`, `IntentSource`, `NavigationIntent`, `IntentEvent`, `Rect`. `Orientation`,
+      `Density`, `MotionMode` and `EnvironmentContext` have no use in the perimeter, and neither has
+      `Direction`: an earlier count of six occurrences was an artefact of grepping `dom/*.ts`, which
+      is not extracted. The RTL policy therefore stays entirely on the far side of the boundary
+- [ ] Strip the `[miralabs]` prefix from the one invariant message, and port no invariant module.
+      `invariant` is called exactly once in the whole perimeter
+      (`input-system.ts:17` imports it, `:73` calls it) and `warn` not at all, so the 11-line
+      `utils/invariant.ts` becomes an inlined `throw` at that single site and a deleted import — not
+      a file to move and not a sweep to run
 - [ ] Settle the focus-ring scope for v0 — inline default tokens in the plugin, a small optional
       stylesheet, or focus-ring out of v0 — then implement the answer. The source reads its colours,
       width, radius and z-index from `packages/styles/scss/components/_focus-ring.scss`, which stays
@@ -95,25 +118,62 @@ measurement is recorded with its command and date.
 
 ### Tests
 
-- [ ] Port the 160 core input test cases and make them green on chromium, firefox and webkit. The
-      count comes from `grep -cE "^\s*(it|test)\("` over the twelve test files of
-      `packages/core/src/input` in the read-only source, run on 2026-09-18. They run through the real
-      input system; a fake host is kept for the plugin contract alone
-      ([ADR-0018](docs/adr/0018-testing-strategy.md))
+- [ ] Port **189 test cases across 16 files** and make them green on chromium, firefox and webkit.
+      The 160 of `packages/core/src/input` reproduce exactly by
+      `grep -cE "^\s*(it|test)\("` over its twelve test files (2026-09-18), but that census
+      undercounts the port, because two modules of the planned layout have their tests outside that
+      tree. Derivation: 160 (`input/`) + 5 (the `describe("tabbable")` block of
+      `focus/focus.browser.test.ts`, a 17-case file whose other 12 cover `trapFocus` and
+      `proxyTabFocus` and stay behind) + 9 (the `trackInputModality` block of
+      `interaction/interaction.browser.test.ts`, a 31-case file) + 6 (`interaction/modality.test.ts`,
+      a clean move) + 9 (the portable subset of `dom/dom.browser.test.ts`, a 22-case file over seven
+      describe blocks, of which 12 cover this group and 9 survive the narrowing of `dom/raf.ts` and
+      `dom/platform.ts`). With the geometry timing guard moved to the bench: 188 cases plus one
+      bench file. They run through the real input system; a fake host is kept for the plugin
+      contract alone ([ADR-0018](docs/adr/0018-testing-strategy.md))
+- [ ] Nested containers, the largest hole and the one this list did not have: the whole 25-case
+      spatial browser suite holds exactly two containers, `#left` and `#right`, and they are
+      siblings (`spatial.browser.test.ts:169-179`, read 2026-09-18). So `childContainerOf`
+      (`spatial.ts:111-120`), the container-scored-as-one-unit rule (`.../spatial.ts:142`, where
+      `isContainer` has been `false` in every case that has ever run) and the recursive descent of
+      `enterContainer` (`.../spatial.ts:305-307`) have never executed. A rail inside a row inside a
+      page is the ordinary television layout. Four cases: enter a nested container as one scored
+      unit, bubble out through the outer container to a sibling, `data-snav-enter="first"` on the
+      inner, and a three-level nest to reach the recursive branch
 - [ ] Write the scroll-and-rescan test (source `spatial.ts:327-351`, one frame via `raf` with a
       `rescanning` lock). Untested in the source: a grep for `rescan` over
-      `packages/core/src/input/spatial/spatial.browser.test.ts` returned no match on 2026-09-18
+      `packages/core/src/input/spatial/spatial.browser.test.ts` returned no match on 2026-09-18.
+      **The fixture must be virtualised**, and a tall scroller will not do: `collectNavNodes`
+      (`spatial.ts:128-146`) applies no viewport filter — it rejects only `[data-snav-ignore]` and a
+      rect that is zero on *both* axes — so a merely scrolled-out-of-view button is still a
+      candidate and `findBestCandidate` finds it without ever reaching the rescan branch. Only a
+      fixture whose next row does not exist in the DOM until the scroll fires exercises it
 - [ ] Write the `pointerFollowsFocus` test (default on in `app` mode). Untested in the source: a grep
       for `pointerFollowsFocus` over the same file returned no match on 2026-09-18
 - [ ] Write the `data-snav-scroll="center"` test. The source attribute is `data-mira-nav-scroll`
       (`containers.ts:16`) and no test names it: a grep for `nav-scroll` over the `*.test.ts` files of
       `packages/core/src` returned no match on 2026-09-18
-- [ ] Write the debug parity test: `explainMove` re-implements the winner rule instead of sharing it
-      with `findBestCandidate`; the test must assert both agree. No test names it today: a grep for
-      `explainMove` over the `*.test.ts` files of `packages/core/src` returned no match on 2026-09-18
+- [ ] Write the debug parity test, **scoped**. `explainMove` re-implements the winner rule instead
+      of sharing it with `findBestCandidate`, and no test names it today: a grep for `explainMove`
+      over the `*.test.ts` files of `packages/core/src` returned no match on 2026-09-18. But "assert
+      both agree" as previously phrased here produces a test that fails on correct code.
+      `explainMove` scores exactly one container (`debug.ts:48-52`, no loop) while the engine walks
+      out through up to `MAX_CONTAINER_DEPTH` containers (`spatial.ts:371-390`) and may take a
+      redirect (`:362-366`), wrap (`:379-382`) or scroll and rescan (`:384`) first; it also defaults
+      its root to the origin's `ownerDocument.body` where the plugin uses its own root
+      (`spatial.ts:217`), and defaults its score options where the engine passes the plugin's. So:
+      assert agreement over a flat single-container fixture, passing the plugin's own root and score
+      options, and add named cases for the three divergences that are correct — bubbling, redirect
+      and wrap. The two rules are otherwise provably equivalent, so the test pins a real invariant
+      rather than a coincidence
 - [ ] Write the right-stick horizontal scroll test. The gamepad side emits `scrollX`
-      (`gamepad.browser.test.ts:196`), but the spatial side has cases for `scrollY` only
-      (`spatial.browser.test.ts:333-380`, read 2026-09-18)
+      (`gamepad.browser.test.ts:192-193` sets the axes and steps a frame; `:196` is the assertion on
+      the emitted intent), but the spatial side has cases for `scrollY` only
+      (`spatial.browser.test.ts:333-383` — four cases opening at `:333`, `:350`, `:360` and `:376`,
+      the last assertion at `:382`, the describe closing at `:384`; read 2026-09-18). Both citations
+      were wrong in an earlier revision of this file; the convention adopted while fixing them is
+      that a range naming a test case includes its closing assertion, and a citation of where
+      something is emitted points at the emit rather than at the assertion about it
 - [ ] Write the zero-size filter test: the source filters on `width === 0 && height === 0`
       (`spatial.ts:141`, read 2026-09-18), so a 0 x 40 element stays a candidate. Change (C1) of
       [ADR-0009](docs/adr/0009-hidden-candidates.md) proposes `||` instead, and is still Proposed, so
@@ -144,7 +204,17 @@ measurement is recorded with its command and date.
 ### Tooling and budgets
 
 - [ ] Dev-mode diagnostics in the `@standarx/nav/debug` subpath, excluded from the default build
-      ([ADR-0010](docs/adr/0010-dev-mode-diagnostics.md))
+      ([ADR-0010](docs/adr/0010-dev-mode-diagnostics.md)). **Only one of the five deliverables that
+      ADR names has a source file.** `packages/core/src/input/spatial/debug.ts` is 73 lines
+      (`wc -l`, 2026-09-18) exporting `SpatialExplanation`, `explainMove` and a type re-export, and
+      it writes no DOM at all — a grep for `createElement`, `appendChild` and `style` over that file
+      returns nothing. `scanUnreachable`, the `MAX_CONTAINER_DEPTH` saturation warning, the dead
+      redirection warning and the printed documentation note are new code with no port behind them,
+      and open detail (O1) of that ADR — whether the `cursor: pointer` signal is opt-in or opt-out —
+      is still unanswered. Whether they are v0 or v1 is an owner decision, and it is the only v0
+      line in this file with no source file behind it. The hosted-playground line below inherits the
+      same problem: there is no debug overlay to switch on, because the overlay lived in the
+      monorepo's documentation site, not in `debug.ts`
 - [ ] Run `bun run check:size` on a real `dist/` and write the caps it prints — measure first. Every
       cap in `scripts/size-budget.ts` is `null` today, so the run fails by design until the numbers
       exist ([ADR-0017](docs/adr/0017-size-budgets.md)). The script here covers JavaScript only; the

@@ -119,7 +119,7 @@ Feature detection required by this tiering (browser support from caniuse and MDN
 | `WeakRef` | Chrome 84, Safari 14.1, Firefox 79 | Strong reference validated with `isConnected` before use |
 | `checkVisibility` | Chrome 105, Safari 17.4, Firefox 106 | `offsetParent === null && getClientRects().length === 0` (already in `packages/core/src/focus/tabbable.ts:45`) |
 | `inert` | Chrome 102, Safari 15.5, Firefox 112 | `closest("[inert]")` reads the attribute everywhere |
-| `Array.prototype.at` | Chrome 92, Safari 15.4, Firefox 90, Samsung Internet 16.0 (`https://caniuse.com/mdn-javascript_builtins_array_at`) | Avoided outright; the source uses it at `packages/core/src/focus/tabbable.ts:85` and the extraction must not |
+| `Array.prototype.at` | Chrome 92, Safari 15.4, Firefox 90, Samsung Internet 16.0 (`https://caniuse.com/mdn-javascript_builtins_array_at`) | Avoided outright. Unlike every other row, its floor is **above** the supported tier, so the source use at `packages/core/src/focus/tabbable.ts:85` throws on Chromium 85-91, Safari 15.0-15.3 and Firefox 79-89 — and `getTabbableEdges` is the entry point for `getFirstTabbable` and `getLastTabbable`. Rewriting it to index arithmetic is mandatory, and a `lib` bump would hide the break rather than fix it |
 
 `tsconfig.json` declares `target: "es2020"` and `lib: ["es2020", "dom", "dom.iterable"]`, so neither
 `WeakRef` nor `Array.prototype.at` type-checks by accident: `WeakRef` has to be declared locally
@@ -227,7 +227,8 @@ miralabs-ui working tree, run 2026-09-18.
   magnitude, `250 ms` at half deflection down to `60 ms` at full (`.../repeat.ts:26-27,41`). `select`
   never repeats.
 - **R17.** Standard mapping: A `select`, B `back`, X `secondary`, Y `contextMenu`, LB/RB
-  `tabPrev`/`tabNext`, LT/RT `pageUp`/`pageDown`, right stick `scrollX`/`scrollY`.
+  `tabPrev`/`tabNext`, LT/RT `pageUp`/`pageDown`, right stick `scrollX`/`scrollY`. This is what the
+  mapping **produces**; four of those intents have no consumer in the package — see R29a.
 - **R18.** `setMapping` covers pads reporting `mapping === ""`; the library applies, the application
   persists, and no storage I/O happens in the package. `padType` is detected from `Gamepad.id` so an
   application can show the right glyphs; `swapNintendoConfirm` exists and is off by default.
@@ -242,15 +243,25 @@ miralabs-ui working tree, run 2026-09-18.
 
 - **R21.** Live geometry, no precomputed graph: candidates are queried and measured with
   `getBoundingClientRect` at each move, reads only. Focus is real —
-  `element.focus({ preventScroll: true })`, checked against `document.activeElement`
-  (`packages/core/src/input/spatial/spatial.ts`, 508 lines).
+  `element.focus({ preventScroll: true })` (`packages/core/src/input/spatial/spatial.ts`, 508
+  lines). **The source does not verify that the focus landed.** `commit()` calls `focusElement`
+  and returns `true` unconditionally (`.../spatial.ts:258-281`); every `document.activeElement`
+  read in that file supplies the `from` argument *before* the move. So a focus the browser refuses
+  is reported as a successful move, `data-snav-focused` is written on an unfocused element and the
+  container memory records it. Verifying the landing is therefore a **requirement of this
+  extraction**, not a description of inherited behaviour, and the corresponding row of §6 is a test
+  obligation rather than a gate that already passes.
 - **R22.** Declarative containers, attributes renamed to this project's prefix — the owner's decision
   of 2026-09-18, recorded in [ADR-0001](adr/0001-name-scope-and-attribute-prefix.md). Read:
   `data-snav="container"`, `data-snav-enter`, `data-snav-wrap`, `data-snav-block`, `data-snav-trap`,
   `data-snav-scroll`, `data-snav-ignore`, `data-snav-up|down|left|right`. Written:
   `data-snav-focused` on the focused element, `data-snav-active` on every container on the path.
-  The package writes four attributes in all; the other two are `data-snav-input` on `<html>` (R12)
-  and `data-snav-focus-ring` on the overlay (R32).
+  Four attributes are styling hooks: the two above, plus `data-snav-input` on `<html>` (R12) and
+  `data-snav-focus-ring` on the overlay (R32). The package writes a fifth name that is not a hook —
+  `aria-hidden="true"`, set on the focus-ring overlay the plugin creates
+  (`packages/core/src/input/focus-ring/focus-ring.ts:198`) — so "four attributes" is the count a
+  consumer styles against, not the count the package writes. All five land on elements the package
+  owns; none is ever written on the consumer's markup.
 - **R23.** Directional filter with an overlap tolerance of `0.3`
   (`packages/core/src/input/spatial/geometry.ts:41`), the value lrud-spatial uses.
 - **R24.** Scoring weights `30` horizontal and `2` vertical (`.../geometry.ts:42-43`), from Blink's
@@ -273,8 +284,22 @@ miralabs-ui working tree, run 2026-09-18.
 - **R29.** Two modes. `composite` (default): arrows are spatial only inside composites, as the APG
   requires, and only the gamepad crosses composite boundaries, so an ordinary site becomes
   pad-drivable without losing its keyboard conventions. `app` (TV, kiosk, game): arrows drive global
-  spatial navigation too. In both, `Tab` is untouched — sequential tabbing stays the browser's, and
-  `tabNext`/`tabPrev` simulate it for pads. Recorded as [ADR-0007](adr/0007-navigation-modes.md).
+  spatial navigation too. In both, `Tab` is untouched — sequential tabbing stays the browser's.
+  Recorded as [ADR-0007](adr/0007-navigation-modes.md).
+- **R29a.** Four of the sixteen intents of R1 are **emitted and not consumed** by this package:
+  `tabNext`, `tabPrev`, `secondary` and `contextMenu`. The keymap and the pad mapping produce them
+  (R8, R17), and `tabNext`/`tabPrev` are even allowed past a trap (R4), but no module in the
+  extraction perimeter acts on any of them: the spatial engine handles the four moves and the two
+  scrolls and returns `false` for everything else
+  (`packages/core/src/input/spatial/spatial.ts:428-439`), the input system acts on `select` alone
+  (`.../input-system.ts:98-112`), and engage mode consumes `select`, `back` and its eight adjust
+  intents (`.../engage.ts:18-26`). `pageUp`, `pageDown`, `home` and `end` likewise do nothing
+  outside engage mode. In miralabs-ui these were consumed by four component machines — calendar,
+  dialog, pagination, tabs — none of which is extracted, so the gap is created by the extraction
+  and is not an omission in the source. Pressing RB on a pad therefore moves no focus today: the
+  intent reaches the application through `onIntent`, which is the documented way to act on it. A
+  built-in tab-order handler is a v1 item, not a port, because it has to decide whether the engine
+  or the application owns sequential focus.
 - **R30.** `pointerFollowsFocus`, default on in `app` mode, so mouse and pad do not fight over two
   cursors. No test covers it today.
 - **R31.** Visible limits, documented because a user meets them: container nesting is bounded at
