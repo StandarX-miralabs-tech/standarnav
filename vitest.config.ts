@@ -10,6 +10,11 @@ const browser = (process.env.SNAV_BROWSER ?? "chromium") as PlaywrightBrowser;
 
 const config: ViteUserConfig = defineConfig({
   test: {
+    // An empty run is a pass, and it has to be set here: vitest treats this as a
+    // non-project option, so a per-project copy is a type error. Without it the suite
+    // exits 1 before `src/` exists, and the first ported modules would be un-breaking a
+    // gate the scaffold broke rather than keeping a green one green.
+    passWithNoTests: true,
     projects: [
       {
         test: {

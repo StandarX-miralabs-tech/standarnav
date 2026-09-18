@@ -26,6 +26,14 @@ if (manifest.private === true) {
   process.exit(1);
 }
 
+// `files` ships dist, LICENSE and README. Without dist the pack still succeeds and the
+// linters still run, on a tarball with no code in it — a failure whose message says
+// nothing about the package being wrong.
+if (!existsSync(path.join(rootDir, "dist"))) {
+  console.error("dist/ is missing — run `bun run build` before `bun run check:package`");
+  process.exit(1);
+}
+
 const outDir = mkdtempSync(path.join(tmpdir(), "standarnav-pack-"));
 const failures: string[] = [];
 
@@ -48,7 +56,9 @@ try {
     if (!existsSync(tarball)) {
       failures.push(`tarball not found at ${tarball}`);
     } else {
-      run("publint", "bun", ["x", "publint", tarball]);
+      // --strict, because publint's warnings are the interesting half: without it the
+      // command prints them and exits 0, which reports rather than gates.
+      run("publint", "bun", ["x", "publint", "--strict", tarball]);
       run("attw", "bun", ["x", "attw", tarball, "--profile", "esm-only"]);
     }
   }

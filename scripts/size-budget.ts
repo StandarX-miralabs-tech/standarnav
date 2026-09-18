@@ -13,10 +13,8 @@
 // any other, and the run fails printing the number: a cap is written after the number
 // exists, never before, and a default would be a guess this file ratifies by being green.
 
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 
 // Declared locally rather than through `@types/bun`, which ships its own node typings
 // and collides with `@types/node`. Only the two calls below are needed.
@@ -51,42 +49,58 @@ interface Line {
   readonly note: string;
 }
 
-const SIBLINGS_EXTERNAL: readonly string[] = ["../*", "../../*"];
-
+// Externals are named file by file, never globbed. A glob is how a budget line stops
+// measuring without ever going red: `*` does not cross a path separator, so `../*` marks
+// `../types.js` external and misses `../dom/query.js`, while `./*` on a top-level entry
+// can externalise the line's own contents and report a re-export stub as proof. Each list
+// below is the part of the core graph that the subpath also imports — and deliberately
+// not a module whose only importers are subpaths, because externalising one of those
+// charges it to nobody and only the whole-package line ever sees it.
 const LINES: readonly Line[] = [
   {
     name: "core",
     entries: ["index.js"],
     cap: null,
-    note: "intent bus, input system, keymap, engage mode, modality — what every consumer pays",
+    note: "intent bus, input system, keymap, engage mode, modality, tabbable — what every consumer pays",
   },
   {
     name: "gamepad engine",
     entries: ["gamepad/gamepad.js"],
     cap: null,
-    external: SIBLINGS_EXTERNAL,
+    external: ["../types.js", "../input-system.js", "../dom/event.js"],
     note: "opt-in subpath, measured next to the core",
   },
   {
     name: "spatial engine",
     entries: ["spatial/spatial.js"],
     cap: null,
-    external: SIBLINGS_EXTERNAL,
-    note: "opt-in subpath, measured next to the core",
+    external: ["../types.js", "../input-system.js", "../dom/query.js", "../tabbable.js"],
+    note: "opt-in subpath next to the core; dom/raf.js and dom/platform.js are charged here, no root export reaching them",
   },
   {
     name: "focus ring",
     entries: ["focus-ring/focus-ring.js"],
     cap: null,
-    external: SIBLINGS_EXTERNAL,
-    note: "opt-in subpath, measured next to the core",
+    external: [
+      "../types.js",
+      "../input-system.js",
+      "../dom/event.js",
+      "../dom/query.js",
+      "../modality.js",
+    ],
+    note: "opt-in subpath next to the core; dom/platform.js is charged here as it is to spatial, which is correct for a marginal cost",
   },
   {
     name: "debug",
     entries: ["debug.js"],
     cap: null,
-    external: ["./*"],
-    note: "explainMove and the diagnostics, measured next to the spatial engine",
+    external: [
+      "./types.js",
+      "./spatial/spatial.js",
+      "./spatial/geometry.js",
+      "./spatial/containers.js",
+    ],
+    note: "explainMove, measured next to the spatial engine",
   },
   {
     name: "whole package",
@@ -102,7 +116,7 @@ interface Measurement {
   readonly gzipped: number;
 }
 
-async function measure(line: Line, scratch: string): Promise<Measurement> {
+async function measure(line: Line): Promise<Measurement> {
   const files = line.entries.map((entry) => path.join(distDir, entry));
   for (const file of files) {
     if (!existsSync(file)) {
@@ -110,37 +124,66 @@ async function measure(line: Line, scratch: string): Promise<Measurement> {
     }
   }
 
-  // Several entries are bundled once through a synthetic module that re-exports each of
-  // them: with code splitting off, passing them as separate entrypoints would duplicate
-  // every shared module in every output and overstate the sum.
+  // A named external that matches no built file is silent: the bundle simply keeps the
+  // module, the line measures more than it claims, and nothing ever goes red. Since the
+  // lists above encode a file layout, they have to be checked against it.
+  for (const file of files) {
+    for (const specifier of line.external ?? []) {
+      const resolved = path.resolve(path.dirname(file), specifier);
+      if (!existsSync(resolved)) {
+        throw new Error(
+          `${line.name}: external \`${specifier}\` resolves to ${path.relative(rootDir, resolved)}, which does not exist — re-derive this line's externals from the built graph`,
+        );
+      }
+    }
+  }
+
+  // Several entries are bundled once through a synthetic module: with code splitting off,
+  // passing them as separate entrypoints would duplicate every shared module in every
+  // output and overstate the sum. It imports namespaces into a sink rather than
+  // re-exporting, because an ambiguous star export is dropped by ES semantics — the code
+  // behind the dropped names becomes unreachable and the measurement reads as a fraction
+  // of itself. It is written inside dist/ so its relative specifiers resolve the way a
+  // consumer's would and so its own path cannot match one of the external patterns.
   let entrypoint: string;
+  let synthetic: string | null = null;
   if (files.length === 1) {
     entrypoint = files[0] as string;
   } else {
-    entrypoint = path.join(scratch, `${line.name.replace(/\W+/g, "-")}.js`);
-    const source = files.map(
-      (file) => `export * from ${JSON.stringify(pathToFileURL(file).href)};`,
-    );
+    entrypoint = path.join(distDir, `__size-${line.name.replace(/\W+/g, "-")}.js`);
+    const names = files.map((_, index) => `entry${index}`);
+    const source = [
+      ...files.map((file, index) => {
+        const specifier = `./${path.relative(distDir, file).split(path.sep).join("/")}`;
+        return `import * as ${names[index]} from ${JSON.stringify(specifier)};`;
+      }),
+      `export const sink = [${names.join(", ")}];`,
+    ];
     writeFileSync(entrypoint, `${source.join("\n")}\n`);
+    synthetic = entrypoint;
   }
 
-  const result = await Bun.build({
-    entrypoints: [entrypoint],
-    target: "browser",
-    format: "esm",
-    minify: true,
-    splitting: false,
-    external: line.external ? [...line.external] : undefined,
-  });
-  if (!result.success) {
-    throw new Error(`bundling ${line.name} failed: ${JSON.stringify(result.logs, null, 2)}`);
-  }
+  try {
+    const result = await Bun.build({
+      entrypoints: [entrypoint],
+      target: "browser",
+      format: "esm",
+      minify: true,
+      splitting: false,
+      external: line.external ? [...line.external] : undefined,
+    });
+    if (!result.success) {
+      throw new Error(`bundling ${line.name} failed: ${JSON.stringify(result.logs, null, 2)}`);
+    }
 
-  const chunks: Uint8Array[] = [];
-  for (const output of result.outputs) chunks.push(new TextEncoder().encode(await output.text()));
-  const minified = chunks.reduce((total, chunk) => total + chunk.byteLength, 0);
-  const gzipped = Bun.gzipSync(Buffer.concat(chunks)).byteLength;
-  return { line, minified, gzipped };
+    const chunks: Uint8Array[] = [];
+    for (const output of result.outputs) chunks.push(new TextEncoder().encode(await output.text()));
+    const minified = chunks.reduce((total, chunk) => total + chunk.byteLength, 0);
+    const gzipped = Bun.gzipSync(Buffer.concat(chunks)).byteLength;
+    return { line, minified, gzipped };
+  } finally {
+    if (synthetic !== null) rmSync(synthetic, { force: true });
+  }
 }
 
 function kb(bytes: number): string {
@@ -152,34 +195,28 @@ if (!existsSync(distDir)) {
   process.exit(1);
 }
 
-const scratch = mkdtempSync(path.join(tmpdir(), "standarnav-size-"));
 const failures: string[] = [];
 const rows: string[] = [];
 
-try {
-  for (const line of LINES) {
-    const { minified, gzipped } = await measure(line, scratch);
-    let status: string;
-    if (line.cap === null) {
-      status = "UNCAPPED";
-      failures.push(
-        `${line.name}: measured ${kb(gzipped)} min+gzip and has no cap — write the cap in scripts/size-budget.ts (next 0.25 kB above the measurement) and record it in an ADR-0017 amendment`,
-      );
-    } else if (gzipped > line.cap) {
-      status = "OVER";
-      failures.push(`${line.name}: ${kb(gzipped)} exceeds its cap of ${kb(line.cap)}`);
-    } else {
-      status = "ok";
-    }
-    const used =
-      line.cap === null ? "  —" : `${Math.round((gzipped / line.cap) * 100)}%`.padStart(4);
-    const cap = line.cap === null ? "(none)" : kb(line.cap);
-    rows.push(
-      `${line.name.padEnd(16)} ${kb(minified).padStart(10)} ${kb(gzipped).padStart(10)} ${cap.padStart(9)} ${used}  ${status.padEnd(8)} — ${line.note}`,
+for (const line of LINES) {
+  const { minified, gzipped } = await measure(line);
+  let status: string;
+  if (line.cap === null) {
+    status = "UNCAPPED";
+    failures.push(
+      `${line.name}: measured ${kb(gzipped)} min+gzip and has no cap — write the cap in scripts/size-budget.ts (next 0.25 kB above the measurement) and record it in an ADR-0017 amendment`,
     );
+  } else if (gzipped > line.cap) {
+    status = "OVER";
+    failures.push(`${line.name}: ${kb(gzipped)} exceeds its cap of ${kb(line.cap)}`);
+  } else {
+    status = "ok";
   }
-} finally {
-  rmSync(scratch, { recursive: true, force: true });
+  const used = line.cap === null ? "  —" : `${Math.round((gzipped / line.cap) * 100)}%`.padStart(4);
+  const cap = line.cap === null ? "(none)" : kb(line.cap);
+  rows.push(
+    `${line.name.padEnd(16)} ${kb(minified).padStart(10)} ${kb(gzipped).padStart(10)} ${cap.padStart(9)} ${used}  ${status.padEnd(8)} — ${line.note}`,
+  );
 }
 
 console.log(

@@ -70,9 +70,13 @@ jobs:
         with:
           bun-version-file: .bun-version
       - run: bun install --frozen-lockfile
+      # The lookbehind is load-bearing: `bun pm ls` prints @vitest/browser-playwright
+      # first, an unanchored pattern matches inside its tail, and the key would then carry
+      # that package's version — never changing when playwright itself is bumped, and
+      # restoring last release's browser binaries for this one.
       - name: Resolve the playwright version
         id: playwright
-        run: echo "version=$(bun pm ls | grep -oP 'playwright@\K[0-9.]+' | head -1)" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(bun pm ls | grep -oP '(?<![-\w])playwright@\K[0-9.]+' | head -1)" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright
