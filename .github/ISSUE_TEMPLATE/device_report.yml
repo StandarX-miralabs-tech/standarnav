@@ -1,0 +1,101 @@
+name: Device report
+description: Record a verified run of @standarx/nav on real hardware (TV, console pad, or set-top box).
+title: "[device] "
+labels:
+  - device-report
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this form to report a run you actually performed on real hardware, not a simulated or emulated environment.
+        The package is unreleased, so report against a build you made from a commit, or against your own fixture page.
+
+  - type: input
+    id: device
+    attributes:
+      label: Device vendor and model
+      placeholder: "Samsung QN90C, or Xbox Series X"
+    validations:
+      required: true
+
+  - type: input
+    id: os-version
+    attributes:
+      label: OS version
+      placeholder: "Tizen 8.0, or webOS 24"
+    validations:
+      required: true
+
+  - type: input
+    id: user-agent
+    attributes:
+      label: Browser engine version, as reported by navigator.userAgent
+      description: Paste the exact string, unedited.
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: inputs-tested
+    attributes:
+      label: Input devices tested
+      options:
+        - label: TV remote
+        - label: Xbox-layout pad
+        - label: DualSense
+        - label: Switch Pro
+        - label: Other (describe below)
+
+  - type: input
+    id: test-page
+    attributes:
+      label: Test page or fixture used
+      placeholder: "URL, or path to the local fixture file"
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-worked
+    attributes:
+      label: What worked
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-failed
+    attributes:
+      label: What did not work
+    validations:
+      required: true
+
+  - type: textarea
+    id: keycodes
+    attributes:
+      label: Keycodes observed for remote buttons
+      description: >
+        One button per line, as reported by the keydown event (keyCode, key, or code).
+        The placeholder shows the webOS Back and Tizen Exit codes carried by the default keymap
+        (source: miralabs-ui packages/core/src/input/keymap.ts, read 2026-09-18).
+      placeholder: |
+        Back: keyCode 461
+        Exit: keyCode 10182
+      render: text
+    validations:
+      required: false
+
+  - type: input
+    id: run-date
+    attributes:
+      label: Date of the run
+      placeholder: "YYYY-MM-DD"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I ran this on the physical device named above, not on an emulator or a simulator.
+          required: true
+        - label: I can re-test a fix on this device.
+          required: false

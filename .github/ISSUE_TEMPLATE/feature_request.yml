@@ -1,0 +1,50 @@
+name: Feature request
+description: Propose a new behaviour, attribute, or API for @standarx/nav.
+title: "[feature] "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What are you unable to do today? Describe the situation, not the solution.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-behaviour
+    attributes:
+      label: Proposed behaviour
+      description: What should happen instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: api-surface
+    attributes:
+      label: Attributes or API affected
+      description: >
+        Which data-snav-* attribute, CSS custom property, or exported function would this add or change.
+        Say "new" if none exist yet.
+    validations:
+      required: false
+
+  - type: textarea
+    id: roadmap-fit
+    attributes:
+      label: Fit with ROADMAP.md
+      description: Does this match an item already in ROADMAP.md? If so, which one. If not, say so.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: contribute
+    attributes:
+      label: Willingness to contribute
+      options:
+        - I can open a pull request for this
+        - I can help test a pull request
+        - I am reporting the idea only
+    validations:
+      required: true

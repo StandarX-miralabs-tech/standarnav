@@ -1,0 +1,28 @@
+# Dependencies and build output
+node_modules/
+dist/
+*.tgz
+coverage/
+.vitest/
+__screenshots__/
+playwright-report/
+test-results/
+
+# Local working notes (French, not published) and agent tooling
+.local/
+.claude/
+.mcp.json
+.standardoc/
+*.sxd
+
+# Editors and OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+.DS_Store
+Thumbs.db
+
+# Logs and env
+*.log
+.env
+.env.*

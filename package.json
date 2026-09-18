@@ -1,0 +1,67 @@
+{
+  "name": "@standarx/nav",
+  "version": "0.0.0",
+  "description": "Spatial navigation for the web: d-pad, gamepad sticks, TV remotes and arrow keys drive real DOM focus, declared in data attributes.",
+  "keywords": [
+    "spatial-navigation",
+    "focus",
+    "gamepad",
+    "d-pad",
+    "tv",
+    "webos",
+    "tizen",
+    "keyboard-navigation",
+    "accessibility",
+    "headless"
+  ],
+  "license": "MIT",
+  "author": "Wesley Cormier",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/StandarX-miralabs-tech/standarnav.git"
+  },
+  "homepage": "https://github.com/StandarX-miralabs-tech/standarnav#readme",
+  "bugs": "https://github.com/StandarX-miralabs-tech/standarnav/issues",
+  "type": "module",
+  "sideEffects": false,
+  "files": [
+    "dist",
+    "LICENSE",
+    "README.md"
+  ],
+  "exports": {
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "dev": "vite playground --open",
+    "build": "tsdown",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome check .",
+    "lint:fix": "biome check --write .",
+    "format": "biome format --write .",
+    "test": "vitest run",
+    "test:unit": "vitest run --project unit",
+    "test:browser": "vitest run --project browser",
+    "test:watch": "vitest",
+    "bench": "vitest bench --project unit --run",
+    "check:size": "bun run scripts/size-budget.ts",
+    "check:package": "bun run scripts/check-package.ts"
+  },
+  "devDependencies": {
+    "@arethetypeswrong/cli": "^0.18.5",
+    "@biomejs/biome": "2.5.14",
+    "@types/node": "^26.6.1",
+    "@vitest/browser-playwright": "^5.0.1",
+    "axe-core": "^4.13.0",
+    "playwright": "^1.63.0",
+    "publint": "^0.3.24",
+    "tsdown": "0.23.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.1"
+  }
+}

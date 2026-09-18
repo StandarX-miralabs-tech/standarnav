@@ -1,0 +1,108 @@
+name: Bug report
+description: Report a focus, input, or navigation bug in @standarx/nav.
+title: "[bug] "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Before filing, search existing issues. A minimal HTML fixture is required: without it, the bug cannot be reproduced.
+
+  - type: input
+    id: version
+    attributes:
+      label: Package version or commit
+      description: "No version is published yet. Paste the commit hash of the build you tested, or the version once one exists."
+      placeholder: "commit hash of the build you tested"
+    validations:
+      required: true
+
+  - type: textarea
+    id: fixture
+    attributes:
+      label: Minimal HTML fixture
+      description: >
+        A standalone HTML file reproducing the bug. Keep the container and the two buttons from the skeleton below,
+        remove anything unrelated, and edit only what is needed to reproduce the issue.
+      value: |
+        <!doctype html>
+        <html>
+          <body>
+            <div data-snav="container" style="position: relative; width: 400px; height: 200px;">
+              <button style="position: absolute; top: 20px; left: 20px; width: 120px; height: 40px;">
+                Button A
+              </button>
+              <button style="position: absolute; top: 120px; left: 260px; width: 120px; height: 40px;">
+                Button B
+              </button>
+            </div>
+          </body>
+        </html>
+      render: html
+    validations:
+      required: true
+
+  - type: dropdown
+    id: input-used
+    attributes:
+      label: Input used
+      description: The input device that produced the wrong focus move.
+      options:
+        - Keyboard arrows
+        - Gamepad d-pad
+        - Gamepad left stick
+        - Gamepad right stick
+        - TV remote
+        - Pointer
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected-actual-focus
+    attributes:
+      label: Expected vs actual focus
+      description: >
+        Which element document.activeElement should point to, and which element it actually points to after the move.
+      placeholder: |
+        Expected: document.activeElement is Button B
+        Actual: document.activeElement is still Button A
+    validations:
+      required: true
+
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      placeholder: "Chrome 128"
+    validations:
+      required: true
+
+  - type: input
+    id: os-or-tv
+    attributes:
+      label: Operating system or TV model
+      placeholder: "Windows 11, or Samsung Tizen 8.0 TV"
+    validations:
+      required: true
+
+  - type: textarea
+    id: debug-output
+    attributes:
+      label: explainMove output
+      description: >
+        Paste the output of explainMove from the debug entry point, if you captured one.
+        Leave blank if not available.
+      render: text
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: I searched existing issues and did not find a duplicate.
+          required: true
+        - label: The fixture above uses inline styles only, no CSS framework.
+          required: true

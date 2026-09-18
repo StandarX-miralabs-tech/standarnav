@@ -1,0 +1,22 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": ["config:recommended", ":semanticCommits", ":preserveSemverRanges"],
+  "schedule": ["before 6am on monday"],
+  "timezone": "Europe/Paris",
+  "lockFileMaintenance": { "enabled": true, "schedule": ["before 6am on monday"] },
+  "packageRules": [
+    {
+      "matchUpdateTypes": ["minor", "patch"],
+      "matchDepTypes": ["devDependencies"],
+      "groupName": "dev tooling (minor and patch)"
+    },
+    {
+      "matchPackageNames": ["vitest", "@vitest/browser-playwright", "playwright"],
+      "groupName": "test runner and browsers"
+    },
+    {
+      "matchPackageNames": ["@biomejs/biome", "tsdown"],
+      "rangeStrategy": "pin"
+    }
+  ]
+}

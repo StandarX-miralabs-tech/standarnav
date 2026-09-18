@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>standarnav playground</title>
+    <style>
+      :root {
+        color-scheme: light dark;
+        font-family: system-ui, sans-serif;
+      }
+      body {
+        margin: 0;
+        padding: 24px;
+        display: grid;
+        gap: 24px;
+      }
+      header {
+        display: flex;
+        align-items: baseline;
+        gap: 16px;
+      }
+      h1 {
+        font-size: 1.25rem;
+        margin: 0;
+      }
+      #status {
+        font-size: 0.875rem;
+        opacity: 0.7;
+      }
+      .rail {
+        display: flex;
+        gap: 12px;
+        overflow-x: auto;
+        padding: 8px;
+        border: 1px dashed color-mix(in srgb, currentColor 30%, transparent);
+      }
+      .grid {
+        display: grid;
+        grid-template-columns: repeat(4, 160px);
+        gap: 12px;
+        padding: 8px;
+        border: 1px dashed color-mix(in srgb, currentColor 30%, transparent);
+      }
+      .rail button,
+      .grid button {
+        min-width: 140px;
+        min-height: 80px;
+        font: inherit;
+        border-radius: 8px;
+        border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+        background: color-mix(in srgb, currentColor 6%, transparent);
+      }
+      button:focus-visible,
+      [data-snav-focused] {
+        outline: 3px solid #4c8dff;
+        outline-offset: 2px;
+      }
+      [data-snav-active] {
+        border-style: solid;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>standarnav playground</h1>
+      <span id="status">engine not wired yet</span>
+    </header>
+
+    <section class="rail" data-snav="container" data-snav-enter="last" aria-label="Rail">
+      <button type="button">Rail 1</button>
+      <button type="button">Rail 2</button>
+      <button type="button">Rail 3</button>
+      <button type="button">Rail 4</button>
+      <button type="button">Rail 5</button>
+      <button type="button">Rail 6</button>
+      <button type="button">Rail 7</button>
+      <button type="button">Rail 8</button>
+    </section>
+
+    <section class="grid" data-snav="container" data-snav-wrap="x" aria-label="Grid">
+      <button type="button">Grid 1</button>
+      <button type="button">Grid 2</button>
+      <button type="button">Grid 3</button>
+      <button type="button">Grid 4</button>
+      <button type="button">Grid 5</button>
+      <button type="button" disabled>Grid 6 (disabled)</button>
+      <button type="button">Grid 7</button>
+      <button type="button">Grid 8</button>
+    </section>
+
+    <section class="rail" aria-label="Plain markup, no container">
+      <a href="#a">Link A</a>
+      <a href="#b">Link B</a>
+      <input type="text" placeholder="Text field" />
+      <div>A div with a click handler and no tabindex: invisible to the engine on purpose.</div>
+    </section>
+
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

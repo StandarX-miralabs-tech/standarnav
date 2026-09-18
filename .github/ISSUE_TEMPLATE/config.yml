@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Discussions
+    url: https://github.com/StandarX-miralabs-tech/standarnav/discussions
+    about: Ask a question or start a discussion before filing an issue.
+  - name: Roadmap
+    url: https://github.com/StandarX-miralabs-tech/standarnav/blob/main/ROADMAP.md
+    about: Check whether a feature is already planned before requesting it.
