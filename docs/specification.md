@@ -167,7 +167,8 @@ miralabs-ui working tree, run 2026-09-18.
   `secondary`, `back`, `contextMenu`, `tabNext`, `tabPrev`, `pageUp`, `pageDown`, `home`, `end`,
   `scrollX`, `scrollY` (`packages/core/src/types.ts:11-27`). The last two carry a `value` in -1..1.
 - **R2.** An `IntentEvent` carries `intent`, `source` (`keyboard` | `gamepad` | `remote`), `repeat`,
-  optional `value`, `originalEvent` and `preventDefault()` (`packages/core/src/types.ts:9`, `:29`).
+  optional `value`, `originalEvent`, `defaultPrevented` and `preventDefault()`
+  (`packages/core/src/types.ts:9`, `:29`).
 - **R3. Founding invariant.** Arrow keys and d-pad produce the same `IntentEvent`. Nothing downstream
   can tell them apart except by reading `source`, and nothing in the engine branches on it other than
   the two documented mode rules of §5.4.
