@@ -30,6 +30,11 @@
     "README.md"
   ],
   "exports": {
+    ".": "./dist/index.js",
+    "./debug": "./dist/debug.js",
+    "./focus-ring": "./dist/focus-ring/focus-ring.js",
+    "./gamepad": "./dist/gamepad/gamepad.js",
+    "./spatial": "./dist/spatial/spatial.js",
     "./package.json": "./package.json"
   },
   "publishConfig": {
@@ -60,6 +65,7 @@
     "publint": "^0.3.24",
     "tsdown": "0.23.0",
     "typescript": "^7.0.2",
+    "unrun": "^0.3.1",
     "vite": "^8.3.0",
     "vitest": "^5.0.1"
   }

@@ -216,18 +216,15 @@ measurement is recorded with its command and date.
 
 ### Tooling and budgets
 
-- [ ] Dev-mode diagnostics in the `@standarx/nav/debug` subpath, excluded from the default build
-      ([ADR-0010](docs/adr/0010-dev-mode-diagnostics.md)). **Only one of the five deliverables that
-      ADR names has a source file.** `packages/core/src/input/spatial/debug.ts` is 73 lines
-      (`wc -l`, 2026-09-18) exporting `SpatialExplanation`, `explainMove` and a type re-export, and
-      it writes no DOM at all — a grep for `createElement`, `appendChild` and `style` over that file
-      returns nothing. `scanUnreachable`, the `MAX_CONTAINER_DEPTH` saturation warning, the dead
-      redirection warning and the printed documentation note are new code with no port behind them,
-      and open detail (O1) of that ADR — whether the `cursor: pointer` signal is opt-in or opt-out —
-      is still unanswered. Whether they are v0 or v1 is an owner decision, and it is the only v0
-      line in this file with no source file behind it. The hosted-playground line below inherits the
-      same problem: there is no debug overlay to switch on, because the overlay lived in the
-      monorepo's documentation site, not in `debug.ts`
+- [x] Dev-mode diagnostics in the `@standarx/nav/debug` subpath, excluded from the default build
+      ([ADR-0010](docs/adr/0010-dev-mode-diagnostics.md)) — **scoped to `explainMove` for v0, the
+      other four deliverables moved to v1**. Only one of the five ADR-0010 names had a source file:
+      `packages/core/src/input/spatial/debug.ts` is 73 lines (`wc -l`, 2026-09-18) exporting
+      `SpatialExplanation`, `explainMove` and four type re-exports, and it writes no DOM at all — a
+      grep for `createElement`, `appendChild` and `style` over that file returns nothing.
+      `scanUnreachable`, the `MAX_CONTAINER_DEPTH` saturation warning, the dead redirection warning
+      and the printed documentation note are new code with no port behind them, so they are not
+      extraction work and do not belong in the extraction window. ADR-0010 records the split
 - [ ] Run `bun run check:size` on a real `dist/` and write the caps it prints — measure first. Every
       cap in `scripts/size-budget.ts` is `null` today, so the run fails by design until the numbers
       exist ([ADR-0017](docs/adr/0017-size-budgets.md)). The script here covers JavaScript only; the
@@ -260,9 +257,10 @@ measurement is recorded with its command and date.
       composition drives the playground fixtures with scripted intents and exports an MP4 for the
       documentation and a GIF for the README. Decided as a v0 item on 2026-09-18, not started; it
       needs the engine wired into the playground first
-- [ ] Hosted playground with the debug overlay switched on. The fixture exists at
-      `playground/index.html`, served by `bun run dev`, but the engine is not wired into it because
-      `src/` does not exist yet
+- [ ] Hosted playground with `explainMove` wired to the console — not an overlay, which does not
+      exist: it lived in the monorepo's documentation site and no renderer is extracted, so an
+      overlay is a v1 feature needing its own spec. The fixture exists at `playground/index.html`,
+      served by `bun run dev`, and the engine is not wired into it yet
 
 ### First adapter and publication
 

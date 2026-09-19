@@ -17,7 +17,20 @@ import { existsSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 // Declared locally rather than through `@types/bun`, which ships its own node typings
-// and collides with `@types/node`. Only the two calls below are needed.
+// and collides with `@types/node`. Only what the two calls below use.
+interface BuildPlugin {
+  readonly name: string;
+  setup(build: {
+    onResolve(
+      constraints: { filter: RegExp },
+      callback: (args: {
+        path: string;
+        importer: string;
+      }) => { path: string; external: true } | undefined,
+    ): void;
+  }): void;
+}
+
 declare const Bun: {
   build(options: {
     entrypoints: string[];
@@ -25,7 +38,7 @@ declare const Bun: {
     format?: "esm";
     minify?: boolean;
     splitting?: boolean;
-    external?: string[] | undefined;
+    plugins?: BuildPlugin[];
   }): Promise<{
     success: boolean;
     logs: unknown[];
@@ -51,55 +64,49 @@ interface Line {
 
 // Externals are named file by file, never globbed. A glob is how a budget line stops
 // measuring without ever going red: `*` does not cross a path separator, so `../*` marks
-// `../types.js` external and misses `../dom/query.js`, while `./*` on a top-level entry
+// `../modality.js` external and misses `../dom/query.js`, while `./*` on a top-level entry
 // can externalise the line's own contents and report a re-export stub as proof. Each list
 // below is the part of the core graph that the subpath also imports — and deliberately
 // not a module whose only importers are subpaths, because externalising one of those
 // charges it to nobody and only the whole-package line ever sees it.
+//
+// Read off `dist/` after a build, never off `src/`: the two disagree. `src/types.ts` is
+// types only, so no `types.js` is emitted and naming one is an external that matches
+// nothing; and a type-only import of a sibling entry (gamepad's `InputPlugin`, say)
+// erases, so that sibling is not on the line to begin with.
 const LINES: readonly Line[] = [
   {
     name: "core",
     entries: ["index.js"],
     cap: null,
-    note: "intent bus, input system, keymap, engage mode, modality, tabbable — what every consumer pays",
+    note: "intent bus, input system, keymap, engage mode, modality, tabbable, and the dom/event.js and dom/query.js they pull in — what every consumer pays",
   },
   {
     name: "gamepad engine",
     entries: ["gamepad/gamepad.js"],
     cap: null,
-    external: ["../types.js", "../input-system.js", "../dom/event.js"],
+    external: ["../dom/event.js", "../intent-bus.js"],
     note: "opt-in subpath, measured next to the core",
   },
   {
     name: "spatial engine",
     entries: ["spatial/spatial.js"],
     cap: null,
-    external: ["../types.js", "../input-system.js", "../dom/query.js", "../tabbable.js"],
+    external: ["../dom/event.js", "../dom/query.js", "../tabbable.js"],
     note: "opt-in subpath next to the core; dom/raf.js and dom/platform.js are charged here, no root export reaching them",
   },
   {
     name: "focus ring",
     entries: ["focus-ring/focus-ring.js"],
     cap: null,
-    external: [
-      "../types.js",
-      "../input-system.js",
-      "../dom/event.js",
-      "../dom/query.js",
-      "../modality.js",
-    ],
+    external: ["../dom/event.js", "../dom/query.js", "../modality.js"],
     note: "opt-in subpath next to the core; dom/platform.js is charged here as it is to spatial, which is correct for a marginal cost",
   },
   {
     name: "debug",
     entries: ["debug.js"],
     cap: null,
-    external: [
-      "./types.js",
-      "./spatial/spatial.js",
-      "./spatial/geometry.js",
-      "./spatial/containers.js",
-    ],
+    external: ["./spatial/spatial.js", "./spatial/geometry.js"],
     note: "explainMove, measured next to the spatial engine",
   },
   {
@@ -127,6 +134,11 @@ async function measure(line: Line): Promise<Measurement> {
   // A named external that matches no built file is silent: the bundle simply keeps the
   // module, the line measures more than it claims, and nothing ever goes red. Since the
   // lists above encode a file layout, they have to be checked against it.
+  //
+  // The check resolves each specifier against every entry of the line, and the set of
+  // resolved absolute paths is what the bundler is then told to leave out — see the
+  // plugin below for why the specifier strings themselves are not usable.
+  const externalPaths = new Set<string>();
   for (const file of files) {
     for (const specifier of line.external ?? []) {
       const resolved = path.resolve(path.dirname(file), specifier);
@@ -135,33 +147,52 @@ async function measure(line: Line): Promise<Measurement> {
           `${line.name}: external \`${specifier}\` resolves to ${path.relative(rootDir, resolved)}, which does not exist — re-derive this line's externals from the built graph`,
         );
       }
+      externalPaths.add(resolved);
     }
   }
 
-  // Several entries are bundled once through a synthetic module: with code splitting off,
-  // passing them as separate entrypoints would duplicate every shared module in every
-  // output and overstate the sum. It imports namespaces into a sink rather than
-  // re-exporting, because an ambiguous star export is dropped by ES semantics — the code
-  // behind the dropped names becomes unreachable and the measurement reads as a fraction
-  // of itself. It is written inside dist/ so its relative specifiers resolve the way a
-  // consumer's would and so its own path cannot match one of the external patterns.
-  let entrypoint: string;
-  let synthetic: string | null = null;
-  if (files.length === 1) {
-    entrypoint = files[0] as string;
-  } else {
-    entrypoint = path.join(distDir, `__size-${line.name.replace(/\W+/g, "-")}.js`);
-    const names = files.map((_, index) => `entry${index}`);
-    const source = [
-      ...files.map((file, index) => {
-        const specifier = `./${path.relative(distDir, file).split(path.sep).join("/")}`;
-        return `import * as ${names[index]} from ${JSON.stringify(specifier)};`;
-      }),
-      `export const sink = [${names.join(", ")}];`,
-    ];
-    writeFileSync(entrypoint, `${source.join("\n")}\n`);
-    synthetic = entrypoint;
-  }
+  // Every line is bundled through a synthetic module, single-entry ones included, and it
+  // imports namespaces into a sink rather than re-exporting.
+  //
+  // Two different traps, one shape. A bare entry is tree-shaken against a package that
+  // declares `sideEffects: false`, so nothing keeps its exports alive: measured that way
+  // `index.js` reported 0.24 kB min+gzip and the bundle was a list of export names whose
+  // declarations had all been dropped — a green line weighing nothing. And an ambiguous
+  // star export is dropped by ES semantics, so a `export * from` shim reads as a fraction
+  // of itself. A namespace import into a value that is exported survives both.
+  //
+  // It also lets several entries share one bundle: with code splitting off, passing them
+  // as separate entrypoints would duplicate every shared module in every output and
+  // overstate the sum. Written inside dist/ so its relative specifiers resolve the way a
+  // consumer's would, and so its own path cannot match one of the external patterns.
+  const entrypoint = path.join(distDir, `__size-${line.name.replace(/\W+/g, "-")}.js`);
+  const names = files.map((_, index) => `entry${index}`);
+  const source = [
+    ...files.map((file, index) => {
+      const specifier = `./${path.relative(distDir, file).split(path.sep).join("/")}`;
+      return `import * as ${names[index]} from ${JSON.stringify(specifier)};`;
+    }),
+    `export const sink = [${names.join(", ")}];`,
+  ];
+  writeFileSync(entrypoint, `${source.join("\n")}\n`);
+  const synthetic: string = entrypoint;
+
+  // Externals go through a resolver, not through `external`. Bun's `external` option
+  // matches bare specifiers and globs; it does not match a relative specifier written
+  // out in full, so `external: ["../dom/event.js"]` is accepted, changes nothing, and
+  // every subpath line silently measures the core along with itself. Resolving each
+  // import against its importer and comparing absolute paths is the only form that
+  // matches what the lists above mean.
+  const markExternal: BuildPlugin = {
+    name: "size-budget-externals",
+    setup(build) {
+      build.onResolve({ filter: /.*/ }, (args) => {
+        if (args.importer === "") return undefined;
+        const resolved = path.resolve(path.dirname(args.importer), args.path);
+        return externalPaths.has(resolved) ? { path: args.path, external: true } : undefined;
+      });
+    },
+  };
 
   try {
     const result = await Bun.build({
@@ -170,7 +201,7 @@ async function measure(line: Line): Promise<Measurement> {
       format: "esm",
       minify: true,
       splitting: false,
-      external: line.external ? [...line.external] : undefined,
+      plugins: externalPaths.size > 0 ? [markExternal] : [],
     });
     if (!result.success) {
       throw new Error(`bundling ${line.name} failed: ${JSON.stringify(result.logs, null, 2)}`);
@@ -182,7 +213,7 @@ async function measure(line: Line): Promise<Measurement> {
     const gzipped = Bun.gzipSync(Buffer.concat(chunks)).byteLength;
     return { line, minified, gzipped };
   } finally {
-    if (synthetic !== null) rmSync(synthetic, { force: true });
+    rmSync(synthetic, { force: true });
   }
 }
 

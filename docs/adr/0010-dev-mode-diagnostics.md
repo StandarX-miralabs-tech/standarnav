@@ -47,6 +47,16 @@ Diagnostics ship in the existing debug subpath, `@standarx/nav/debug` (`src/debu
 core entry. They cost a production bundle nothing, by the same mechanism `explainMove` already relies
 on: a separate subpath export plus `sideEffects: false`.
 
+**Which of the five are in v0.** Only item 4. Items 1, 2, 3 and 5 are v1, and this is a scheduling
+decision rather than a change of mind: four of the five have no source file behind them. The
+inherited `debug.ts` is 73 lines exporting `SpatialExplanation`, `explainMove` and four type
+re-exports, and it writes no DOM at all — the overlay lived in the monorepo's documentation site and
+is not extracted. Building them inside the extraction window would mean designing what "looks
+interactive" means, what the confidence levels are, what shape the output takes and whether the scan
+walks shadow roots, all as new code in a sequence whose value is that a bisect can tell a rename
+from a behaviour change. `@standarx/nav/debug` is `explainMove` for v0, and the playground's
+"debug overlay" is `explainMove` wired to the console until an overlay renderer is specified.
+
 The subpath provides:
 
 1. **A reachability scan.** `scanUnreachable(root)` returns the elements that look interactive and are
