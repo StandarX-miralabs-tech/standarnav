@@ -13,6 +13,9 @@ const config: UserConfig = defineConfig({
   ],
   format: ["esm"],
   platform: "neutral",
+  // Optional peers: an application that never imports `./react` must not pull
+  // react into its graph, and one that does already has its own copy.
+  external: ["react", "react-dom", "react/jsx-runtime"],
   unbundle: true,
   dts: true,
   clean: true,
