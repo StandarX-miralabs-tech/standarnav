@@ -95,6 +95,50 @@ and the run fails by design.
 - Budgets constrain the engine described in [ADR-0016](0016-scoring-constants-provenance.md);
   a change to the scoring rule is both a fixture question and a size question.
 
+## Amendment, 2026-09-19: the first measurement, and three defects it exposed
+
+`bun run build && bun run check:size`, run 2026-09-19 on the extraction branch,
+bun 1.4.0, tsdown 0.23.0, target `browser`, minified and gzipped at Bun's default
+level. Caps by rule 3, the measurement rounded up to the next quarter kB.
+
+| Line | min | min+gzip | cap | what the line leaves out |
+|---|---|---|---|---|
+| core | 7.64 kB | 3.08 kB | 3.25 kB | nothing — it is the baseline |
+| gamepad engine | 5.37 kB | 2.48 kB | 2.50 kB | `dom/event.js`, `intent-bus.js` |
+| spatial engine | 7.23 kB | 3.03 kB | 3.25 kB | `dom/event.js`, `dom/query.js`, `tabbable.js` |
+| focus ring | 3.03 kB | 1.44 kB | 1.50 kB | `dom/event.js`, `dom/query.js`, `modality.js` |
+| debug | 0.75 kB | 0.50 kB | 0.75 kB | `spatial/spatial.js`, `spatial/geometry.js` |
+| whole package | 22.31 kB | 8.64 kB | 8.75 kB | nothing; the debug entry is not in it |
+
+The core line carries `tabbable.js` and `dom/query.js` because the root entry
+re-exports six tabbable symbols. That is a deliberate cost: it is what makes
+`isFocusable` available to a consumer without pulling an engine. `dom/raf.js` and
+`dom/platform.js` are charged to the spatial engine and `dom/platform.js` again to
+the focus ring, because no root export reaches either — a marginal cost is what
+each subpath adds, and both subpaths do add them.
+
+Three defects in the script were found by running it for the first time, each of
+which would have made a line green while measuring nothing:
+
+1. Four lines named `../types.js` external. `src/types.ts` is types only, so
+   nothing is emitted for it and the name matched no file. The existence guard
+   caught it; without that guard the external would simply have been ignored.
+2. Every line was bundled as a bare entry. Against a package declaring
+   `sideEffects: false`, nothing keeps an entry's exports alive: the core measured
+   **0.24 kB**, and its bundle was a list of export names whose declarations had
+   all been dropped. Every line now goes through the namespace-into-a-sink module
+   that previously only the whole-package line used.
+3. Bun's `external` option does not match a relative specifier written out in
+   full. `external: ["../dom/event.js"]` was accepted, matched nothing, and each
+   subpath line silently measured the core along with itself. Externals now go
+   through an `onResolve` plugin comparing resolved absolute paths. The corrected
+   figures are the ones tabled above; before the fix the same build reported
+   spatial 3.41 kB, focus ring 1.93 kB and debug 1.55 kB.
+
+Rule 3's quarter-kB rounding leaves the gamepad and whole-package lines at 99 % of
+their caps. That is the rule working as written — headroom for noise, not for
+growth — and the next commit that grows either one needs an amendment here first.
+
 ## Alternatives considered
 
 **A bundlephobia badge in the README.** Rejected: it is not blocking, it lags

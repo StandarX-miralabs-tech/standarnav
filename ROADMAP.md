@@ -225,14 +225,17 @@ measurement is recorded with its command and date.
       `scanUnreachable`, the `MAX_CONTAINER_DEPTH` saturation warning, the dead redirection warning
       and the printed documentation note are new code with no port behind them, so they are not
       extraction work and do not belong in the extraction window. ADR-0010 records the split
-- [ ] Run `bun run check:size` on a real `dist/` and write the caps it prints — measure first. Every
-      cap in `scripts/size-budget.ts` is `null` today, so the run fails by design until the numbers
-      exist ([ADR-0017](docs/adr/0017-size-budgets.md)). The script here covers JavaScript only; the
-      equivalent in miralabs-ui is 2006 lines (`wc -l`, 2026-09-18), about half of it about CSS.
-      Inherited figures from `bun run check:size` in miralabs-ui on 2026-09-18, dist built the same
-      day, externals `../*` and `../../*`: input system 1.93 kB, gamepad 2.35 kB, spatial 2.81 kB,
-      modality 0.74 kB. Reported but not re-measured: spatial without externals 3303 B. These are
-      the source repository's numbers, not standarnav's
+- [x] Run `bun run check:size` on a real `dist/` and write the caps it prints — **done 2026-09-19**.
+      `bun run build && bun run check:size`, bun 1.4.0, tsdown 0.23.0, min+gzip at Bun's default
+      level: core 3.08 kB, gamepad 2.48 kB, spatial 3.03 kB, focus ring 1.44 kB, debug 0.50 kB,
+      whole package 8.64 kB; caps at the next quarter kB by rule 3 of
+      [ADR-0017](docs/adr/0017-size-budgets.md), whose 2026-09-19 amendment records each number,
+      what its line leaves out, and the three script defects the first run exposed. The script
+      covers JavaScript only; the equivalent in miralabs-ui is 2006 lines (`wc -l`, 2026-09-18),
+      about half of it about CSS. Inherited figures, the source repository's and not standarnav's,
+      from `bun run check:size` in miralabs-ui on 2026-09-18 with externals `../*` and `../../*`:
+      input system 1.93 kB, gamepad 2.35 kB, spatial 2.81 kB, modality 0.74 kB, and spatial without
+      externals 3303 B reported but not re-measured
 - [ ] Confirm the scope of each budget line once the caps exist: the four subpath lines are measured
       with their siblings external, so their numbers are a marginal cost, and the whole-package line
       is the figure a consumer of everything pays

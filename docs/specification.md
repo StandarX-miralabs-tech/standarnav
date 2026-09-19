@@ -401,9 +401,14 @@ inside miralabs-ui, where it already has a consumer.
 4. **Dependency direction with miralabs-ui.** Its core imports `pushEngageScope` and
    `isTextEntryTarget` by value. After extraction, does miralabs-ui depend on `@standarx/nav` for
    those two, or do they stay in miralabs-ui?
-5. **Budget perimeters.** `scripts/size-budget.ts` already fixes one perimeter per line (§6) and
-   leaves every cap `null`. Are those the right perimeters, and what does each number then mean to a
-   consumer? Settle that before writing any cap ([ADR-0017](adr/0017-size-budgets.md)).
+5. ~~**Budget perimeters.**~~ **Settled 2026-09-19.** The six perimeters stand, and each number is
+   the marginal cost of adding that subpath next to the core. Two consequences are worth stating
+   before the caps become a gate nobody revisits: the core line carries `tabbable.js` and
+   `dom/query.js`, because the root entry re-exports six tabbable symbols so that `isFocusable` is
+   reachable without an engine; and `dom/raf.js` and `dom/platform.js` are charged to the engines
+   that are their only importers rather than to the core, which is what a marginal cost means. The
+   measurements, the caps and the three script defects the first run exposed are recorded in the
+   2026-09-19 amendment to [ADR-0017](adr/0017-size-budgets.md).
 6. **Untested behaviours inherited from the source.** `scrollAndRescan`, `pointerFollowsFocus`,
    `data-snav-scroll="center"`, the whole of `debug.ts` (whose winner rule is a re-implementation,
    not a shared one) and right-stick horizontal scroll have no tests. Specify and test, or drop?
