@@ -67,10 +67,18 @@ returning its teardown, `pause`/`resume`, the context methods a plugin may call 
 system would hide which call actually happened.
 
 **5. One adapter parity suite.** The behaviours an adapter must reproduce (provider mounts and
-destroys the system, scope pushed on mount and released on unmount in LIFO order, modality readable,
-intents reaching a handler, no leak after unmount) live in a single suite that each adapter mounts
-with its own mounting function. React first, then vanilla, Vue, Svelte, Angular, in the adapter
-order this repository adopted. An adapter that does not pass the suite does not ship.
+destroys the system, scope pushed on mount and released on unmount, innermost asked first, modality
+readable, intents reaching a handler, no leak after unmount) live in a single suite that each adapter
+mounts with its own mounting function. React first, then vanilla, Vue, Svelte, Angular, in the
+adapter order this repository adopted. An adapter that does not pass the suite does not ship.
+
+Amended 2026-09-19, when the suite was written and React ran it: this originally required scopes to
+be *released in LIFO order* on unmount. React tears a tree down parent-first, so its outer scope is
+released before its inner one — and it makes no difference, because `createIntentBus` removes a
+scope by identity (`indexOf` then `splice`, `src/intent-bus.ts:118-119`) rather than by position.
+The requirement would have failed every adapter for something unobservable while saying nothing
+about a real leak, so the suite asserts that every scope pushed is released and that nothing reaches
+a handler afterwards. Dispatch order, which *is* observable, is asserted separately and still LIFO.
 
 **6. Port first, then fill the gaps.** The 160 core cases and the React adapter cases are ported
 before new behaviour is written. Then these, which the source does not cover:
