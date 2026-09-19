@@ -74,7 +74,6 @@ measurement is recorded with its command and date.
 - [ ] Move the input system into `src/` with the planned layout: `src/index.ts`, `src/types.ts`,
       `src/intent-bus.ts`, `src/input-system.ts`, `src/keymap.ts`, `src/engage.ts`,
       `src/modality.ts`, `src/tabbable.ts`, `src/dom/*.ts`, `src/gamepad/*.ts`, `src/spatial/*.ts`
-      (including `spatial/geometry.bench.ts`, which `vitest.config.ts` already globs),
       `src/focus-ring/*.ts`, `src/debug.ts`. `debug.ts` is hoisted out of `spatial/`, where the
       source keeps it. There is no `src/invariant.ts` and no `src/utils/`: see the prefix item below
 - [ ] Rename read attributes to `data-snav="container"`, `data-snav-enter`, `data-snav-wrap`,
@@ -130,9 +129,10 @@ measurement is recorded with its command and date.
       describe blocks, of which 12 cover this group and 8 survive the narrowing: all 4 query cases,
       2 of 3 event cases, 1 of 4 raf cases and the platform case, once `query`, `isModifiedEvent`,
       `isPrimaryPointer`, `rafs`, `nextTick`, `timeout` and the seven user-agent sniffs are left
-      behind as unimported by the perimeter). With the geometry timing guard moved to the bench: 187
-      cases plus one bench file. They run through the real input system; a fake host is kept for the
-      plugin contract alone ([ADR-0018](docs/adr/0018-testing-strategy.md))
+      behind as unimported by the perimeter). All 188 stay tests, the geometry timing guard
+      included: `vitest` 5.0.1 exports no `bench`, so no benchmark file is ported and the guard is
+      the only performance gate v0 has. They run through the real input system; a fake host is kept
+      for the plugin contract alone ([ADR-0018](docs/adr/0018-testing-strategy.md))
 - [ ] Nested containers, the largest hole and the one this list did not have: the whole 25-case
       spatial browser suite holds exactly two containers, `#left` and `#right`, and they are
       siblings (`spatial.browser.test.ts:169-179`, read 2026-09-18). So `childContainerOf`
@@ -195,8 +195,11 @@ measurement is recorded with its command and date.
       `MAX_BUTTONS = 20` (`gamepad/gamepad.ts:43-44`), all read in the source on 2026-09-18
 - [ ] Fixture for the `WeakRef` fallback path: the strong reference validated with `isConnected`
       needs a run of its own ([ADR-0013](docs/adr/0013-browser-baseline-and-fallbacks.md))
-- [ ] Keep a benchmark for `findBestCandidate`, and state in the file what it does not measure:
-      `collectNavNodes`, `getBoundingClientRect`, `querySelectorAll`, `checkVisibility`
+- [ ] Find a benchmark runner, then write both benchmarks. `vitest` 5.0.1 exports no `bench`, so
+      the inherited `geometry.bench.ts` is not ported and neither benchmark exists yet. Until one
+      does, the only performance gate is the median-of-51 guard in `geometry.test.ts`, and it
+      measures `findBestCandidate` alone — not `collectNavNodes`, `getBoundingClientRect`,
+      `querySelectorAll` or `checkVisibility`
 - [ ] Add a second benchmark covering an end-to-end move, so the blind spot above is measured rather
       than described; every figure it prints records the machine, the browser and the date
       ([ADR-0018](docs/adr/0018-testing-strategy.md))

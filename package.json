@@ -47,7 +47,6 @@
     "test:unit": "vitest run --project unit",
     "test:browser": "vitest run --project browser",
     "test:watch": "vitest",
-    "bench": "vitest bench --project unit --run",
     "check:size": "bun run scripts/size-budget.ts",
     "check:package": "bun run scripts/check-package.ts"
   },

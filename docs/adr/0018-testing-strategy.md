@@ -29,10 +29,11 @@ The scope stack, the keyboard source and the modality writer are therefore under
 assertion.
 
 Two blind spots are inherited with the suite. The benchmark measures `findBestCandidate` alone
-(`spatial/geometry.bench.ts:32-44`), and the regression gate in `spatial/geometry.test.ts:156-177`
-(median of 51 samples under 1 ms for 200 candidates) has the same shape: neither one calls
-`collectNavNodes`, `getBoundingClientRect`, `querySelectorAll` or `checkVisibility`. And several
-behaviours ship with no test at all; they are listed in decision 6 below.
+(`spatial/geometry.bench.ts:32-44` in the source), and the regression gate in
+`spatial/geometry.test.ts:156-177` (median of 51 samples under 1 ms for 200 candidates) has the
+same shape: neither one calls `collectNavNodes`, `getBoundingClientRect`, `querySelectorAll` or
+`checkVisibility`. And several behaviours ship with no test at all; they are listed in decision 6
+below.
 
 ## Decision
 
@@ -85,11 +86,16 @@ before new behaviour is written. Then these, which the source does not cover:
 | `WeakRef` fallback path | the strong reference validated with `isConnected`, the fallback the browser baseline requires, needs its own run |
 | The inherited hard limits | container depth 16 (`spatial/spatial.ts:55`), `MAX_PADS = 4` and `MAX_BUTTONS = 20` (`gamepad/gamepad.ts:43-44`) are asserted nowhere; one fixture each pins the behaviour at the boundary |
 
-**7. Benchmarks: two, not one.** `findBestCandidate` on 200 and 2 000 candidates is kept as
-inherited. A second benchmark measures an end-to-end move — candidate collection,
-`getBoundingClientRect`, filtering, scoring — on 200 candidates in the browser project. Every
-published figure records the machine, the browser and the date of the run; without them it is not a
-number this project prints.
+**7. Benchmarks: two, not one — and neither exists yet.** The intent stands: `findBestCandidate` on
+200 and 2 000 candidates, plus a second benchmark measuring an end-to-end move — candidate
+collection, `getBoundingClientRect`, filtering, scoring — on 200 candidates in the browser project.
+Neither is written. `vitest` 5.0.1 exports no `bench` function (only the `vitest bench` CLI
+survives, and it renames the project, so a `--project` filter no longer matches), so the inherited
+`geometry.bench.ts` is not ported and a runner has to be chosen first. Until then the only
+performance gate is the median-of-51 guard, kept as an ordinary test in `geometry.test.ts` with a
+margin of roughly two hundred times the historical figure — enough to catch an algorithmic
+regression and not enough to flake on a loaded runner. Every published figure records the machine,
+the browser and the date of the run; without them it is not a number this project prints.
 
 **8. Gamepad tests drive frames through the `GamepadRuntime` seam.** `getGamepads`, `requestFrame`
 and `cancelFrame` are injected (`gamepad/gamepad.ts:59-63`, `gamepad/gamepad.ts:92-93`), so a test

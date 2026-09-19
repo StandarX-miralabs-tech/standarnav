@@ -22,14 +22,12 @@ const config: ViteUserConfig = defineConfig({
           environment: "node",
           include: ["src/**/*.test.ts", "src/**/*.test.tsx", "scripts/**/*.test.ts"],
           exclude: ["**/*.browser.test.ts", "**/*.browser.test.tsx"],
-          benchmark: { include: ["src/**/*.bench.ts"] },
         },
       },
       {
         test: {
           name: "browser",
           include: ["src/**/*.browser.test.ts", "src/**/*.browser.test.tsx"],
-          benchmark: { include: [] },
           browser: {
             enabled: true,
             provider: playwright(),

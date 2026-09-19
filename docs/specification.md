@@ -360,6 +360,8 @@ The performance gate needs the same care. The inherited bench
 2000 candidates, and the guard at `packages/core/src/input/spatial/geometry.test.ts:156-177`
 (median of 51 samples under 1 ms) has the same blind spot: neither measures `collectNavNodes`,
 `getBoundingClientRect`, `querySelectorAll` or `checkVisibility`. A move is not the arithmetic.
+Of the two, only the guard is ported — `vitest` 5.0.1 exports no `bench` — so v0 ships that blind
+spot with no benchmark beside it. See [ADR-0018](adr/0018-testing-strategy.md).
 
 ## 7. Success criteria and decision date (proposed)
 
