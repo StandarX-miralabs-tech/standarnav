@@ -73,6 +73,22 @@ Any change to a constant, to the formula, or to the winner rule requires a
 geometry fixture that fails before the change and passes after it. A weight moved
 without a fixture is a regression no one can name.
 
+### Timing constants outside the score
+
+Two more numbers decide behaviour the same way a weight does, and they are
+recorded here because they have no provenance to cite and should not acquire a
+false one by silence.
+
+| Name | Value | Origin |
+|---|---|---|
+| `POINTER_INTENT_MS` | `300` | Local choice. It is how long continuous mouse movement must last before it takes the modality away from a keyboard or gamepad session. Not measured against user testing; the rationale is written at its declaration, the number is not derived from it. |
+| `POINTER_STREAK_GAP_MS` | `100` | Local choice, and the one with the least behind it: the gap that ends a streak, so that a pointer set down and moved later does not accumulate age across the pause. No external source. |
+
+Both live in `src/modality.ts`. They carry the same rule as the scoring
+constants: changing either wants a fixture that fails before and passes after.
+`src/modality.test.ts` pins the inclusive boundary of the first one at 299 and
+300 milliseconds, which is why that case asserts both sides rather than one.
+
 ## Consequences
 
 - The numbers are traceable. A reader who wonders why horizontal moves punish
