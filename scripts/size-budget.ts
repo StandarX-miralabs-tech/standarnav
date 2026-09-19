@@ -110,6 +110,13 @@ const LINES: readonly Line[] = [
     note: "explainMove, measured next to the spatial engine",
   },
   {
+    name: "react adapter",
+    entries: ["react/react.js"],
+    cap: 1.25 * KB,
+    external: ["react", "react/jsx-runtime", "../input-system.js", "../modality.js"],
+    note: "opt-in subpath next to the core; react itself is a peer and never bundled, and internal/{env,equality}.js are charged here as adapter-only helpers",
+  },
+  {
     name: "whole package",
     entries: ["index.js", "gamepad/gamepad.js", "spatial/spatial.js", "focus-ring/focus-ring.js"],
     cap: 8.75 * KB,
@@ -138,9 +145,19 @@ async function measure(line: Line): Promise<Measurement> {
   // The check resolves each specifier against every entry of the line, and the set of
   // resolved absolute paths is what the bundler is then told to leave out — see the
   // plugin below for why the specifier strings themselves are not usable.
+  //
+  // A bare specifier is a peer dependency rather than a file of this package, so it
+  // has nothing to check against and is matched by name. Leaving one out is how the
+  // react line first measured 29 kB: react is never shipped, and a line that bundles
+  // it is reporting a consumer's cost as this package's.
   const externalPaths = new Set<string>();
-  for (const file of files) {
-    for (const specifier of line.external ?? []) {
+  const externalPackages = new Set<string>();
+  for (const specifier of line.external ?? []) {
+    if (!specifier.startsWith(".")) {
+      externalPackages.add(specifier);
+      continue;
+    }
+    for (const file of files) {
       const resolved = path.resolve(path.dirname(file), specifier);
       if (!existsSync(resolved)) {
         throw new Error(
@@ -188,6 +205,7 @@ async function measure(line: Line): Promise<Measurement> {
     setup(build) {
       build.onResolve({ filter: /.*/ }, (args) => {
         if (args.importer === "") return undefined;
+        if (externalPackages.has(args.path)) return { path: args.path, external: true };
         const resolved = path.resolve(path.dirname(args.importer), args.path);
         return externalPaths.has(resolved) ? { path: args.path, external: true } : undefined;
       });
@@ -201,7 +219,7 @@ async function measure(line: Line): Promise<Measurement> {
       format: "esm",
       minify: true,
       splitting: false,
-      plugins: externalPaths.size > 0 ? [markExternal] : [],
+      plugins: externalPaths.size + externalPackages.size > 0 ? [markExternal] : [],
     });
     if (!result.success) {
       throw new Error(`bundling ${line.name} failed: ${JSON.stringify(result.logs, null, 2)}`);

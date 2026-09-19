@@ -139,6 +139,24 @@ Rule 3's quarter-kB rounding leaves the gamepad and whole-package lines at 99 % 
 their caps. That is the rule working as written — headroom for noise, not for
 growth — and the next commit that grows either one needs an amendment here first.
 
+**The react adapter line, added the same day:** 2.35 kB min, **1.13 kB min+gzip**,
+capped at 1.25 kB. It leaves out `input-system.js` and `modality.js`, which the
+core already pays for, and `react` and `react/jsx-runtime`, which are optional
+peers the consumer supplies. `internal/env.js` and `internal/equality.js` are
+charged here rather than to the core: they exist only for the adapter, and the
+core inlines its single assertion and has no `utils` module at all.
+
+That line exposed a fourth script defect, of the same family as the three above:
+the external mechanism handled relative paths only, so `react` was bundled into
+the measurement and the line first read **9.77 kB min+gzip, 29.04 kB minified** —
+a consumer's own copy of React reported as this package's cost. A bare specifier
+is now matched by name, and it has no file to check against because it is not a
+file of this package.
+
+The whole-package line does not include the react entry, and that is deliberate:
+its contract is "every runtime entry bundled with nothing external", and react is
+external by definition.
+
 ## Alternatives considered
 
 **A bundlephobia badge in the README.** Rejected: it is not blocking, it lags

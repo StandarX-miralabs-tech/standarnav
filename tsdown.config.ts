@@ -10,6 +10,7 @@ const config: UserConfig = defineConfig({
     "src/spatial/spatial.ts",
     "src/focus-ring/focus-ring.ts",
     "src/debug.ts",
+    "src/react/react.tsx",
   ],
   format: ["esm"],
   platform: "neutral",
@@ -26,6 +27,7 @@ const config: UserConfig = defineConfig({
         "./gamepad/gamepad": "./gamepad",
         "./spatial/spatial": "./spatial",
         "./focus-ring/focus-ring": "./focus-ring",
+        "./react/react": "./react",
       };
       const renamed: Record<string, string> = {};
       for (const [subpath, target] of Object.entries(exports)) {
