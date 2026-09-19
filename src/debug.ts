@@ -11,6 +11,7 @@
  */
 
 import {
+  findBestCandidate,
   type MoveDirection,
   type ScoredCandidate,
   type ScoreOptions,
@@ -59,22 +60,12 @@ export function explainMove(
   const nodes = collectNavNodes(container, root).filter(
     (node) => node.element !== origin && !node.element.contains(origin),
   );
+  // The winner comes from the engine's own function, never from a second
+  // implementation of the same rule: a diagnostic that can disagree with the
+  // engine is worse than none (ADR-0010, decision 4). `scoreCandidates` stays
+  // for the per-candidate table alone, so the hot path still allocates nothing.
   const candidates = scoreCandidates(originRect, nodes, direction, options.score);
-
-  // The engine's rule, restated once here rather than exported from the hot path:
-  // the best aligned candidate, and only if none is aligned, the best of the rest.
-  let winner: NavNode | null = null;
-  let best = Number.POSITIVE_INFINITY;
-  for (const pass of [true, false]) {
-    for (const entry of candidates) {
-      if (!entry.eligible || entry.aligned !== pass) continue;
-      if (entry.score < best) {
-        winner = entry.candidate;
-        best = entry.score;
-      }
-    }
-    if (winner !== null) break;
-  }
+  const winner = findBestCandidate(originRect, nodes, direction, options.score);
 
   return { origin, originRect, container, candidates, winner };
 }
