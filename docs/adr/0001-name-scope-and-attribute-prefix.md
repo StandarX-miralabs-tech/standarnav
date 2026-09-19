@@ -51,7 +51,7 @@ Attributes read from the markup: `data-snav="container"`, `data-snav-enter`,
 | `data-snav-active` | every container on the active path | `data-nav-active` |
 | `data-snav-input` | `<html>`, modality: keyboard, pointer, touch, gamepad | `data-mira-input` |
 | `data-snav-focus-ring` | the focus ring overlay | `data-mira-focus-ring` |
-| `--snav-focus-ring-*` | CSS custom properties read by the overlay | `--mira-focus-ring-*` |
+| `--snav-focus-ring-*` | five CSS custom properties: `offset`, `duration` and `easing`, read by the overlay, plus `color` and `width`, substituted into its inline `box-shadow` | `--mira-focus-ring-*` |
 
 Two of them change category, not just prefix: `data-focused` and `data-nav-active`
 are unprefixed in the source

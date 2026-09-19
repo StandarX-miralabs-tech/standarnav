@@ -109,11 +109,19 @@ measurement is recorded with its command and date.
       (`input-system.ts:17` imports it, `:73` calls it) and `warn` not at all, so the 11-line
       `utils/invariant.ts` becomes an inlined `throw` at that single site and a deleted import — not
       a file to move and not a sweep to run
-- [ ] Settle the focus-ring scope for v0 — inline default tokens in the plugin, a small optional
-      stylesheet, or focus-ring out of v0 — then implement the answer. The source reads its colours,
-      width, radius and z-index from `packages/styles/scss/components/_focus-ring.scss`, which stays
-      in miralabs-ui, so a plugin published without defaults draws an invisible ring. Open question
-      of [ADR-0004](docs/adr/0004-relationship-with-miralabs-ui.md)
+- [x] Settle the focus-ring scope for v0 — **settled: the plugin paints itself inline**. The source
+      read its colour, width, radius and z-index from
+      `packages/styles/scss/components/_focus-ring.scss`, which stays in miralabs-ui, so a plugin
+      published without defaults would draw an invisible ring. The overlay's inline style now
+      carries `box-shadow: 0 0 0 var(--snav-focus-ring-width, 2px) var(--snav-focus-ring-color,
+      #1a73e8)`, adding those two names to the three it already read. The default measures 4.51:1
+      on white and 4.36:1 on `#0b0b0f`, both above the 3:1 that WCAG SC 1.4.11 asks of a non-text
+      indicator. Closes the open question of
+      [ADR-0004](docs/adr/0004-relationship-with-miralabs-ui.md)
+- [ ] Ring under `forced-colors: active`, which suppresses `box-shadow` outright, so the ring
+      vanishes in a forced-colours theme. The source covered it with a media query using the
+      `Highlight` system colour; an inline style cannot carry one, so v0 ships without it and the
+      fix is either a `matchMedia` read in the plugin or an optional stylesheet
 
 ### Tests
 
