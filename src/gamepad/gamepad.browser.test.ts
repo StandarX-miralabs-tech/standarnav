@@ -17,8 +17,8 @@ interface PadInit {
   readonly axes?: readonly number[];
 }
 
-function makePad(init: PadInit = {}): Gamepad {
-  const buttons = Array.from({ length: 16 }, (_unused, index) => {
+function makePad(init: PadInit = {}, buttonCount = 16): Gamepad {
+  const buttons = Array.from({ length: buttonCount }, (_unused, index) => {
     const value = init.buttons?.[index] ?? 0;
     return { pressed: value > 0.5, touched: value > 0, value };
   });
@@ -35,9 +35,16 @@ function makePad(init: PadInit = {}): Gamepad {
   } as unknown as Gamepad;
 }
 
-function harness(options: GamepadPluginOptions = {}, initial: PadInit | null = {}) {
-  const pads: (Gamepad | null)[] = [null, null, null, null];
-  if (initial !== null) pads[0] = makePad(initial);
+// Six slots and a settable button count: the engine bounds are MAX_PADS = 4 and
+// MAX_BUTTONS = 20, and a harness with exactly four slots and sixteen buttons cannot
+// represent either boundary, let alone a pad past it.
+function harness(
+  options: GamepadPluginOptions = {},
+  initial: PadInit | null = {},
+  buttonCount = 16,
+) {
+  const pads: (Gamepad | null)[] = [null, null, null, null, null, null];
+  if (initial !== null) pads[0] = makePad(initial, buttonCount);
 
   let pending: ((now: number) => void) | null = null;
   const runtime: GamepadRuntime = {
@@ -76,7 +83,7 @@ function harness(options: GamepadPluginOptions = {}, initial: PadInit | null = {
     frame,
     isPolling: (): boolean => pending !== null,
     set(init: PadInit | null, index = 0): void {
-      pads[index] = init === null ? null : makePad({ ...init, index });
+      pads[index] = init === null ? null : makePad({ ...init, index }, buttonCount);
     },
   };
 }
@@ -290,5 +297,284 @@ describe("gamepadPlugin", () => {
     scene.input.destroy();
 
     expect(scene.isPolling()).toBe(false);
+  });
+});
+
+describe("gamepadPlugin — the inherited hard limits", () => {
+  it("polls four pads and ignores a fifth", () => {
+    // MAX_PADS = 4, asserted nowhere before this. The harness offers six slots
+    // precisely so the boundary and the slot past it are both representable.
+    // Slot 0 holds an idle pad because the loop only starts when one is present.
+    const scene = harness();
+    scene.set({ buttons: { 0: 1 } }, 3);
+    scene.set({ buttons: { 1: 1 } }, 4);
+    scene.frame(16);
+
+    expect(names(scene.intents)).toEqual(["select"]);
+  });
+
+  it("reads twenty buttons and stops there", () => {
+    // MAX_BUTTONS = 20. Button 15 is the last of the standard mapping, so a pad
+    // reporting more is not exotic — it is any pad with paddles or a touchpad.
+    const scene = harness({}, {}, 24);
+    scene.set({ buttons: { 15: 1, 21: 1 } });
+    scene.frame(16);
+
+    expect(names(scene.intents)).toEqual(["moveRight"]);
+  });
+});
+
+describe("gamepadPlugin — rumble", () => {
+  function padWithActuator(): { pad: Gamepad; play: ReturnType<typeof vi.fn> } {
+    const play = vi.fn(() => Promise.resolve("complete"));
+    const pad = makePad();
+    Object.defineProperty(pad, "vibrationActuator", { value: { playEffect: play } });
+    return { pad, play };
+  }
+
+  function runtimeFor(pads: (Gamepad | null)[]): GamepadRuntime {
+    return {
+      getGamepads: (): readonly (Gamepad | null)[] => pads,
+      requestFrame: (): number => 1,
+      cancelFrame: (): void => {},
+    };
+  }
+
+  it("plays a dual-rumble effect with the documented defaults", () => {
+    const { pad, play } = padWithActuator();
+    const plugin = gamepadPlugin({ runtime: runtimeFor([pad]) });
+    const input = createInputSystem({ plugins: [plugin] });
+    cleanups.push(() => input.destroy());
+
+    plugin.rumble();
+
+    expect(play).toHaveBeenCalledWith("dual-rumble", {
+      duration: 120,
+      weakMagnitude: 0.4,
+      strongMagnitude: 0.2,
+    });
+  });
+
+  it("takes the caller's numbers when given them", () => {
+    const { pad, play } = padWithActuator();
+    const plugin = gamepadPlugin({ runtime: runtimeFor([pad]) });
+    const input = createInputSystem({ plugins: [plugin] });
+    cleanups.push(() => input.destroy());
+
+    plugin.rumble({ duration: 30, weak: 1, strong: 0.5 });
+
+    expect(play).toHaveBeenCalledWith("dual-rumble", {
+      duration: 30,
+      weakMagnitude: 1,
+      strongMagnitude: 0.5,
+    });
+  });
+
+  it("rumbles the named pad rather than the active one", () => {
+    const first = padWithActuator();
+    const second = padWithActuator();
+    const plugin = gamepadPlugin({ runtime: runtimeFor([first.pad, second.pad]) });
+    const input = createInputSystem({ plugins: [plugin] });
+    cleanups.push(() => input.destroy());
+
+    plugin.rumble({ padIndex: 1 });
+
+    expect(first.play).not.toHaveBeenCalled();
+    expect(second.play).toHaveBeenCalledOnce();
+  });
+
+  it("is a no-op on a pad with no haptics", () => {
+    const plugin = gamepadPlugin({ runtime: runtimeFor([makePad()]) });
+    const input = createInputSystem({ plugins: [plugin] });
+    cleanups.push(() => input.destroy());
+
+    expect(() => plugin.rumble()).not.toThrow();
+  });
+
+  it("swallows a refusal rather than leaving a rejection nobody watches", async () => {
+    const play = vi.fn(() => Promise.reject(new Error("NotAllowedError")));
+    const pad = makePad();
+    Object.defineProperty(pad, "vibrationActuator", { value: { playEffect: play } });
+    const plugin = gamepadPlugin({ runtime: runtimeFor([pad]) });
+    const input = createInputSystem({ plugins: [plugin] });
+    cleanups.push(() => input.destroy());
+
+    const unhandled = vi.fn();
+    window.addEventListener("unhandledrejection", unhandled);
+    cleanups.push(() => window.removeEventListener("unhandledrejection", unhandled));
+
+    plugin.rumble();
+    await new Promise<void>((resolve) => setTimeout(resolve, 20));
+
+    expect(play).toHaveBeenCalledOnce();
+    expect(unhandled).not.toHaveBeenCalled();
+  });
+});
+
+describe("gamepadPlugin — the bits nothing wired up", () => {
+  it("reports a connection, its family and its mapping", () => {
+    const scene = harness({}, null);
+    const seen: { id: string; padType: string; mapping: string; index: number }[] = [];
+    cleanups.push(scene.plugin.onConnected((info) => seen.push(info)));
+
+    // A plain Event carrying a `gamepad` property: constructing a real
+    // GamepadEvent needs a real Gamepad, which a test cannot mint.
+    const event = new Event("gamepadconnected");
+    Object.defineProperty(event, "gamepad", {
+      value: makePad({ id: "DualSense Wireless Controller", index: 2 }),
+    });
+    window.dispatchEvent(event);
+
+    expect(seen).toEqual([
+      { index: 2, id: "DualSense Wireless Controller", padType: "dualsense", mapping: "standard" },
+    ]);
+  });
+
+  it("reports a disconnection and forgets what that pad was holding", () => {
+    const scene = harness();
+    const gone = vi.fn();
+    cleanups.push(scene.plugin.onDisconnected(gone));
+
+    scene.set({ buttons: { 0: 1 } }, 1);
+    scene.frame(16);
+
+    const event = new Event("gamepaddisconnected");
+    Object.defineProperty(event, "gamepad", { value: makePad({ index: 1 }) });
+    window.dispatchEvent(event);
+
+    expect(gone).toHaveBeenCalledWith(expect.objectContaining({ index: 1 }));
+    // The button is still down, and it emits again, because the slot was cleared.
+    scene.frame(32);
+    expect(names(scene.intents)).toEqual(["select", "select"]);
+  });
+
+  it("stops listening once its own teardown has run", () => {
+    const scene = harness({}, null);
+    const seen = vi.fn();
+    cleanups.push(scene.plugin.onConnected(seen));
+
+    scene.input.destroy();
+    const event = new Event("gamepadconnected");
+    Object.defineProperty(event, "gamepad", { value: makePad() });
+    window.dispatchEvent(event);
+
+    expect(seen).not.toHaveBeenCalled();
+  });
+
+  it("ignores an assign outside the four slots", () => {
+    const scene = harness();
+    const route = vi.fn();
+
+    expect(() => {
+      scene.plugin.assign(-1, route);
+      scene.plugin.assign(4, route);
+    }).not.toThrow();
+
+    scene.set({ buttons: { 0: 1 } });
+    scene.frame(16);
+    expect(route).not.toHaveBeenCalled();
+    expect(names(scene.intents)).toEqual(["select"]);
+  });
+
+  it("calls a pad generic until it has seen one", () => {
+    const scene = harness({}, null);
+
+    expect(scene.plugin.padType()).toBe("generic");
+    expect(scene.plugin.padType(3)).toBe("generic");
+    expect(scene.plugin.padType(99)).toBe("generic");
+  });
+});
+
+/**
+ * A blank same-origin iframe, so a test owns a whole Document: `visibilityState`
+ * is read-only on the page running the suite, and the engine's battery promise is
+ * written entirely in terms of it. Reused by the input-system cases.
+ */
+function iframeDocument(): Document {
+  const frame = document.createElement("iframe");
+  frame.setAttribute("aria-hidden", "true");
+  frame.style.cssText = "position:fixed;left:-9999px;width:200px;height:200px";
+  document.body.append(frame);
+  cleanups.push(() => frame.remove());
+  return frame.contentDocument as Document;
+}
+
+describe("gamepadPlugin — the battery promise", () => {
+  function hidden() {
+    const doc = iframeDocument();
+    let state: DocumentVisibilityState = "visible";
+    Object.defineProperty(doc, "visibilityState", {
+      configurable: true,
+      get: () => state,
+    });
+
+    const pads: (Gamepad | null)[] = [makePad(), null, null, null];
+    let pending: ((now: number) => void) | null = null;
+    const runtime: GamepadRuntime = {
+      getGamepads: (): readonly (Gamepad | null)[] => pads,
+      requestFrame(callback): number {
+        pending = callback;
+        return 1;
+      },
+      cancelFrame(): void {
+        pending = null;
+      },
+    };
+
+    const plugin = gamepadPlugin({ runtime });
+    const input = createInputSystem({ doc, plugins: [plugin] });
+    const intents: IntentEvent[] = [];
+    const off = input.onIntent((event) => intents.push(event));
+    cleanups.push(() => {
+      off();
+      input.destroy();
+    });
+
+    const frame = (now: number): void => {
+      const callback = pending;
+      pending = null;
+      callback?.(now);
+    };
+    frame(0);
+
+    return {
+      intents,
+      frame,
+      isPolling: (): boolean => pending !== null,
+      press(index: number): void {
+        pads[0] = makePad({ buttons: { [index]: 1 } });
+      },
+      go(to: DocumentVisibilityState): void {
+        state = to;
+        doc.dispatchEvent(new Event("visibilitychange"));
+      },
+    };
+  }
+
+  it("stops polling outright when the tab goes away", () => {
+    const scene = hidden();
+    expect(scene.isPolling()).toBe(true);
+
+    scene.go("hidden");
+
+    // Explicit, rather than trusting a hidden tab's rAF to be throttled: "slower"
+    // is not "stopped", and this is the whole of the battery claim.
+    expect(scene.isPolling()).toBe(false);
+  });
+
+  it("comes back without firing what was held while it was away", () => {
+    const scene = hidden();
+    scene.go("hidden");
+    scene.press(0);
+
+    scene.go("visible");
+    expect(scene.isPolling()).toBe(true);
+    scene.frame(16);
+    scene.frame(32);
+
+    // The first frame back re-reads the pads without emitting. Without it, a
+    // button pressed in the background surfaces as a phantom activation the
+    // instant the user returns.
+    expect(names(scene.intents)).toEqual([]);
   });
 });
