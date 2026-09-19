@@ -109,3 +109,72 @@ describe("explainMove", () => {
     expect(explainMove(from, "right", { root: view.root }).winner).toBeNull();
   });
 });
+
+describe("explainMove — where it is meant to differ from the engine", () => {
+  it("does not model a directional redirection, which the engine answers first", () => {
+    const view = scene([
+      ["a", 0, 0],
+      ["near", 140, 0],
+      ["far", 300, 0],
+    ]);
+    view.at("a").setAttribute("data-snav-right", "#far");
+    const from = view.at("a");
+    from.focus();
+
+    expect(explainMove(from, "right", { root: view.root }).winner?.element.id).toBe("near");
+    view.move("right");
+    expect(document.activeElement?.id).toBe("far");
+  });
+
+  it("scores one container, while the engine walks out of it", () => {
+    const root = document.createElement("div");
+    root.id = "walk-root";
+    root.style.cssText = "position:fixed;left:0;top:0;width:560px;height:340px";
+    root.innerHTML =
+      `<div id="left" data-snav="container" style="position:absolute;left:0;top:0;width:100px;height:100px">` +
+      `<button id="l1" style="position:absolute;left:0;top:0;width:100px;height:40px"></button>` +
+      `</div>` +
+      `<button id="r1" style="position:absolute;left:200px;top:0;width:100px;height:40px"></button>`;
+    document.body.append(root);
+    const plugin = spatialPlugin({ root, mode: "app" });
+    const input = createInputSystem({ plugins: [plugin] });
+    cleanups.push(() => {
+      input.destroy();
+      root.remove();
+    });
+
+    const from = root.querySelector("#l1") as HTMLElement;
+    from.focus();
+
+    // Inside #left there is nothing to the right, so the explanation stops there.
+    expect(explainMove(from, "right", { root }).winner).toBeNull();
+    // The engine climbs to the root and finds #r1.
+    plugin.move("right");
+    expect(document.activeElement?.id).toBe("r1");
+  });
+
+  it("does not model wrapping, which the engine reaches only when nothing scores", () => {
+    const root = document.createElement("div");
+    root.id = "wrap-root";
+    root.style.cssText = "position:fixed;left:0;top:0;width:560px;height:340px";
+    root.innerHTML =
+      `<div id="rail" data-snav="container" data-snav-wrap="x" style="position:absolute;left:0;top:0;width:400px;height:60px">` +
+      `<button id="w1" style="position:absolute;left:0;top:0;width:100px;height:40px"></button>` +
+      `<button id="w2" style="position:absolute;left:140px;top:0;width:100px;height:40px"></button>` +
+      `</div>`;
+    document.body.append(root);
+    const plugin = spatialPlugin({ root, mode: "app" });
+    const input = createInputSystem({ plugins: [plugin] });
+    cleanups.push(() => {
+      input.destroy();
+      root.remove();
+    });
+
+    const from = root.querySelector("#w2") as HTMLElement;
+    from.focus();
+
+    expect(explainMove(from, "right", { root }).winner).toBeNull();
+    plugin.move("right");
+    expect(document.activeElement?.id).toBe("w1");
+  });
+});

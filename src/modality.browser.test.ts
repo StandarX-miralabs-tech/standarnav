@@ -139,3 +139,20 @@ describe("trackInputModality", () => {
     expect(document.documentElement.getAttribute(MODALITY_ATTRIBUTE)).toBe("keyboard");
   });
 });
+
+describe("setInputModality on a document nothing is tracking", () => {
+  it("is a silent no-op rather than starting a tracker", () => {
+    const frame = document.createElement("iframe");
+    frame.style.cssText = "position:fixed;left:-9999px;width:200px;height:200px";
+    document.body.append(frame);
+    cleanups.push(() => frame.remove());
+    const doc = frame.contentDocument as Document;
+
+    setInputModality(doc, "gamepad");
+
+    // There is no subscriber to tell and no attribute on the page to correct, so
+    // the honest answer is the default rather than a reading nothing produced.
+    expect(getInputModality(doc)).toBe("pointer");
+    expect(doc.documentElement.hasAttribute(MODALITY_ATTRIBUTE)).toBe(false);
+  });
+});

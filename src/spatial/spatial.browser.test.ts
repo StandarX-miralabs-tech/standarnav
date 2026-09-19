@@ -823,3 +823,27 @@ describe("spatialPlugin — base scope under a live trap", () => {
     expect(pageComponent).not.toHaveBeenCalled();
   });
 });
+
+describe("spatialPlugin — shadow DOM", () => {
+  it.skip("steers into an open shadow root (ADR-0008: light DOM only in v0)", () => {
+    // Ships skipped on purpose, as the acceptance test of any future attempt —
+    // ADR-0008 asks for exactly this fixture so the feature cannot be declared
+    // done by inspection. It fails today because getFocusables goes through a
+    // plain querySelectorAll, which does not cross a shadow boundary, while
+    // `contains` in the same dom module is shadow-aware. That inconsistency is
+    // the ADR's own open item.
+    const view = scene(`${box("outside", 0, 0)}<div id="host" data-snav="container"></div>`);
+    const host = view.at("host");
+    host.style.cssText = "position:absolute;left:200px;top:0;width:100px;height:40px";
+    const shadow = host.attachShadow({ mode: "open" });
+    const inner = document.createElement("button");
+    inner.id = "inner";
+    inner.style.cssText = "width:100px;height:40px";
+    shadow.append(inner);
+
+    view.plugin.focus("#outside");
+    view.move("right");
+
+    expect(shadow.activeElement?.id).toBe("inner");
+  });
+});

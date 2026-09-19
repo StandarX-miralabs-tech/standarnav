@@ -309,3 +309,89 @@ describe("isTextEntryTarget", () => {
     expect(isTextEntryTarget(null)).toBe(false);
   });
 });
+
+/**
+ * A blank same-origin iframe, so a test owns a whole Document. Deliberately a copy
+ * of the one in the gamepad suite rather than a shared module: a helper in `src/`
+ * that no entry imports is a file the build has to be told to ignore, and eight
+ * lines are cheaper than that.
+ */
+function iframeDocument(): Document {
+  const frame = document.createElement("iframe");
+  frame.setAttribute("aria-hidden", "true");
+  frame.style.cssText = "position:fixed;left:-9999px;width:200px;height:200px";
+  document.body.append(frame);
+  cleanups.push(() => frame.remove());
+  return frame.contentDocument as Document;
+}
+
+describe("createInputSystem — the gaps", () => {
+  it("tells a listener when the modality changes, and stops on teardown", () => {
+    const input = system();
+    const seen: string[] = [];
+    const off = input.onModalityChange((modality) => seen.push(modality));
+
+    press("ArrowDown");
+    expect(seen).toEqual(["keyboard"]);
+
+    off();
+    document.dispatchEvent(
+      new PointerEvent("pointerdown", { bubbles: true, pointerType: "mouse" }),
+    );
+    expect(seen).toEqual(["keyboard"]);
+  });
+
+  it("stays out of a composition announced only by keyCode 229", () => {
+    // The other half of isComposingEvent. `isComposing` is the modern signal;
+    // keyCode 229 is what an IME on an older engine sends instead, and nothing
+    // in the inherited suite covered it.
+    const input = system();
+    const handler = vi.fn();
+    cleanups.push(input.pushScope(handler));
+
+    const event = new KeyboardEvent("keydown", { key: "Enter", bubbles: true, cancelable: true });
+    Object.defineProperty(event, "keyCode", { value: 229 });
+    document.dispatchEvent(event);
+
+    expect(handler).not.toHaveBeenCalled();
+  });
+
+  it("resolves the four television codes from a real keydown", () => {
+    // The keymap unit tests pass descriptors straight in. This is the only case
+    // that proves a real KeyboardEvent carrying only a numeric code reaches them.
+    const input = system();
+    const seen: { intent: string; source: string }[] = [];
+    cleanups.push(input.pushScope((event) => void seen.push(event)));
+
+    for (const keyCode of [461, 10009, 427, 428]) {
+      const event = new KeyboardEvent("keydown", {
+        key: "Unidentified",
+        bubbles: true,
+        cancelable: true,
+      });
+      Object.defineProperty(event, "keyCode", { value: keyCode });
+      document.dispatchEvent(event);
+    }
+
+    expect(seen.map((event) => event.intent)).toEqual(["back", "back", "pageUp", "pageDown"]);
+    expect(seen.every((event) => event.source === "remote")).toBe(true);
+  });
+
+  it("runs in a document that is not the one it was loaded from", () => {
+    // R5: an instance, never a global singleton. Two coexist in one page, and
+    // neither reaches for `globalThis.document` after construction.
+    const doc = iframeDocument();
+    const input = createInputSystem({ doc });
+    cleanups.push(() => input.destroy());
+    const handler = vi.fn();
+    cleanups.push(input.pushScope(handler));
+
+    doc.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+    expect(handler).toHaveBeenCalledOnce();
+    expect(doc.documentElement.getAttribute(MODALITY_ATTRIBUTE)).toBe("keyboard");
+
+    // And the page that hosts it is untouched.
+    press("ArrowUp");
+    expect(handler).toHaveBeenCalledOnce();
+  });
+});
