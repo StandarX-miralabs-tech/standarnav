@@ -175,3 +175,31 @@ describe("scoring cost", () => {
     expect(samples[25]).toBeLessThan(1);
   });
 });
+
+describe("findBestCandidate — the two origin sizes are not interchangeable", () => {
+  // Four lines of geometry.ts pair the origin's size with the move twice, in
+  // opposite senses: the tolerance takes the size ALONG the move, the align bonus
+  // takes it ACROSS. The shapes are identical and they sit four lines apart, so a
+  // transcription that swaps them type-checks and passes every square fixture.
+  // These two are not square.
+
+  it("measures the overlap tolerance along the move, not across it", () => {
+    // 200 wide, 20 tall. Tolerance is 30 % of 200 = 60 px, so a candidate
+    // reaching 30 px back over the origin is still ahead of it. Read across
+    // instead it would be 30 % of 20 = 6 px, and this candidate would vanish.
+    const origin: Rect = { x: 0, y: 0, width: 200, height: 20 };
+
+    expect(best(origin, [cell("nudged", 170, 0, 100, 20)], "right")).toBe("nudged");
+  });
+
+  it("measures the alignment bonus across the move, not along it", () => {
+    // 20 wide, 200 tall, moving down. The bonus defaults to the width, 20, small
+    // enough that distance still decides: 85.3 against 160.0. Read along the move
+    // it would be 200, the scores become −20.0 against 40.3, and the win goes to
+    // the fully aligned candidate fifty pixels further down — on the bonus alone.
+    const origin: Rect = { x: 0, y: 0, width: 20, height: 200 };
+    const candidates = [cell("near-offset", 15, 240, 20, 40), cell("far-aligned", 0, 290, 20, 40)];
+
+    expect(best(origin, candidates, "down")).toBe("near-offset");
+  });
+});

@@ -20,6 +20,7 @@ interface Scene {
   move(direction: "up" | "down" | "left" | "right", source?: "gamepad" | "keyboard"): void;
   arrow(key: string): KeyboardEvent;
   active(): string;
+  at(id: string): HTMLElement;
 }
 
 function scene(html: string, options: SpatialPluginOptions = {}): Scene {
@@ -54,6 +55,7 @@ function scene(html: string, options: SpatialPluginOptions = {}): Scene {
       return event;
     },
     active: (): string => document.activeElement?.id ?? "",
+    at: (id): HTMLElement => host.querySelector(`#${id}`) as HTMLElement,
   };
 }
 
@@ -436,5 +438,388 @@ describe("what a d-pad will and will not steer to", () => {
     view.move("right");
 
     expect(view.active()).toBe("second");
+  });
+});
+
+/**
+ * A rail inside a row inside a page — the ordinary television layout, and the one
+ * the inherited suite never built: its only two containers are siblings, so
+ * `childContainerOf`, the container-scored-as-one-unit rule and the recursive
+ * descent of `enterContainer` had never executed before these cases.
+ */
+function nested(): string {
+  return (
+    `<div id="page" data-snav="container" style="position:absolute;left:0;top:0;width:560px;height:340px">` +
+    `<div id="row" data-snav="container" style="position:absolute;left:0;top:0;width:560px;height:100px">` +
+    `<div id="rail" data-snav="container" style="position:absolute;left:0;top:0;width:260px;height:100px">` +
+    box("rail-a", 0, 20, 100, 40) +
+    box("rail-b", 120, 20, 100, 40) +
+    `</div>` +
+    box("row-far", 320, 20, 100, 40) +
+    `</div>` +
+    box("below", 0, 200, 100, 40) +
+    `</div>`
+  );
+}
+
+describe("spatialPlugin — nested containers", () => {
+  it("enters a nested container rather than landing on it", () => {
+    const view = scene(nested());
+    view.plugin.focus("#below");
+
+    view.move("up");
+
+    // The rail is a candidate of #page scored as one unit; the move descends
+    // through row and rail and lands on a real focusable.
+    expect(view.active()).toBe("rail-a");
+  });
+
+  it("descends recursively, two containers deep", () => {
+    const view = scene(nested());
+    view.plugin.focus("#row-far");
+
+    view.move("left");
+
+    expect(view.active()).toBe("rail-b");
+  });
+
+  it("remembers where it left a nested container and returns there", () => {
+    const view = scene(nested());
+    view.plugin.focus("#rail-b");
+    view.move("down");
+    expect(view.active()).toBe("below");
+
+    view.move("up");
+
+    // `last` is the default entry strategy, and the memory is per container.
+    expect(view.active()).toBe("rail-b");
+  });
+
+  it("marks every container on the active path, and only those", () => {
+    const view = scene(nested());
+
+    view.plugin.focus("#rail-a");
+
+    const active = [...document.querySelectorAll("[data-snav-active]")].map((node) => node.id);
+    expect(active.sort()).toEqual(["nav-root", "page", "rail", "row"]);
+
+    view.plugin.focus("#below");
+    const after = [...document.querySelectorAll("[data-snav-active]")].map((node) => node.id);
+    expect(after.sort()).toEqual(["nav-root", "page"]);
+  });
+});
+
+describe("spatialPlugin — pointerFollowsFocus", () => {
+  it("is off in composite mode, so a hover changes nothing", () => {
+    const view = scene(grid());
+    view.plugin.focus("#c00");
+
+    view.at("c22").dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
+
+    expect(view.active()).toBe("c00");
+  });
+
+  it("is on in app mode, so a mouse and a pad do not fight over two cursors", () => {
+    const view = scene(grid(), { mode: "app" });
+    view.plugin.focus("#c00");
+
+    view.at("c22").dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
+
+    expect(view.active()).toBe("c22");
+    expect(document.querySelector("[data-snav-focused]")?.id).toBe("c22");
+  });
+
+  it("bypasses the onWillMove veto, which a hover is not subject to", () => {
+    const view = scene(grid(), { mode: "app" });
+    const veto = vi.fn((event: { preventDefault(): void }) => event.preventDefault());
+    view.plugin.focus("#c00");
+    cleanups.push(view.plugin.onWillMove(veto));
+
+    view.at("c22").dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
+
+    // Deliberate: the handler calls focusElement and remember directly rather than
+    // commit, so a machine that vetoes d-pad moves does not also freeze the mouse.
+    expect(view.active()).toBe("c22");
+    expect(veto).not.toHaveBeenCalled();
+  });
+});
+
+describe("spatialPlugin — scrolling the focus into view", () => {
+  it("centres when the container asks for it", () => {
+    const view = scene(
+      `<div id="rail" data-snav="container" data-snav-scroll="center" style="position:absolute;left:0;top:0;width:300px;height:60px">` +
+        box("a", 0, 0) +
+        box("b", 140, 0) +
+        `</div>`,
+    );
+    view.plugin.focus("#a");
+    const spy = vi.spyOn(view.at("b"), "scrollIntoView");
+
+    view.move("right");
+
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({ block: "center", inline: "center" }),
+    );
+  });
+
+  it("stays at nearest when it does not", () => {
+    const view = scene(
+      `<div id="rail" data-snav="container" style="position:absolute;left:0;top:0;width:300px;height:60px">` +
+        box("a", 0, 0) +
+        box("b", 140, 0) +
+        `</div>`,
+    );
+    view.plugin.focus("#a");
+    const spy = vi.spyOn(view.at("b"), "scrollIntoView");
+
+    view.move("right");
+
+    expect(spy).toHaveBeenCalledWith(
+      expect.objectContaining({ block: "nearest", inline: "nearest" }),
+    );
+  });
+});
+
+describe("spatialPlugin — the candidate filter", () => {
+  it("drops an element with no size at all", () => {
+    const view = scene(box("a", 0, 0) + box("empty", 120, 0, 0, 0) + box("b", 240, 0));
+    view.plugin.focus("#a");
+
+    view.move("right");
+
+    expect(view.active()).toBe("b");
+  });
+
+  it("keeps one that is flat on a single axis", () => {
+    // The filter is `width === 0 && height === 0`, not `||`: a 0 x 40 element is
+    // still a candidate, and ADR-0009 requires this fixture before that changes.
+    const view = scene(box("a", 0, 0) + box("thin", 120, 0, 0, 40) + box("b", 240, 0));
+    view.plugin.focus("#a");
+
+    view.move("right");
+
+    expect(view.active()).toBe("thin");
+  });
+});
+
+describe("spatialPlugin — teardown", () => {
+  it("takes its attributes off the page with it", () => {
+    const view = scene(grid());
+    view.plugin.focus("#c11");
+    expect(document.querySelectorAll("[data-snav-focused], [data-snav-active]").length).toBe(2);
+
+    view.input.destroy();
+
+    expect(document.querySelectorAll("[data-snav-focused], [data-snav-active]")).toHaveLength(0);
+  });
+});
+
+describe("spatialPlugin — the right stick, horizontally and by the numbers", () => {
+  function rail(): Scene {
+    return scene(
+      `<div id="rail" style="position:absolute;left:0;top:0;width:200px;height:60px;overflow:auto;white-space:nowrap">` +
+        `<div style="width:2000px;height:20px"></div>` +
+        box("a", 0, 20, 100, 40) +
+        `</div>`,
+    );
+  }
+
+  it("scrolls a horizontal container on scrollX", () => {
+    const view = rail();
+    view.plugin.focus("#a");
+
+    view.input.emit({ intent: "scrollX", source: "gamepad", value: 1 });
+
+    expect(view.at("rail").scrollLeft).toBeGreaterThan(0);
+  });
+
+  it("goes the other way on a negative value", () => {
+    const view = rail();
+    view.plugin.focus("#a");
+    view.at("rail").scrollLeft = 400;
+
+    view.input.emit({ intent: "scrollX", source: "gamepad", value: -1 });
+
+    expect(view.at("rail").scrollLeft).toBeLessThan(400);
+  });
+
+  it("does nothing at all on a zero value", () => {
+    const view = rail();
+    view.plugin.focus("#a");
+
+    view.input.emit({ intent: "scrollX", source: "gamepad", value: 0 });
+
+    expect(view.at("rail").scrollLeft).toBe(0);
+  });
+
+  it("moves 24 pixels at full deflection, and half that at half", () => {
+    // ANALOGUE_SCROLL_RATE, asserted rather than described: it is the difference
+    // between a stick that feels like a scroll and one that feels like a jump.
+    const view = rail();
+    view.plugin.focus("#a");
+
+    view.input.emit({ intent: "scrollX", source: "gamepad", value: 1 });
+    expect(view.at("rail").scrollLeft).toBe(24);
+
+    view.at("rail").scrollLeft = 0;
+    view.input.emit({ intent: "scrollX", source: "gamepad", value: 0.5 });
+    expect(view.at("rail").scrollLeft).toBe(12);
+  });
+
+  it("is silent when the plugin was told not to scroll", () => {
+    const view = scene(
+      `<div id="rail" style="position:absolute;left:0;top:0;width:200px;height:60px;overflow:auto">` +
+        `<div style="width:2000px;height:20px"></div>` +
+        box("a", 0, 20, 100, 40) +
+        `</div>`,
+      { analogueScroll: false },
+    );
+    view.plugin.focus("#a");
+
+    view.input.emit({ intent: "scrollX", source: "gamepad", value: 1 });
+
+    expect(view.at("rail").scrollLeft).toBe(0);
+  });
+});
+
+describe("spatialPlugin — scroll and rescan", () => {
+  /**
+   * A real virtualised list, not merely a tall one: the later row does not exist
+   * as a focusable until the container has scrolled. A list whose rows are all
+   * mounted never reaches this path at all — every row is already a candidate,
+   * `findBestCandidate` answers, and nothing scrolls.
+   */
+  function virtualised(): Scene {
+    const view = scene(
+      // A declared container, because the walk for a scroller starts at the
+      // container the move is leaving, never at the focused element.
+      `<div id="list" data-snav="container" style="position:absolute;left:0;top:0;width:200px;height:100px;overflow:auto">` +
+        box("row0", 0, 0, 100, 40) +
+        `<div id="spacer" style="position:absolute;top:0;left:0;width:1px;height:900px"></div>` +
+        `<div id="late" style="display:none"></div>` +
+        `</div>`,
+    );
+    const list = view.at("list");
+    list.addEventListener("scroll", () => {
+      if (list.scrollTop <= 0) return;
+      const late = view.at("late");
+      late.innerHTML = box("row1", 0, 0, 100, 40);
+      late.style.cssText = `position:absolute;left:0;top:${list.scrollTop + 20}px;width:100px;height:40px`;
+    });
+    return view;
+  }
+
+  it("scrolls when nothing is reachable, then lands a frame later", async () => {
+    const view = virtualised();
+    view.plugin.focus("#row0");
+    const list = view.at("list");
+    expect(list.scrollTop).toBe(0);
+
+    view.move("down");
+
+    expect(list.scrollTop).toBeGreaterThan(0);
+    // The rescan waits a frame, because an adapter mounts the new rows after the
+    // scroll — and waits exactly one, or a list with an unreachable end would run
+    // to the bottom on a single press.
+    expect(view.active()).toBe("row0");
+
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    });
+    expect(view.active()).toBe("row1");
+  });
+
+  it("scrolls four fifths of the viewport, not a whole one", () => {
+    // SCROLL_STEP_RATIO. A full page would step past whatever the user was
+    // reading; a fifth kept is the overlap that leaves a list legible.
+    const view = virtualised();
+    view.plugin.focus("#row0");
+    const list = view.at("list");
+
+    view.move("down");
+
+    expect(list.scrollTop).toBe(Math.round(0.8 * list.clientHeight));
+  });
+});
+
+describe("spatialPlugin — the inherited hard limit", () => {
+  it("terminates on a container nest deeper than MAX_CONTAINER_DEPTH", () => {
+    // Seventeen nested containers, one more than the bound. The case is not that
+    // the move succeeds — it is that the walk stops rather than looping.
+    let html = "";
+    for (let depth = 0; depth < 17; depth++) {
+      html += `<div id="d${depth}" data-snav="container" style="position:absolute;left:0;top:0;width:${400 - depth}px;height:${300 - depth}px">`;
+    }
+    html += box("deep", 0, 0);
+    html += "</div>".repeat(17);
+    const view = scene(`${html}${box("outside", 300, 200)}`);
+    view.plugin.focus("#deep");
+
+    expect(() => {
+      view.move("right");
+      view.move("down");
+    }).not.toThrow();
+    expect(view.active()).not.toBe("");
+  });
+});
+
+describe("spatialPlugin — the WeakRef fallback", () => {
+  it("remembers, and forgets a removed child, with no WeakRef at all", () => {
+    // ADR-0013's fallback path, and the only thing that ever executes it: WeakRef
+    // is Chromium 84 / Safari 14.1 / Firefox 79, so every engine running this
+    // suite has one. The constructor is read inside the handle rather than at
+    // module scope precisely so this deletion works.
+    const saved = Reflect.get(globalThis, "WeakRef");
+    Reflect.deleteProperty(globalThis, "WeakRef");
+    cleanups.push(() => {
+      Reflect.set(globalThis, "WeakRef", saved);
+    });
+    expect(Reflect.get(globalThis, "WeakRef")).toBeUndefined();
+
+    const view = scene(columns);
+    view.plugin.focus("#l3");
+    view.move("right");
+    expect(view.active()).toBe("r3");
+    view.move("up");
+    expect(view.active()).toBe("r2");
+
+    // The memory answers, exactly as it does with a real WeakRef.
+    view.move("left");
+    expect(view.active()).toBe("l3");
+
+    // And a remembered child that leaves the document is not returned: the strong
+    // reference drops itself on the first read that finds it detached.
+    view.move("right");
+    view.at("r2").remove();
+    view.plugin.focus("#l1");
+    view.move("right");
+    expect(view.active()).toBe("r1");
+  });
+});
+
+describe("spatialPlugin — base scope under a live trap", () => {
+  it("keeps a modal navigable by d-pad while the page underneath stays silenced", () => {
+    // The intent-bus unit tests pin this rule against fake handlers. This is the
+    // only case that runs it against the real plugin, which is the only `base`
+    // scope the library has: the engine is pushed at setup and therefore sits
+    // below everything a component opens later.
+    const view = scene(
+      columns.replace(
+        'id="right" data-snav="container"',
+        'id="right" data-snav="container" data-snav-trap',
+      ),
+    );
+    const pageComponent = vi.fn();
+    view.plugin.focus("#r1");
+
+    cleanups.push(view.input.pushScope(pageComponent));
+    cleanups.push(view.input.pushScope(() => {}, { trapped: true }));
+
+    view.move("down");
+
+    // The engine moved inside the trapping surface…
+    expect(view.active()).toBe("r2");
+    // …and the component between the engine and the modal never heard the intent.
+    expect(pageComponent).not.toHaveBeenCalled();
   });
 });
