@@ -45,8 +45,8 @@ Documentation-only or internal changes: write "internal only" instead.
       is committed with the change (`git diff --exit-code` is a CI gate).
 - [ ] No documentation claim without proof (a test, a measurement with its command and date, or a source URL).
 - [ ] Every path cited in a document was opened at the line cited, and
-      `bun run scripts/check-citations.ts` passes. A path in the source repository is
-      prefixed `miralabs-ui:`; no absolute filesystem path, nothing from the gitignored
+      `bun run scripts/check-citations.ts` passes. Every cited path is a path in this
+      repository; no absolute filesystem path, nothing from the gitignored
       `.local` scratch directory.
 - [ ] English only in code, comments, commit message, and any `.md` file touched.
 - [ ] No AI co-author trailer in the commit message.

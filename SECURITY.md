@@ -8,13 +8,11 @@ and the framework adapters). It does not cover the local development page
 under `playground/`, which is not shipped in the package. No hosted demo or
 playground exists on 2026-09-18; `ROADMAP.md` lists one as pending work.
 
-The engine being extracted stores no user data and makes no network request.
-It reads DOM geometry and attributes, keyboard and pointer events, and the
-Gamepad API when a gamepad plugin is mounted; it writes DOM attributes and
-CSS custom properties on the page that embeds it. That is the whole surface
-of the source read on 2026-09-18 (miralabs-ui,
-`packages/core/src/input/`, commit `289fa607`): no telemetry, no analytics,
-no outbound request. The same property is expected of the extracted code; a
+The engine stores no user data and makes no network request. It reads DOM
+geometry and attributes, keyboard and pointer events, and the Gamepad API when
+a gamepad plugin is mounted; it writes DOM attributes and CSS custom properties
+on the page that embeds it. That is the whole surface of the code under `src/`:
+no telemetry, no analytics, no outbound request, and no browser storage. A
 change that would introduce a network call needs an ADR.
 
 ## Supported versions

@@ -7,10 +7,15 @@ request, and how to report a bug. Read it before opening a pull request.
 ## Prerequisites
 
 - [bun](https://bun.sh). The repository pins the version in `.bun-version`
-  (`1.4.0`, read 2026-09-20); CI installs that exact version through
-  `oven-sh/setup-bun` (`.github/workflows/ci.yml:17-19`). Use that version or
+  (`1.4.0`); CI installs that exact version through
+  `oven-sh/setup-bun` (`.github/workflows/ci.yml:22-24`). Use that version or
   a newer one. Never use `npm` or `npx` in this repository — every command
-  below is a `bun` command.
+  below is a `bun` command. The release workflow, once it is written, carries
+  the one documented exception: its publish step calls the npm CLI, because
+  publication has to happen from CI *with* a provenance attestation and the
+  `bun` client emits none. That exception is recorded, with the issue it turns
+  on and the dates, in [ADR-0012](docs/adr/0012-versioning-and-release.md) —
+  nothing else here may reach for npm.
 - A Playwright browser for the browser test project. The default engine is
   Chromium (`vitest.config.ts:9`):
 
@@ -131,9 +136,9 @@ fixes.
 - A change that touches the DOM (focus movement, attribute reads or writes,
   scroll handling, the focus ring overlay) needs a browser test, and it must
   pass on the three engines of the CI matrix: Chromium, Firefox, and WebKit
-  (`.github/workflows/ci.yml:94-120`). Locally, `bun run test:browser` runs
-  one engine at a time; select the other two with the environment variable
-  the configuration reads:
+  (the `browser` job, `.github/workflows/ci.yml:103-129`). Locally,
+  `bun run test:browser` runs one engine at a time; select the other two with
+  the environment variable the configuration reads:
 
   ```sh
   SNAV_BROWSER=firefox bun run test:browser
@@ -159,10 +164,10 @@ fixes.
   implements `ParityAdapter` and runs the same suite. Extend the suite rather
   than working around it. A separate CI job reinstalls React 18.3 over the
   lockfile's 19 and typechecks and runs the browser suite against it
-  (`.github/workflows/ci.yml:66-92`): the declared peer range is `>=18.3.0`,
-  and every other job installs `--frozen-lockfile`, so without that job the
-  floor of the range is a promise nothing keeps. A change that needs a React
-  19 API narrows the peer range in the same pull request.
+  (the `react-floor` job, `.github/workflows/ci.yml:75-101`): the declared peer
+  range is `>=18.3.0`, and every other job installs `--frozen-lockfile`, so
+  without that job the floor of the range is a promise nothing keeps. A change
+  that needs a React 19 API narrows the peer range in the same pull request.
 - A pull request without a test for the behaviour it changes is not merged.
 
 ## Size budgets are blocking
@@ -242,13 +247,15 @@ A claim with none of these is written as "not measured yet" or "to be
 verified" instead of being asserted. This applies to README, ADRs, the
 specification, and the roadmap alike.
 
-Three rules about the paths inside those claims:
+Two rules about the paths inside those claims:
 
-- A path with no prefix is a path in **this** repository, at a real line you
-  have opened. Line anchors go stale; re-read the one you are citing rather
-  than carrying it forward from the paragraph you are editing.
-- A path in the repository this was extracted from is prefixed so it cannot be
-  read as one of ours: `miralabs-ui: packages/core/src/input/spatial/spatial.ts:198`.
+- Every cited path is a path in **this** repository, at a real line you have
+  opened. Line anchors go stale; re-read the one you are citing rather than
+  carrying it forward from the paragraph you are editing. A claim this project
+  did not re-derive gets no path at all: it is marked as inherited from the
+  predecessor implementation
+  ([ADR-0002](docs/adr/0002-license-and-copyright.md)) and not re-derived here,
+  so a reader knows there is nothing here to check it against.
 - Never write an absolute filesystem path into a committed file, and never
   reference the gitignored `.local` scratch directory from one.
 

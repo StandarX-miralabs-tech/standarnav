@@ -6,19 +6,22 @@ Deciders: Wesley Cormier
 
 ## Context
 
-The gamepad engine is not designed here. It is inherited from miralabs-ui
-([ADR-0003](0003-package-boundaries.md)), specified on 2026-08-27 and implemented over the following
-weeks in `packages/core/src/input/gamepad/{gamepad.ts, mapping.ts, dead-zone.ts, repeat.ts}` (450,
-91, 95 and 63 lines, `wc -l` on 2026-09-18). This ADR records the design and its reasons here, so
-that the numbers stop being folklore, and marks what is still unverified. Three facts frame it:
+The gamepad engine is not designed here. Its design is inherited from the predecessor
+implementation ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here; it arrived
+whole, across a package boundary drawn elsewhere ([ADR-0003](0003-package-boundaries.md)). This ADR
+records the design and its reasons here, so that the numbers stop being folklore, and marks what is
+still unverified. It lives in `src/gamepad/{gamepad.ts, mapping.ts, dead-zone.ts, repeat.ts}` — 464,
+91, 95 and 63 lines — and every bare `file.ts:line` citation below names a file in that directory,
+counted in this repository. Three facts frame it:
 
 - The Gamepad API is polling-only. No browser fires an event when a button changes; the state has
   to be read from `navigator.getGamepads()` inside a loop. The event-driven proposal
   (`gamepadrawinputchanged`, MSEdge explainer) is exploratory, not implemented, and aimed at cloud
-  gaming latency (input.md §0). Only `gamepadconnected` and `gamepaddisconnected` are reliable.
+  gaming latency rather than at menus — see the explainer under Evidence. Only `gamepadconnected`
+  and `gamepaddisconnected` are reliable.
 - One normalised layout exists: `mapping === "standard"` (buttons 0-3 the face cluster, 12-15 the
   d-pad, axes 0/1 the left stick, 2/3 the right stick). When `mapping` is empty the button order is
-  arbitrary (input.md §0).
+  arbitrary, which is why `setMapping` exists at all (`mapping.ts:13-16`).
 - None of the eighteen competing projects surveyed on 2026-09-18 calls `navigator.getGamepads`
   ([docs/research/competitors.md](../research/competitors.md)). Inside that set there is no prior art
   to copy and no second implementation to compare against.
@@ -29,15 +32,17 @@ The engine ships as inherited for v0, with its reasons recorded below and its op
 down rather than quietly carried.
 
 **Polling loop, lazy start, aggressive stop.** A `requestAnimationFrame` loop runs only while a pad
-is connected **and** the document is visible **and** the plugin is mounted and not paused
-(`gamepad.ts:294-338`). `visibilitychange` to hidden cancels the frame explicitly rather than
-trusting a background tab's rAF throttling — "slower" is not "stopped", and battery is a promise
-(`gamepad.ts:369-378`). The loop stops itself when the last pad disappears (`gamepad.ts:318-319`).
+is connected **and** the document is visible **and** the plugin is mounted and not paused — `frame`,
+`schedule` and `start` between them hold all four conditions (`gamepad.ts:308-352`).
+`visibilitychange` to hidden cancels the frame explicitly rather than trusting a background tab's
+rAF throttling — "slower" is not "stopped", and battery is a promise (`gamepad.ts:383-392`). The
+loop stops itself when the last pad disappears (`gamepad.ts:332-333`).
 
 **Silent re-read on return.** Coming back from a hidden tab, from `resume()`, or finding a pad
-already exposed at setup sets a `resync` flag: the next frame reads every pad into the snapshot and
-emits nothing (`gamepad.ts:180-199`, `gamepad.ts:308-311`, `gamepad.ts:381-385`). Without it, a
-button held during the pause surfaces as a phantom activation on return.
+already exposed at setup sets a `resync` flag: the next frame calls `snapshot`, which reads every pad
+into the arrays and emits nothing (`gamepad.ts:194-212`, `gamepad.ts:322-324`, `gamepad.ts:395-399`,
+`gamepad.ts:415-419`). Without it, a button held during the pause surfaces as a phantom activation
+on return.
 
 **Two dead-zone regimes, because they are two problems.**
 
@@ -48,7 +53,8 @@ button held during the pause surfaces as a phantom activation on return.
 
 Per-axis thresholds are what a radial cut replaces: a square hole lets a diagonal through at a
 lower true deflection than a straight push, so the stick feels stronger on the diagonals. Sector
-hysteresis stops a stick held near 45° alternating at frame rate (`dead-zone.ts:1-17`, input.md §2.3).
+hysteresis stops a stick held near 45° alternating at frame rate (`dead-zone.ts:1-17`, and the two
+dead-zone references under Evidence).
 
 **Repeat belongs to the engine.** The keyboard gets auto-repeat from the OS and the pad gets none, so
 the engine owns the ladder: first repeat after `400 ms`, then every `130 ms`, then `60 ms` once six
@@ -71,31 +77,35 @@ Source: `mapping.ts:18-35`. The same table is the fallback for a pad reporting n
 the first four buttons are the face cluster on essentially every controller made.
 
 **Triggers use a threshold pair.** LT and RT are analogue, so `pressed` is computed with hysteresis
-— `> 0.5` to press, `> 0.3` to stay pressed (`mapping.ts:89-91`, applied at `gamepad.ts:211-214`) —
+— `> 0.5` to press, `> 0.3` to stay pressed (`isTriggerPressed`, `mapping.ts:89-91`, applied in
+`pollButtons` at `gamepad.ts:226-228`) —
 otherwise a worn pad chatters at rest.
 
 **Escape hatches.** `setMapping(gamepadId, overrides)` applies a remap; the library applies, the
-application persists, because a core with zero dependencies does no I/O (`gamepad.ts:96-101`,
-`gamepad.ts:408-410`). `padType(index)` parses `Gamepad.id` into `xbox | dualsense | switch |
-generic` for glyphs — a heuristic over vendor text, not a lookup (`mapping.ts:71-83`).
-`swapNintendoConfirm` is **off by default**: the standard mapping already normalises by physical
-position, so confirm stays under the thumb that confirms on every other pad; the option exists for
-applications that would rather match the printed glyph (`mapping.ts:37-53`, `gamepad.ts:88-89`).
+application persists, because a core with zero dependencies does no I/O (`gamepad.ts:110-115`,
+`gamepad.ts:422-424`). `padType(index)` parses `Gamepad.id` into `xbox | dualsense | switch |
+generic` for glyphs — `detectPadType` is a heuristic over vendor text, not a lookup
+(`mapping.ts:71-83`). `swapNintendoConfirm` is **off by default**: the standard mapping already
+normalises by physical position, so confirm stays under the thumb that confirms on every other pad;
+the option exists for applications that would rather match the printed glyph (`mapping.ts:37-53`,
+read at `gamepad.ts:141`).
 
 **Multi-pad merge by default.** Every connected pad drives the same navigation — any pad in the
-living room works — and `activeIndex` is the pad that moved last, for glyphs (`gamepad.ts:157`,
-`gamepad.ts:442-444`). `assign(padIndex, route)` opts into the other shape: one pad's intents go to
-a handler of its own. The intent bus has no named scopes, so the route is the handler itself, which
-needs no registry and is strictly more general than an id (`gamepad.ts:102-107`).
+living room works — and `activeIndex` is the pad that moved last, set by `emit` and exposed as a
+getter, for glyphs (`gamepad.ts:171`, `gamepad.ts:456-458`). `assign(padIndex, route)` opts into the
+other shape: one pad's intents go to a handler of its own. The intent bus has no named scopes, so the
+route is the handler itself, which needs no registry and is strictly more general than an id
+(`gamepad.ts:116-121`, `gamepad.ts:426-428`).
 
 **Haptics are progressive enhancement.** `rumble()` calls `vibrationActuator.playEffect("dual-rumble")`
-when it exists and swallows the rejection otherwise; nothing vibrates on its own (`gamepad.ts:416-430`).
+when it exists and swallows the rejection otherwise; nothing vibrates on its own (`gamepad.ts:430-444`).
 
 **`GamepadRuntime` is a test seam.** `getGamepads`, `requestFrame` and `cancelFrame` are injected
-(`gamepad.ts:59-63`, `gamepad.ts:92-93`): frames are driven one at a time in tests with no hardware
-— see [ADR-0018](0018-testing-strategy.md) — and a TV shim could replace them.
+(`gamepad.ts:73-77`, taken from the options at `gamepad.ts:106-107` and otherwise built from the
+window by `defaultRuntime`, `gamepad.ts:130-136`): frames are driven one at a time in tests with no
+hardware — see [ADR-0018](0018-testing-strategy.md) — and a TV shim could replace them.
 
-**Zero-allocation loop.** Per-frame state lives in typed arrays allocated once (`gamepad.ts:129-137`)
+**Zero-allocation loop.** Per-frame state lives in typed arrays allocated once (`gamepad.ts:143-151`)
 and every helper returns a scalar. `navigator.getGamepads()` allocates its own array on each call;
 nothing on this side adds to it.
 
@@ -107,26 +117,26 @@ nothing on this side adds to it.
   carrying its current value as the default; any change requires a frame-driven test.
 - The design survives the event-driven proposal landing: the loop only diffs a snapshot and calls
   `emit`, so a future event source would replace the reading without touching the public API.
-- Chrome only reveals a pad after the user presses something on it (input.md §2.1 and §6), so
-  `onConnected` may fire late or not at all. Applications must expect it late, not gate a UI on it.
+- Chrome only reveals a pad after the user presses something on it — which is why the
+  `gamepadconnected` handler is also a `resync` point (`gamepad.ts:373-376`) — so `onConnected` may
+  fire late or not at all. Applications must expect it late, not gate a UI on it.
 
 ## Open items recorded, not resolved
 
-Line references in this table are miralabs-ui's, as everywhere else in this record; the status
-column is re-read against this repository on 2026-09-20.
+Line references in this table, like everywhere else in this record, are this repository's.
 
-| Item | Where (miralabs-ui) | Status |
+| Item | Where | Status |
 |---|---|---|
-| `MAX_BUTTONS = 20` while the standard table has 16 entries | `gamepad.ts:44`, `mapping.ts:18-35` | Still unexplained, but no longer untested. `src/gamepad/gamepad.browser.test.ts:316-324` reads twenty buttons and stops there, driven by a harness with a settable button count so the engine's own bound is what the assertion reads. The four extra slots are polled and resolve to `null` unless `setMapping` overrides them. Kept for v0 parity; the *reason* is still owed. |
-| The modality is pushed on every emission, including the two closing zeros of the scroll | `gamepad.ts:158`, `gamepad.ts:290-291` | Unchanged and still open. A stick returning to centre re-asserts `gamepad` modality. Harmless today, wrong in principle; to be verified against the anti-flicker rule before it becomes a fix. |
+| `MAX_BUTTONS = 20` while the standard table has 16 entries | `gamepad.ts:58`, `mapping.ts:18-35` | Still unexplained, but no longer untested. `src/gamepad/gamepad.browser.test.ts:316-324` reads twenty buttons and stops there, driven by a harness with a settable button count so the engine's own bound is what the assertion reads. The four extra slots are polled and resolve to `null` unless `setMapping` overrides them. Kept for v0 parity; the *reason* is still owed. |
+| The modality is pushed on every emission, including the two closing zeros of the scroll | `gamepad.ts:172`, `gamepad.ts:304-305` | Unchanged and still open. A stick returning to centre re-asserts `gamepad` modality. Harmless today, wrong in principle; to be verified against the anti-flicker rule before it becomes a fix. |
 | No test on real hardware | — | Unchanged. Not measured. Every gamepad test runs through the runtime seam with synthetic pads: nothing in this repository is evidence about a physical controller, a television or a Steam Deck ([ADR-0014](0014-device-and-browser-matrix.md)). |
 | `MAX_PADS = 4` | `gamepad.ts:43` | Inherited limit, no stated reason in the source and no ADR of its own — that part stands. The boundary fixture [ADR-0018](0018-testing-strategy.md) asked for is written: `src/gamepad/gamepad.browser.test.ts:304-314` polls four pads and ignores a fifth, from a harness offering six slots. |
 
 ## Alternatives considered
 
 - **Event-driven design, waiting for the proposal.** Rejected: `gamepadrawinputchanged` is an
-  explainer at the exploration stage, implemented by no browser, and polling will not be deprecated
-  (input.md §0). Waiting would mean shipping no gamepad support at all.
+  explainer at the exploration stage (linked under Evidence), implemented by no browser, so polling
+  is the only mechanism that exists today. Waiting would mean shipping no gamepad support at all.
 - **Per-axis dead zones.** Rejected: they carve a square hole, which biases diagonals — the stick
   reads as stronger off-axis than on it (`dead-zone.ts:1-17`, and the two references below).
 - **A single dead-zone treatment for both sticks.** Rejected: one flick must mean exactly one move
@@ -136,20 +146,17 @@ column is re-read against this repository on 2026-09-20.
 
 ## Evidence
 
-- Rationale: miralabs-ui `docs/research/input.md` §0 and §2 — the engine specification of 2026-08-27,
-  deleted by commit `289fa607` and readable with `git show 289fa607^:docs/research/input.md`, read
-  2026-09-18. Every "input.md" reference above points at that file.
-- Source URLs quoted by that document: <https://developer.mozilla.org/en-US/docs/Web/API/Gamepad_API/Using_the_Gamepad_API>,
+- The original engine specification, written before the extraction, is inherited from the
+  predecessor implementation ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here: it
+  is not part of this tree, and nothing above rests on it that the code and the sources below do not
+  also carry.
+- Platform and dead-zone sources for the framing facts and the two dead-zone regimes:
+  <https://developer.mozilla.org/en-US/docs/Web/API/Gamepad_API/Using_the_Gamepad_API>,
   <https://microsoftedge.github.io/MSEdgeExplainers/GamepadEventDrivenInputAPI/explainer.html>,
   <https://www.gamedeveloper.com/business/doing-thumbstick-dead-zones-right>,
   <https://minimuino.github.io/thumbstick-deadzones/>.
-- Code read on 2026-09-18 in miralabs-ui (read-only): `packages/core/src/input/gamepad/gamepad.ts`
-  (450 lines), `mapping.ts` (91), `dead-zone.ts` (95), `repeat.ts` (63), counted with `wc -l` the
-  same day. Every line reference above points there; in this repository those files are
-  `src/gamepad/*.ts`, and the design they describe was extracted unchanged. The `assign` signature
-  was corrected from input.md §2.6 (`assign(padIndex, scopeId)`) to what shipped.
-- The engine as extracted, and its coverage, read 2026-09-20:
-  `src/gamepad/{gamepad,mapping,dead-zone,repeat}.ts`, with unit cases in
+- The engine as it stands here, and its coverage:
+  `src/gamepad/{gamepad,mapping,dead-zone,repeat}.ts` (464, 91, 95 and 63 lines), with unit cases in
   `src/gamepad/{dead-zone,mapping,repeat}.test.ts` and the frame-driven suite in
   `src/gamepad/gamepad.browser.test.ts` — the `GamepadRuntime` seam this ADR describes is what
   drives it, one frame at a time, with no hardware and no timers. `gamepadPlugin` also carries its

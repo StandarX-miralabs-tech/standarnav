@@ -40,8 +40,8 @@ so that it survives refactors.
 The engine moves the real DOM focus, and only the real DOM focus.
 
 - Moving focus is `element.focus({ preventScroll: true })`, through a single
-  helper (`src/tabbable.ts:113-120`, `focusElement`, which defaults
-  `preventScroll` to `true`; read 2026-09-20).
+  helper (`focusElement`, `src/tabbable.ts:113-120`, which defaults
+  `preventScroll` to `true`).
 - Reading focus is `document.activeElement`, narrowed to `HTMLElement`. The engine
   keeps no authoritative copy. The one element reference it holds only strips the
   styling attribute from the element that had focus before.
@@ -53,8 +53,8 @@ The engine moves the real DOM focus, and only the real DOM focus.
   strong reference where it does not ([ADR-0013](0013-browser-baseline-and-fallbacks.md);
   `src/spatial/spatial.ts:113-141`). It is a hint for re-entry, never a source of
   truth: the engine re-checks that the remembered element is still contained and
-  still focusable before landing on it (`src/spatial/spatial.ts:345`, read
-  2026-09-20).
+  still focusable before landing on it (`contains` and `isFocusable`,
+  `src/spatial/spatial.ts:345`).
 - The attributes the engine writes (`data-snav-focused` on the focused element,
   `data-snav-active` on every container on the path) are styling hooks that
   mirror the real focus. They are never read back as state.
@@ -84,8 +84,8 @@ Consequence for the public surface: the library has no `getFocusedKey()` and no
 - Cost: every move queries and measures live DOM, and a focus call can trigger
   scrolling, focus events and framework effects the library does not control. The
   `onWillMove` veto exists for that, and it runs before the focus call
-  (`src/spatial/spatial.ts:312-327`, read 2026-09-20 — the focus call is `:329`,
-  after it).
+  (the `onWillMove` block of `commit()`, `src/spatial/spatial.ts:312-327`; the
+  `focusElement` call is `:329`, after it).
 - Cost: the engine cannot move focus into a closed shadow root or a cross-origin
   iframe, because `focus()` cannot either — see [ADR-0008](0008-shadow-dom.md).
 
@@ -106,7 +106,7 @@ passed and 1 skipped in 10 files; the skip is the shadow-DOM fixture of
 [ADR-0008](0008-shadow-dom.md) and is unrelated to this gate.
 
 The second is **not** written. There is no automated check for an id-keyed focus
-store; what exists is a reading, done 2026-09-20: `grep -rn "Map<string" src/`
+store; what exists is a reading of this repository: `grep -rn "Map<string" src/`
 returns one hit, `src/gamepad/gamepad.ts:153`, which is
 `new Map<string, ButtonOverrides>()` — the per-pad remap table of `setMapping`,
 keyed by `Gamepad.id`, holding button overrides and no element. No focus store
@@ -142,39 +142,37 @@ modes), not this decision alone.
 ## Evidence
 
 - `focusElement` is the single focus call, and defaults `preventScroll` to `true`:
-  `packages/core/src/focus/tabbable.ts:106-113` (miralabs-ui, commit `289fa607`,
-  read 2026-09-18).
-- The focusable predicate the engine uses, including the `checkVisibility` test with
-  its fallback and the `inert` test: `packages/core/src/focus/tabbable.ts:40-59`.
-  `aria-disabled` stays focusable on purpose (comment at lines 56-57).
-- `commit()` is focus, then remember, then scroll into view:
-  `packages/core/src/input/spatial/spatial.ts:257-282`. The veto runs before the
-  focus call, lines 261-276.
-- The focus query reads the document, not a stored field:
-  `packages/core/src/input/spatial/spatial.ts:220-223` (`activeElement()`); the
-  `focused` field at `:208` is used only by `remember()` at `:225-231`.
-- Container memory is `WeakMap<HTMLElement, WeakRef<HTMLElement>>`, elements not
-  keys: `packages/core/src/input/spatial/spatial.ts:198` and `:235`; re-entry
-  re-validates with `contains` and `isFocusable` at `:293-297`.
-- The design intent predates the extraction. Principle 2 of the engine
-  specification of 2026-08-27 states, in translation: real DOM focus with roving
-  tabindex, not virtual focus by key, because screen reader accessibility and native
-  interoperability with `:focus`, forms and extensions come free that way —
-  `miralabs-ui: docs/research/input.md:141`, a French document deleted by commit
-  `289fa607` and readable with `git show 289fa607^:docs/research/input.md`.
-  Decision D9 of the miralabs-ui cahier des charges, 2026-08-27: the gamepad drives
-  real DOM focus, never virtual focus — `miralabs-ui: docs/cahier-des-charges.md:43`,
-  deleted by the same commit.
-- Competitor focus models: the focus-model column of the 20 fact sheets, each
-  verified by reading the competitor's source on 2026-09-18. The committed table is
+  `src/tabbable.ts:113-120`.
+- The focusable predicate the engine uses is `isFocusable` (`src/tabbable.ts:56-63`), which
+  delegates the visibility question to `isHidden` (`:41-50`, the `checkVisibility` test with its
+  `offsetParent` and `getClientRects` fallback) and the `inert` question to `isInert` (`:52-54`,
+  a `closest("[inert]")` walk). `aria-disabled` stays focusable on purpose, and the comment
+  saying why is at `:60-61`.
+- `commit()` is veto, then focus, then remember, then scroll into view:
+  `src/spatial/spatial.ts:308-333` — the `onWillMove` block at `:312-327`, the `focusElement`
+  call at `:329`, `remember()` at `:330`, `scrollFocusIntoView()` at `:331`.
+- The focus query reads the document, not a stored field: `activeElement()` returns
+  `doc()?.activeElement` narrowed by `isHTMLElement` (`src/spatial/spatial.ts:271-274`). The one
+  `focused` field (`:259`) is written only by `remember()` (`:276-292`), which uses it to strip
+  the styling attribute from the element that had focus before.
+- Container memory is a `WeakMap<HTMLElement, ElementHandle>` of elements, not of keys:
+  `src/spatial/spatial.ts:248`, filled by `remember()` at `:286`. The handle is a `WeakRef` where
+  the runtime has one and a self-releasing strong reference where it does not (`elementHandle`,
+  `:127-141`). Re-entry re-validates the remembered element with `contains` and `isFocusable`
+  at `:345`.
+- Everything the engine focuses is reached through real nodes: `queryAll`
+  (`src/dom/query.ts:10-15`) is how `getFocusables` collects candidates, `getEventTarget`
+  (`:45-48`) reads `composedPath()[0]` rather than the retargeted `event.target`, and `contains`
+  (`:24-39`) is the shadow-aware containment seam [ADR-0008](0008-shadow-dom.md) reserves and
+  nothing calls in v0. None of them holds focus state.
+- No focus registry: `grep -rn "Map<string" src/` returns one hit, the per-pad remap table at
+  `src/gamepad/gamepad.ts:153`, which holds button overrides and no element.
+- The design intent predates this package: the principle that a gamepad drives real DOM focus
+  with roving tabindex, never a virtual focus keyed by id, because screen reader accessibility
+  and native interoperability with `:focus`, forms and extensions come free that way. That
+  principle is inherited from the predecessor implementation
+  ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here; what this repository can
+  show for it is the code cited above.
+- Competitor focus models: the focus-model column of the fact sheets, each verified against the
+  competitor's own source. The committed table is
   [competitor comparison](../research/competitors.md).
-- The same facts in this repository's own code, read 2026-09-20: `focusElement` and
-  its `preventScroll` default at `src/tabbable.ts:113-120`; `isFocusable` with its
-  `checkVisibility` and `inert` tests at `:41-63`, and the `aria-disabled` comment
-  at `:60-61`; `commit()` as veto, then focus, then remember, then scroll into
-  view at `src/spatial/spatial.ts:308-333` (the veto block `:312-327`, the focus
-  call `:329`); the container memory as a
-  `WeakMap<HTMLElement, ElementHandle>` of elements at `:248`, re-validated with
-  `contains` and `isFocusable` at `:345`. No focus registry:
-  `grep -rn "Map<string" src/` → one hit, the gamepad remap table at
-  `src/gamepad/gamepad.ts:153`.

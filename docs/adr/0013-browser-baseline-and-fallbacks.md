@@ -9,31 +9,30 @@ for a separate legacy build (see "Legacy build" in the Decision section).
 
 ## Context
 
-The engine being extracted (see [ADR-0003](0003-package-boundaries.md)) was written inside a design
-system whose only declared runtime floor was its own build target. That repository compiles with
-`target: "es2022"` and `lib: ["es2023", "dom", "dom.iterable"]`
-(miralabs-ui `tsconfig.base.json:3-4`, read 2026-09-18). Nothing in the code base was ever run on a
-television, a console browser or a handheld: the source roadmap lists TV and consoles (webOS,
-Tizen) as out of scope, the stated reason being no hardware and no emulator (miralabs-ui
-`ROADMAP.md:112`, read 2026-09-18; that file is written in French and the row is translated here).
+The engine this package ships (see [ADR-0003](0003-package-boundaries.md)) was written before this
+repository existed, under a runtime floor that was never more than a build target: it compiled with
+`target: "es2022"` and `lib: ["es2023", "dom", "dom.iterable"]`, inherited from the predecessor
+implementation ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here. Nothing has ever
+been run on a television, a console browser or a handheld — TV and consoles (webOS, Tizen) are out
+of scope for want of the hardware and of an emulator, and the device verification is still open
+([ROADMAP.md](../../ROADMAP.md)).
 
 A library whose entire purpose is d-pad, remote and gamepad navigation is aimed exactly at the
-runtimes nobody in that repository could test. So the floor has to be decided on paper, from
-published engine versions, and it has to be honest about which parts are promises and which parts
-are hopes.
+runtimes this project still cannot test. So the floor has to be decided on paper, from published
+engine versions, and it has to be honest about which parts are promises and which parts are hopes.
 
 Two things set the floor today. The first is syntax: the compiled output must parse. The second is
 APIs: four modern APIs appear in the code, and only some of them degrade.
 
-The "used at" column below is the source repository; the amendment of 2026-09-20 at the foot of
-this record re-reads every row against this repository's own code.
+The "used at" column below cites this repository; the amendment of 2026-09-20 at the foot of this
+record is where every row was re-read against the code as it now stands, and says what changed.
 
-| API | Chrome | Safari | Firefox | Used at (miralabs-ui) | Behaviour when absent |
+| API | Chrome | Safari | Firefox | Used at | Behaviour when absent |
 |---|---|---|---|---|---|
-| `WeakRef` | 84 | 14.1 | 79 | `input/spatial/spatial.ts:235` constructs it; `:198` is a type position and erases; `:293` reads through `deref()` | `ReferenceError` on the **first successful move**, not at construction — `new WeakRef` sits inside `remember()`, so an unguarded build mounts, renders and accepts focus, then throws the first time the user presses a direction |
-| `Element.checkVisibility()` | 105 | 17.4 | 106 | `focus/tabbable.ts:41-43` | Falls back to `offsetParent === null && getClientRects().length === 0`, which does not see `visibility: hidden` |
-| `inert` attribute | 102 | 15.5 | 112 | `focus/tabbable.ts:49` | `closest("[inert]")` works everywhere; only the native focus-blocking effect is missing |
-| `Array.prototype.at` | 92 | 15.4 | 90 | `focus/tabbable.ts:85` | `TypeError` — and the only row whose floor is **above** the supported tier below, so it throws on Chromium 85-91, Safari 15.0-15.3 and Firefox 79-89: runtimes this ADR promises to support. Not a `lib` question |
+| `WeakRef` | 84 | 14.1 | 79 | `src/spatial/spatial.ts:130` constructs it inside `elementHandle()` (`:127-131`); `:109-111` is the `WeakRefCtor` type position and erases; `:131` reads through `deref()`; the per-container `memory` at `:248` holds that handle, not a bare reference, and is read back at `:344` | `ReferenceError` on the **first successful move**, not at construction — the construction sits in `elementHandle()`, reached from `remember()` (`:276`, `memory.set(container, elementHandle(element))` at `:286`), so an unguarded build would mount, render and accept focus, then throw the first time the user pressed a direction. That timing is why the detection is at the call site (`:129`) and not at module scope |
+| `Element.checkVisibility()` | 105 | 17.4 | 106 | `src/tabbable.ts:45-47`, in `isHidden` | Falls back to `offsetParent === null && getClientRects().length === 0` (`:49`), which reads layout boxes only and so does not see `visibility: hidden` |
+| `inert` attribute | 102 | 15.5 | 112 | `src/tabbable.ts:52-54`, in `isInert` | `closest("[inert]")` works everywhere; only the native focus-blocking effect is missing |
+| `Array.prototype.at` | 92 | 15.4 | 90 | Nowhere: the call was removed rather than guarded — `getTabbableEdges` does index arithmetic at `src/tabbable.ts:89-92` | `TypeError` — and the only row whose floor is **above** the supported tier below, so it would throw on Chromium 85-91, Safari 15.0-15.3 and Firefox 79-89: runtimes this ADR promises to support. Not a `lib` question |
 
 Versions from caniuse / MDN BCD, fetched 2026-09-18; URLs in the Evidence section.
 
@@ -67,18 +66,20 @@ URLs, is published in
 [docs/research/tv-runtime-compatibility.md](../research/tv-runtime-compatibility.md).
 
 Two limits stack on those sets. The unguarded `WeakRef` puts the runtime floor at Chrome 84,
-Safari 14.1 and Firefox 79 (caniuse / MDN BCD, fetched 2026-09-18). The `es2022` output of the
-source repository puts a syntax floor near Chromium 85, because of `??=`, `||=` and class fields
-(compatibility survey of 2026-09-18, an estimate). The first firmware at or above both is
-Tizen 6.5 (Chromium 85) and webOS 22 (Chromium 87), the 2022 model year. Every 2020 and 2021 set
+Safari 14.1 and Firefox 79 (caniuse / MDN BCD, fetched 2026-09-18). The `es2022` output this code
+was first compiled to — inherited from the predecessor implementation
+([ADR-0002](0002-license-and-copyright.md)) and not re-derived here — puts a syntax floor near
+Chromium 85, because of `??=`, `||=` and class fields (compatibility survey of 2026-09-18, an
+estimate). The first firmware at or above both is Tizen 6.5 (Chromium 85) and webOS 22
+(Chromium 87), the 2022 model year. Every 2020 and 2021 set
 fails, and the syntax limit fails at parse time, which is the worse of the two: no feature
 detection can rescue a file the engine refused to read.
 
 ## Decision
 
 1. The build target is **`es2020`** and the type library is **`lib: ["es2020", "dom", "dom.iterable"]`**,
-   both in place (`tsconfig.json:3-4` of this repository, read 2026-09-18). `es2020` syntax parses on
-   Chromium 80+, Safari 13.1+, Firefox 74+ and Samsung Internet 13.0+, the floor set by optional
+   both in place (`tsconfig.json:3-4`). `es2020` syntax parses on Chromium 80+, Safari 13.1+,
+   Firefox 74+ and Samsung Internet 13.0+, the floor set by optional
    chaining and nullish coalescing (caniuse, fetched 2026-09-18; URLs under Evidence). Keeping `lib`
    at `es2020` is the enforcement mechanism: `WeakRef` and `Array.prototype.at` become type errors, so
    using one is a compile failure unless it is written behind a feature check with a local ambient
@@ -88,9 +89,9 @@ detection can rescue a file the engine refused to read.
      `isConnected` when it is read back. The weak reference existed so a removed child would be
      forgotten for free; `isConnected` on read gives the same observable behaviour, at the cost of
      holding one element per container until the next read.
-   - `checkVisibility` → the fallback already written in the source
-     (`miralabs-ui: packages/core/src/focus/tabbable.ts:40-46`), kept as is, including its known
-     blind spot for `visibility: hidden`.
+   - `checkVisibility` → the fallback already written here, inside `isHidden`: the detection and
+     call at `src/tabbable.ts:45-47`, the fallback expression at `:49`, kept as is, including its
+     known blind spot for `visibility: hidden` — `:49` reads layout boxes and nothing else.
    - `inert` → `closest("[inert]")` is an attribute read and works on every engine we target; only
      the native effect differs, and the library does not rely on it.
    - `Array.prototype.at` → index arithmetic (`list[list.length - 1]`).
@@ -113,24 +114,27 @@ it work on a 2021 Tizen set" is "no, and there is no work in progress".
 
 ## Consequences
 
-- The size budgets inherited from the source repository were measured on `es2022` output and were
-  never valid here. They have been replaced by measurements of this repository's own `es2020`
-  output: `bun run build && bun run check:size`, 2026-09-20, min+gzip — core 3.13 kB of a 3.25 kB
+- The size budgets this package started from were measured on `es2022` output and were never valid
+  here: they are inherited from the predecessor implementation
+  ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here. They have been replaced by
+  measurements of this repository's own `es2020` output: `bun run build && bun run check:size`,
+  2026-09-20, min+gzip — core 3.13 kB of a 3.25 kB
   cap, gamepad engine 2.48 of 2.50, spatial engine 3.04 of 3.25, focus ring 1.51 of 1.75, debug
   0.40 of 0.50, react adapter 1.30 of 1.50, whole package 8.77 of 9.00, every line under its cap
-  ([ADR-0017](0017-size-budgets.md)). The inherited figures — spatial 2.81 kB of 3.00, input system
-  1.93 of 2.00, `bun run check:size` in miralabs-ui on 2026-09-18 — remain context about another
-  repository's build and are not comparable line for line, because the lines were drawn
-  differently. Downlevelling did not blow a budget, which was the open worry here.
+  ([ADR-0017](0017-size-budgets.md)). Those inherited figures — spatial 2.81 kB of 3.00, input
+  system 1.93 of 2.00 — remain context about a build measured elsewhere and are not comparable line
+  for line, because the lines were drawn differently. Downlevelling did not blow a budget, which was
+  the open worry here.
 - A CI check must still be added that greps the built `dist` for `WeakRef` and for `.at(` and fails
   when either appears outside the single module that guards it. The workflow
-  (`.github/workflows/ci.yml`, read 2026-09-20) now runs six jobs — lint (`:13`), typecheck
-  (`:23`), build (`:33`), unit test (`:51`), react-floor (`:66-92`, the declared peer floor
-  re-typechecked and re-run on chromium) and browser (`:94-120`, a matrix over chromium, firefox
-  and webkit), which is eight checks — and the build job runs `bun run build`, the
-  `git diff --exit-code` exports-map drift gate, `check:package` and `check:size`. **None of them
-  is this grep.** Without it, one refactor silently restores the Chrome 84 floor and nothing
-  notices — the CI browsers are current engines, so they have every API the fallbacks exist for.
+  (`.github/workflows/ci.yml`) now runs six jobs — lint (`:18`), typecheck (`:32`), build (`:42`),
+  test (`:60`, the unit suite), react-floor (`:75-101`, the declared peer floor re-typechecked and
+  re-run on chromium) and browser (`:103-129`, a matrix over chromium, firefox and webkit), which is
+  eight checks — and the build job runs `bun run build`, the `git diff --exit-code` exports-map drift
+  gate (`:53`), `check:package` (`:55`) and `check:size` (`:57`). **None of them is this grep**:
+  neither `WeakRef` nor `.at(` appears anywhere in that file. Without it, one refactor silently
+  restores the Chrome 84 floor and nothing notices — the CI browsers are current engines, so they
+  have every API the fallbacks exist for.
 - The fallback paths are the ones no CI browser exercises, so they need a test that hides the
   modern API from the module under test. The `WeakRef` one is written:
   `src/spatial/spatial.browser.test.ts:794-826` deletes `WeakRef` from `globalThis` for the
@@ -145,8 +149,8 @@ it work on a 2021 Tizen set" is "no, and there is no work in progress".
 
 ## Amendment, 2026-09-20: the baseline checked against the code that now exists
 
-The four rows of the Context table were read in the source repository. The engine is here now, so
-each was re-read against this repository. Decision 2 holds on every row; what changed is that the
+The four rows of the Context table were settled before this code existed, and each has since been
+re-read against the code that now ships. Decision 2 holds on every row; what changed is that the
 line numbers are local and one row is no longer a fallback at all.
 
 | API | What the code does here | Read at |
@@ -162,7 +166,7 @@ what this ADR asked for — "raising `lib` would silence the compiler and ship t
 row should read "rewritten", not "falls back to".
 
 The enforcement mechanism is in place and working: `tsconfig.json:3-4` is `"target": "es2020"` and
-`"lib": ["es2020", "dom", "dom.iterable"]` (read 2026-09-20), so `WeakRef` is not in the type
+`"lib": ["es2020", "dom", "dom.iterable"]`, so `WeakRef` is not in the type
 environment, and the module that uses it declares its own `WeakRefCtor` interface locally
 (`src/spatial/spatial.ts:109-111`) — exactly the "local ambient declaration in the module that
 guards it" decision 1 describes. `bun run typecheck` is green in CI on that configuration.
@@ -177,14 +181,17 @@ to sit above Chromium 85, is a v0 follow-up.
 
 ## Alternatives considered
 
-- **Keep `es2022`, as in the source repository.** Rejected. Its syntax floor sits near
-  Chromium 85 (survey of 2026-09-18 cited above), which excludes every 2020 and 2021 television, and
-  it does so invisibly: the failure is a `SyntaxError` at load with no stack pointing at a feature.
-  A floor set by an API at least produces a named error at the call site.
-- **Target `es2018` and cover 2018-2019 sets.** Rejected for v0. It costs output size on the two
-  lines already nearest their caps (spatial at 94 %, input system at 96 %, command and date above),
-  for firmware whose engines (Chromium 53-63) lack far more than syntax. It stays available if the
-  legacy build above is ever accepted.
+- **Keep the inherited `es2022` target.** Rejected. `es2022` was the starting point — inherited from
+  the predecessor implementation ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here
+  — and its syntax floor sits near Chromium 85 (survey of 2026-09-18 cited above), which excludes
+  every 2020 and 2021 television, and it does so invisibly: the failure is a `SyntaxError` at load
+  with no stack pointing at a feature. A floor set by an API at least produces a named error at the
+  call site.
+- **Target `es2018` and cover 2018-2019 sets.** Rejected for v0. It costs output size on the lines
+  already nearest their caps — the gamepad engine at 2.48 kB of 2.50 (99 %) and the core at 3.13 of
+  3.25 (96 %), with the spatial engine at 3.04 of 3.25 (94 %), the figures recorded above
+  ([ADR-0017](0017-size-budgets.md)) — for firmware whose engines (Chromium 53-63) lack far more
+  than syntax. It stays available if the legacy build above is ever accepted.
 - **Ship two builds from day one, modern and legacy.** Rejected for v0. Two artefacts means two
   exports maps, two size budgets and two failure modes to explain, before a single device report
   exists to say the legacy one works. The decision is deferred with a date rather than guessed now.
@@ -194,23 +201,33 @@ to sit above Chromium 85, is a v0 follow-up.
 
 ## Evidence
 
-- `tsconfig.json:3-4` of this repository (re-read 2026-09-20, unchanged since 2026-09-18):
-  `"target": "es2020"`, `"lib": ["es2020", "dom", "dom.iterable"]`.
-- This repository's own guards, read 2026-09-20: `src/spatial/spatial.ts:109-141`
-  (`WeakRefCtor` declared locally, the constructor read off `globalThis` at call time, and the
-  self-releasing strong-reference fallback); `src/tabbable.ts:34-50` (`VisibilityCheck` with an
-  optional method, the `unknown` cast and its comment, and the `offsetParent`/`getClientRects`
-  fallback); `:52-54` (`closest("[inert]")`); `:85-93` (`tabbables[tabbables.length - 1]` with the
-  comment naming this ADR). The fallback that has a test:
+- `tsconfig.json:3-4`: `"target": "es2020"`, `"lib": ["es2020", "dom", "dom.iterable"]`.
+- This repository's own guards: `src/spatial/spatial.ts:109-141` — `WeakRefCtor` declared locally at
+  `:109-111`, the constructor read off `globalThis` at call time in `elementHandle` (`:127-128`), the
+  real reference built at `:130` and read through at `:131`, and the self-releasing
+  strong-reference fallback at `:134-140`; `:248` is the per-container focus memory
+  (`new WeakMap<HTMLElement, ElementHandle>()`), written in `remember` at `:286` and read back
+  through `deref()` at `:344`. `src/tabbable.ts:34-50` (`isHidden`: `VisibilityCheck` with an
+  optional method, the `unknown` cast and its comment, the detection and call at `:45-47`, and the
+  `offsetParent`/`getClientRects` fallback at `:49`); `:52-54` (`isInert`, `closest("[inert]")`);
+  `:85-93` (`getTabbableEdges`, `tabbables[tabbables.length - 1]` at `:92` with the comment naming
+  this ADR's tier at `:89-91`). The fallback that has a test:
   `src/spatial/spatial.browser.test.ts:794-826`.
-- miralabs-ui `tsconfig.base.json:3-4` (read 2026-09-18): `"target": "es2022"`, `"lib": ["es2023", "dom", "dom.iterable"]`.
-- miralabs-ui `packages/core/src/input/spatial/spatial.ts:198` (`new WeakMap<HTMLElement, WeakRef<HTMLElement>>()`), `:235` (`new WeakRef(element)`), `:293` (`.deref()`), read 2026-09-18.
-- miralabs-ui `packages/core/src/focus/tabbable.ts:40-46` (`isHidden`, `checkVisibility` at `:41-43` with the fallback at `:45`), `:49` (`closest("[inert]")`), `:85` (`tabbables.at(-1)`), read 2026-09-18.
-- miralabs-ui `ROADMAP.md:112` (read 2026-09-18): TV and consoles listed out of scope, the reason column giving, in French, "no hardware and no emulator".
+- The `"target": "es2022"` and `"lib": ["es2023", "dom", "dom.iterable"]` that this code was first
+  compiled under: inherited from the predecessor implementation
+  ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here.
+- No television, console browser or handheld has been tested here: `ROADMAP.md:3` records that
+  nothing has been run on a television, and `:93-94` keeps one verified set, Tizen or webOS, with a
+  dated device report, open ([ROADMAP.md](../../ROADMAP.md)). There is no hardware for it here and no
+  emulator.
 - Syntax floor for `es2020` output, fetched 2026-09-18 — optional chaining `?.` Chrome 80, Safari 13.1, Firefox 74, Samsung Internet 13.0: https://caniuse.com/mdn-javascript_operators_optional_chaining · nullish coalescing `??` Chrome 80, Safari 13.1, Firefox 72, Samsung Internet 13.0: https://caniuse.com/mdn-javascript_operators_nullish_coalescing · the two combined give Chrome 80, Safari 13.1, Firefox 74, Samsung Internet 13.0.
 - API support, fetched 2026-09-18: https://caniuse.com/mdn-javascript_builtins_weakref · https://caniuse.com/mdn-api_element_checkvisibility · https://caniuse.com/mdn-html_global_attributes_inert
 - `Array.prototype.at` (Chrome 92, Safari 15.4, Firefox 90, Samsung Internet 16.0), fetched 2026-09-18: https://caniuse.com/mdn-javascript_builtins_array_at
 - Television engine tables, fetched 2026-09-18: https://developer.samsung.com/smarttv/develop/specifications/web-engine-specifications.html · https://webostv.developer.lge.com/develop/specifications/web-api-and-web-engine
-- Size figures: `bun run check:size` run in miralabs-ui on 2026-09-18 against a same-day `dist`, min+gzip, externals `../*` and `../../*`.
+- The method behind the two inherited size figures: `check:size` against a same-day `dist`, min+gzip,
+  externals `../*` and `../../*` — inherited from the predecessor implementation
+  ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here, which is why those lines are
+  not comparable with this package's own. This repository's measurement is dated in the Consequences
+  section and governed by [ADR-0017](0017-size-budgets.md).
 - Compatibility survey with the full table: [docs/research/tv-runtime-compatibility.md](../research/tv-runtime-compatibility.md) (2026-09-18).
 - Steam Deck: the Steam client's embedded Chromium (CEF) was 109.0.5414.120 in the beta client of 2024-01-18, https://steamdeckhq.com/news/steam-deck-beta-client-1-18-24-descriptions/ · no newer version is disclosed as of 2026-09-18; Valve confirmed a November 2025 rebuild from the Alloy to the Chrome runtime without giving a version, https://steamcommunity.com/groups/SteamClientBeta/discussions/3/688615792191756981/ · the row therefore stays "unknown".

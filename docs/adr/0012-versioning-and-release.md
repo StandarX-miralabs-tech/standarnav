@@ -5,33 +5,24 @@ Date: 2026-09-18
 Deciders: Wesley Cormier
 
 The versioning scheme, the publication channel and the changelog tool are all decided. The tool is
-**release-please**, settled by the owner on 2026-09-20 (amendment at the foot of this record);
+**release-please**, settled by the owner on 2026-09-20 (first amendment at the foot of this record);
 nothing of it is wired yet, and the workflow that runs it is still to be written.
 
 ## Context
 
-standarnav is unreleased: `package.json` is at version `0.0.0` and nothing is on npm
-(`registry.npmjs.org/@standarx%2Fnav` returned 404 on 2026-09-18). Everything about releasing has
-to be decided now rather than inherited, because the source repository has no mechanism to copy:
+standarnav is unreleased: `package.json:3` is at version `0.0.0` and nothing is published on npm.
+Everything about releasing has to be decided now rather than copied: there was no release workflow
+to inherit, no changeset flow left standing and no publication channel beyond packed tarballs
+handed around as a workspace convenience — a state inherited from the predecessor implementation
+([ADR-0002](0002-license-and-copyright.md)) and not re-derived here.
 
-- `.github/workflows/` in miralabs-ui contains `ci.yml` and nothing else — there is no
-  `release.yml` (directory listing, 2026-09-18).
-- `.changeset/` contains no changeset file (only a `.standardoc` entry): changesets were removed
-  on 2026-09-18 and versions are bumped by hand.
-- Distribution in that repository was by packed tarball (a `tarballs/` directory at the root),
-  which is a workspace convenience, not a publication.
+The infrastructure, on the other hand, is not an obstacle. GitHub Actions runs on this repository:
+the workflow at `.github/workflows/ci.yml` has been green since 2026-09-19, so the automation
+described here can be assumed to run rather than hoped for.
 
-There is also an infrastructure constraint. GitHub Actions on the account carrying the source
-organization is blocked: `gh run list -R miralabs-tech/miralabs-ui --limit 8` returned 8 runs out
-of 8 in `failure` on 2026-09-18, with the annotation "The job was not started because recent
-account payments have failed or your spending limit needs to be increased." The new organization
-`StandarX-miralabs-tech` was created the same day and its billing has **not** been checked.
-Automation described here cannot be assumed to run until it is.
-
-One thing is already in place: `publishConfig` in `package.json:53-56` (read 2026-09-20; it was at
-`:35-38` on 2026-09-18, before the exports map grew) sets `"access": "public"` and
-`"provenance": true`, so the package is built to be published with an npm provenance attestation
-from a CI run — which only makes sense if publishing happens in CI.
+One thing is already in place: `publishConfig` at `package.json:53-56` sets `"access": "public"`
+and `"provenance": true`, so the package is built to be published with an npm provenance
+attestation from a CI run — which only makes sense if publishing happens in CI.
 
 ## Decision
 
@@ -70,10 +61,9 @@ edit to the generated release pull request before it is merged — release-pleas
 request open precisely so it can be edited. Neither is configured today, so neither is a claim
 about how this repository merges; they are what the rider's closure obliges.
 
-**Nothing of this is wired yet.** As of 2026-09-20 there is no `release-please-config.json`, no
-`.release-please-manifest.json`, and `.github/workflows/` holds `ci.yml` and nothing else
-(directory listing, 2026-09-20). Until the workflow is written,
-[CONTRIBUTING.md](../../CONTRIBUTING.md) and
+**Nothing of this is wired yet.** There is no `release-please-config.json`, no
+`.release-please-manifest.json`, and `.github/workflows/` holds `ci.yml` and nothing else. Until
+the workflow is written, [CONTRIBUTING.md](../../CONTRIBUTING.md) and
 [the pull-request template](../../.github/PULL_REQUEST_TEMPLATE.md) say the same thing — the
 pull-request description carries the one sentence describing the user-facing change, and that
 sentence becomes the changelog entry. The difference after wiring is that the sentence is taken
@@ -81,18 +71,30 @@ from the squashed commit subject instead of being copied by hand.
 
 **Publication from GitHub Actions only**, in a `release.yml` workflow to be written: build,
 typecheck, lint, unit and browser suites, then `bun run check:package` — `scripts/check-package.ts`
-packs the tarball and runs `publint` and `attw --profile esm-only` on it — then a publish with
-provenance (`publishConfig.provenance` is already `true`) and the permission provenance needs.
-Two points are **not verified today** and must be settled against the npm provenance
-documentation before the first release: the minimum CLI version and permission block, and
-whether `bun publish` emits the attestation — the repository forbids `npm` and `npx`
-([CONTRIBUTING.md](../../CONTRIBUTING.md)), so a release workflow that has to call the npm CLI is
-a documented exception, not a silent one. The publishing account must have 2FA enabled; publishing
-is never done from a laptop.
+packs the tarball (`scripts/check-package.ts:68`) and runs `publint --strict`
+(`scripts/check-package.ts:74`) and `attw --profile esm-only` (`scripts/check-package.ts:75`) on it
+— then a publish with provenance (`publishConfig.provenance` is already `true`) and the permissions
+that provenance needs.
 
-**Pre-releases for device validation.** TV runtimes are the risky target and no device test has
-ever been run (miralabs-ui `ROADMAP.md:112`, read 2026-09-18;
-[ADR-0014](0014-device-and-browser-matrix.md)). Releases meant for device trials are
+The shape of that publish is settled, not an open question. `bun publish` emits no provenance
+attestation at all (`oven-sh/bun#15601`, open since 2024-12-05, last movement 2026-08-28), so the
+publish step calls the npm CLI. That is the one documented exception, not a silent one:
+[CONTRIBUTING.md](../../CONTRIBUTING.md) forbids the tool outright — "Never use `npm` or `npx` in
+this repository", at `CONTRIBUTING.md:12` — and records the exception in the same breath, as does
+the release-tooling section of [ROADMAP.md](../../ROADMAP.md). Token-based provenance requires
+npm >= 9.5.0, a cloud runner, a `permissions:` block granting `id-token: write` and
+`contents: read`, and a `repository` field matching the repository case-sensitively —
+`package.json:19-22` carries it. Trusted publishing requires npm >= 11.5.1 and Node >= 22.14.0 and
+attests on its own, but a trusted publisher is configured against a package that already exists on
+the registry, so it cannot serve the first publish; since 2026-09-03 a fresh configuration also
+defaults to `npm stage publish`, with a direct `npm publish` as an opt-in, and the workflow
+filename must match the one registered on npmjs.com exactly. Hence two steps rather than one: a
+granular token plus `--provenance` for `0.1.0`, then a switch to trusted publishing and revocation
+of the token. The publishing account must have 2FA enabled; publishing is never done from a laptop.
+
+**Pre-releases for device validation.** TV runtimes are the risky target and no TV device test has
+ever been run, for want of the hardware and of an emulator
+([ADR-0014](0014-device-and-browser-matrix.md)). Releases meant for device trials are
 published as `0.x.y-next.N` under the npm dist-tag `next`; `latest` is only moved once the
 supported-tier browser suite is green. No release note claims a device is supported before a
 device test exists.
@@ -105,8 +107,9 @@ device test exists.
   instead of skipping it.
 - One version number covers core, engines and every adapter ([ADR-0011](0011-package-layout-and-adapters.md)),
   so the changelog entry must name the affected subpath — "fix(spatial)", not "fix".
-- Nothing can be released until GitHub Actions is usable on the `StandarX-miralabs-tech`
-  organization. That billing check is a release blocker, not a detail, and it has not been done.
+- Nothing about the infrastructure blocks a release: Actions runs, and the CI workflow is green.
+  What stands between this repository and a first publication is the release workflow, which is
+  still unwritten.
 - Provenance ties each published version to a public workflow run and a git commit. It also means
   an emergency publish from a developer machine is not a fallback: it would produce a release
   without an attestation, visibly different from every other version.
@@ -128,18 +131,44 @@ Decision section above is rewritten to record it as the decision rather than as 
 the changesets case moved into `## Alternatives considered` with the reason it lost.
 
 Three things about the state of the repository on the day this was settled, so the record does not
-read as more than it is. `.github/workflows/` contains `ci.yml` only (directory listing,
-2026-09-20). No `release-please-config.json` and no `.release-please-manifest.json` exist
-(directory listing of the repository root, 2026-09-20). `package.json` declares no changesets
-dependency and there is no `.changeset/` directory (`package.json` read 2026-09-20). So
+read as more than it is. `.github/workflows/` contains `ci.yml` only. No
+`release-please-config.json` and no `.release-please-manifest.json` exist at the repository root.
+`package.json` declares no changesets dependency and there is no `.changeset/` directory. So
 release-please is the accepted tool and it runs nowhere: no release pull request exists, nothing
 has been published, and the release workflow described above is still to be written.
 
-The `bench` script listed under Evidence as part of the 2026-09-18 reading of `package.json` is
-gone at HEAD. It was removed with the benchmark it ran, because `vitest` 5 exports no `bench`
-function — [ADR-0018](0018-testing-strategy.md), decision 7. The scripts now declared are `dev`,
-`build`, `typecheck`, `lint`, `lint:fix`, `format`, `test`, `test:unit`, `test:browser`,
-`test:watch`, `check:size` and `check:package` (`package.json`, read 2026-09-20).
+There is no `bench` script. It went with the benchmark it ran, because `vitest` 5 exports no `bench`
+function — [ADR-0018](0018-testing-strategy.md), decision 7. The scripts declared at
+`package.json:57-71` are `dev`, `build`, `typecheck`, `lint`, `lint:fix`, `format`, `test`,
+`test:unit`, `test:browser`, `test:watch`, `check:size`, `check:package` and `check:docs`.
+
+## Amendment, 2026-09-20: Actions runs, and provenance is settled
+
+Two things this record carried as open are closed, and one of them was stated wrongly.
+
+GitHub Actions is not blocked and no billing check stands between this repository and a release.
+The last failing run here was on 2026-09-18 at 20:37 UTC; every run since 2026-09-19 at 15:15 UTC
+has succeeded — five consecutively, the most recent green across eight checks with no annotations.
+The Context paragraph that treated the runner as an infrastructure constraint and the Consequences
+bullet that called the billing check a release blocker are both gone, because both described a
+condition that no longer holds. Automation described here can be assumed to run.
+
+The two provenance points the Decision had left "not verified today" are settled, and the Decision
+now states the resulting shape rather than the research still to do. `bun publish` emits no
+provenance attestation (`oven-sh/bun#15601`, open since 2024-12-05, last movement 2026-08-28),
+which forces the npm CLI into the publish step and makes the exception to the no-`npm` rule of
+[CONTRIBUTING.md](../../CONTRIBUTING.md) definite rather than conditional. Token-based provenance
+needs npm >= 9.5.0, a cloud runner, `id-token: write` with `contents: read`, and the `repository`
+field of `package.json:19-22` matching the repository case-sensitively. Trusted publishing needs
+npm >= 11.5.1 and Node >= 22.14.0 and attests on its own, but is configured against an
+already-published package, so the first publish cannot use it — `0.1.0` goes out with a granular
+token and `--provenance`, and the token is revoked once trusted publishing replaces it. Since
+2026-09-03 a fresh trusted-publishing configuration also defaults to `npm stage publish` rather
+than publishing directly, and the workflow filename registered on npmjs.com has to match the one in
+the repository exactly, which is why the switch is a second step and not a detail of the first.
+
+What this amendment does not change: the release workflow is still unwritten, release-please runs
+nowhere, and nothing is published.
 
 ## Alternatives considered
 
@@ -162,43 +191,37 @@ Rejected on the count of moving parts. It is a second convention on top of the C
 one this repository already enforces by review, a dependency and a `.changeset/` directory to
 maintain, and a file contributors forget — at which point the release note silently loses the
 change. The commit convention is enforced anyway; the changeset is not. Choosing the artefact that
-is already checked is what makes the changelog trustworthy. It also reintroduces the tool the
-source repository had just dropped.
+is already checked is what makes the changelog trustworthy.
 
-**Hand-written CHANGELOG with manual bumps**, the state the source repository moved to on
-2026-09-18. Rejected: it relies on a single author remembering the intent of every change, which
-stops being true the moment an outside pull request is merged.
+**Hand-written CHANGELOG with manual bumps.** Rejected: it relies on a single author remembering
+the intent of every change, which stops being true the moment an outside pull request is merged.
 
 **A bot enforcing conventional commits** (commitlint in CI). Not rejected on the merits, only
-deferred: with CI blocked and no contributors yet, a review checklist costs nothing and a failing
-required check that nobody can re-run costs a lot. Revisit once Actions runs.
+deferred: there are no contributors yet, so a review checklist costs nothing while the contributor
+count is one, and a required check buys nothing a reviewer is not already doing. Revisit when the
+first outside pull request arrives.
 
 ## Evidence
 
-- `package.json`, read 2026-09-18: `"version": "0.0.0"` (line 3),
-  `"publishConfig": {"access": "public", "provenance": true}` (lines 35-38), scripts `dev`,
-  `build`, `typecheck`, `lint`, `lint:fix`, `format`, `test`, `test:unit`, `test:browser`,
-  `test:watch`, `bench`, `check:size`, `check:package`; devDependencies include
-  `publint` `^0.3.24` and `@arethetypeswrong/cli` `^0.18.5`.
-- npm name availability, 2026-09-18: `registry.npmjs.org/@standarx%2Fnav` → 404;
-  `registry.npmjs.org/standarnav` → 404; scope search `scope:standarx` → 0 packages. The probes
-  per candidate are recorded in [ADR-0001](0001-name-scope-and-attribute-prefix.md).
-- Source repository miralabs-ui at `289fa607`, read-only, 2026-09-18: listing of
-  `.github/workflows/` → `ci.yml` only; listing of `.changeset/` → no changeset file;
-  a `tarballs/` directory at the repository root.
-- CI billing: `gh run list -R miralabs-tech/miralabs-ui --limit 8` on 2026-09-18 → 8 `failure`,
-  with the annotation "The job was not started because recent account payments have failed
-  or your spending limit needs to be increased." Organization `StandarX-miralabs-tech` created
-  2026-09-18 (`gh api repos/StandarX-miralabs-tech/standarnav` → 404 the same day); its billing
-  state is unchecked.
-- No TV device test has ever been run: miralabs-ui `ROADMAP.md:112`, read 2026-09-18.
-- Release tooling state, 2026-09-20: `.github/workflows/` → `ci.yml` only; no
-  `release-please-config.json`, no `.release-please-manifest.json`, no `.changeset/` directory;
-  `package.json` version still `0.0.0` and no release-please or changesets entry in
-  `devDependencies`. Nothing here has run.
-- `check:package` is wired and green: `scripts/check-package.ts` packs the tarball, runs `publint`
-  and `attw --profile esm-only` on it, and now also fails when `package.json` declares any runtime
-  dependency (`scripts/check-package.ts`, read 2026-09-20). It is the third step of the `build` job
-  of `.github/workflows/ci.yml`, after `bun run build` and the `git diff --exit-code` drift gate.
+- `package.json:3` is `"version": "0.0.0"`, and `package.json:53-56` is the `publishConfig` block
+  with `"access": "public"` and `"provenance": true`. The declared scripts are listed in the first
+  amendment above; `devDependencies` carry `publint` `^0.3.24` (`package.json:81`) and
+  `@arethetypeswrong/cli` `^0.18.5` (`package.json:73`), the two linters `check:package` runs.
+- Nothing is published under the `@standarx` scope, so no version of this package exists on the
+  registry for a consumer to install. The name probes per candidate are recorded in
+  [ADR-0001](0001-name-scope-and-attribute-prefix.md).
+- No TV device test has ever been run, for want of the hardware and of an emulator.
+- Release tooling: `.github/workflows/` holds `ci.yml` only; there is no
+  `release-please-config.json`, no `.release-please-manifest.json` and no `.changeset/` directory;
+  `package.json` is still at `0.0.0` and declares no release-please or changesets entry among the
+  `devDependencies` at `package.json:72-89`. Nothing here has run.
+- `check:package` is wired and green: `scripts/check-package.ts` packs the tarball
+  (`scripts/check-package.ts:68`), runs `publint --strict` on it (`scripts/check-package.ts:74`)
+  and `attw --profile esm-only` (`scripts/check-package.ts:75`), and fails when `package.json`
+  declares any runtime dependency — `scripts/check-package.ts:34-40` reads `manifest.dependencies`
+  and exits non-zero when the list is not empty. In the `build` job of
+  `.github/workflows/ci.yml` it runs after `bun run build` (`:50`) and the
+  `git diff --exit-code` drift gate (`:53-54`), at `:55-56`, with `bun run check:size` behind it at
+  `:57-58`.
 - Related: [ADR-0003](0003-package-boundaries.md) for what is being released,
   [ADR-0011](0011-package-layout-and-adapters.md) for the surface a version number covers.

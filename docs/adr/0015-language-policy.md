@@ -16,15 +16,12 @@ several countries, and the prior art this project sits next to is written in
 English (BBC `lrud-spatial`, Microsoft Tabster, LG Enact Spotlight, the WICG
 polyfill).
 
-The source repository the engine is extracted from mixed both languages. Its
-specification (`docs/cahier-des-charges.md`), its research note
-(`docs/research/input.md`) and most of its commit messages are French; its code,
-its identifiers and its code comments are English. Both documents were deleted
-from that repository by commit `289fa607` on 2026-09-18 and are readable with
-`git show 289fa607^:<path>`. That mix works for a single author and stops working
-the moment an outside contributor opens an issue: a French specification
-paragraph is a wall for a reader who can read the code underneath it perfectly
-well.
+The predecessor implementation this engine comes from mixed both languages: its
+specification, its research note and most of its commit messages were French,
+while its code, its identifiers and its code comments were English. That mix
+works for a single author and stops working the moment an outside contributor
+opens an issue: a French specification paragraph is a wall for a reader who can
+read the code underneath it perfectly well.
 
 The extraction (see [ADR-0003](0003-package-boundaries.md)) is the moment to fix
 this, because it is the moment the repository becomes public and every file gets
@@ -93,13 +90,13 @@ body it summarises. The reader who most needs the document is the one who only
 gets the abstract.
 
 **French canonical, English mirror.** The inverse of rule 5. Rejected: the code
-is already English (source repository, verified 2026-09-18), so a French
+is already English — every file under `src/`, comments included — so a French
 canonical layer would sit on top of an English artefact and every API name in
 every paragraph would be a foreign word. It also makes external contribution
 strictly harder for no gain the owner needs.
 
-**No policy — write whatever fits.** This is what the source repository did.
-Rejected: it produced a specification the owner can read and a contributor
+**No policy — write whatever fits.** This is what the predecessor implementation
+did. Rejected: it produced a specification the owner can read and a contributor
 cannot, and there is no point at which such a corpus gets cheaper to fix.
 
 **English only, no French at all, including private notes.** Rejected: it would
@@ -111,13 +108,11 @@ untracked and no reader ever sees them.
 - The owner's decision of 2026-09-18, recorded in this ADR: every committed
   Markdown file is English, code and comments are English, and French working
   notes stay untracked.
-- Source repository mixing both languages: miralabs-ui
-  `docs/cahier-des-charges.md` and `docs/research/input.md` are French; the code
-  read at miralabs-ui `packages/core/src/input/spatial/geometry.ts` (header
-  comment, lines 1-18) is English. Both read on 2026-09-18.
-- Those design documents were deleted from the source repository on 2026-09-18
-  by commit `289fa607`; they are readable with
-  `git show 289fa607^:docs/research/input.md` and its sibling.
+- That the predecessor mixed a French document set with English code is inherited
+  from the predecessor implementation ([ADR-0002](0002-license-and-copyright.md))
+  and not re-derived here: those documents are not in this tree, so no reader of
+  this repository can check the claim. It is recorded because it is the problem
+  rule 1 exists to prevent, not as evidence for anything this repository asserts.
 - Prior art is English-language: the competitor fact sheets verified on
   2026-09-18, published in [docs/research/competitors.md](../research/competitors.md).
 - Rejection of bilingual ADRs: the owner's decision of 2026-09-18, recorded in
@@ -127,7 +122,7 @@ untracked and no reader ever sees them.
   `specification.md`); rule 5 and its gate stay forward-looking, and the rider
   above stays open because there is nothing yet for a CI job to check.
 - Rules 2 and 3 are satisfied by the code that arrived in the meantime: every
-  file under `src/` is English, comments included (read 2026-09-20). The
+  file under `src/` is English, comments included. The
   committed Markdown of `docs/adr/` is English throughout.
 - Related: [ADR-0003](0003-package-boundaries.md) (what is being extracted) and
   [ADR-0016](0016-scoring-constants-provenance.md) (the comments rule 3 keeps).

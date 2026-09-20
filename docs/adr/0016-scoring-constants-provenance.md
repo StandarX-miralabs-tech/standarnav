@@ -17,17 +17,18 @@ There is a second reason. It would be easy, and wrong, to describe this engine a
 "Chromium's spatial navigation algorithm". Two of the weights are Chromium's. The
 formula is not.
 
-The relevant source was miralabs-ui `packages/core/src/input/spatial/geometry.ts` (278 lines,
-`wc -l` 2026-09-18), pure arithmetic over rectangles with no DOM access. It is now
-`src/spatial/geometry.ts` here (276 lines, `wc -l` 2026-09-20). **Every bare `geometry.ts:NNN`
-below points at this repository's file**, re-read and re-derived on 2026-09-20; the Evidence
-section keeps the source's own line numbers under its `packages/` prefix so the two can be
-compared.
+The scoring lives in one file of pure arithmetic over rectangles, `src/spatial/geometry.ts`
+(276 lines, `wc -l`), whose only import is the `Rect` type (`src/spatial/geometry.ts:19`) — no DOM
+access at all. **Every bare `geometry.ts:NNN` below points at `src/spatial/geometry.ts`.** The
+traffic runs both ways: that file's module doc comment sends the reader back here, because every
+constant in it has its provenance in this ADR and nowhere else (`src/spatial/geometry.ts:14-16`).
 
 ## Decision
 
-The constants and the rule are recorded as follows, and stay as they are for v0
-parity with the source engine.
+The constants and the rule are recorded as follows, and stay as they are for v0. The three scoring
+literals, the align-bonus rule and the two timing constants are inherited from the predecessor
+implementation ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here; what follows
+records where each value originally came from and where it now lives, not a fresh derivation.
 
 | Name | Value | Origin |
 |---|---|---|
@@ -36,11 +37,12 @@ parity with the source engine.
 | `weightVertical` | `2` (`DEFAULT_WEIGHT_VERTICAL`, geometry.ts:42) | Blink `kOrthogonalWeightForUpDown`, same file, line 674. |
 | `alignBonus` | the origin's own size across the move (geometry.ts:151) | Local choice, self-calibrating. Blink's `kAlignWeight = 5` (same file, line 583) exists but is **not** used here. |
 
-The three literals were re-read in `src/spatial/geometry.ts` on 2026-09-20 and are unchanged from
-the source: `0.3`, `30`, `2`, declared together at `:40-42` and reachable only through
-`ScoreOptions` overrides. `alignBonus` has no constant at all — it is the `??` default on two
-lines, `:151` in `findBestCandidate` and `:215` in `scoreCandidates`, which is why a change to it
-has to be made twice and why the fixture rule below matters more for it than for the other three.
+The three literals are declared together in `src/spatial/geometry.ts` at `:40-42` —
+`DEFAULT_OVERLAP_THRESHOLD` `0.3`, `DEFAULT_WEIGHT_HORIZONTAL` `30` and
+`DEFAULT_WEIGHT_VERTICAL` `2` — and are reachable only through `ScoreOptions` overrides.
+`alignBonus` has no constant at all: it is the `??` default on two lines, `:151` in
+`findBestCandidate` and `:215` in `scoreCandidates`, which is why a change to it has to be made
+twice and why the fixture rule below matters more for it than for the other three.
 
 The threshold becomes a tolerance in pixels, `threshold × (horizontal ?
 origin.width : origin.height)`, and a candidate is dropped when its axis gap is
@@ -91,15 +93,15 @@ false one by silence.
 
 | Name | Value | Origin |
 |---|---|---|
-| `POINTER_INTENT_MS` | `300` | Local choice. It is how long continuous mouse movement must last before it takes the modality away from a keyboard or gamepad session. Not measured against user testing; the rationale is written at its declaration, the number is not derived from it. |
-| `POINTER_STREAK_GAP_MS` | `100` | Local choice, and the one with the least behind it: the gap that ends a streak, so that a pointer set down and moved later does not accumulate age across the pause. No external source. |
+| `POINTER_INTENT_MS` | `300` | Local choice. It is how long continuous mouse movement must last before it takes the modality away from a keyboard or gamepad session. Not measured against user testing; the rationale is written at its declaration (`src/modality.ts:21-25`), the number is not derived from it. |
+| `POINTER_STREAK_GAP_MS` | `100` | Local choice, and the one with the least behind it: the gap that ends a streak, so that a pointer set down and moved later does not accumulate age across the pause (`src/modality.ts:28`). No external source. |
 
-Both live in `src/modality.ts` (`:26` and `:29`, read 2026-09-20; they are module
-constants, not options, and nothing overrides them). They carry the same rule as
-the scoring constants: changing either wants a fixture that fails before and
-passes after. `src/modality.test.ts` pins the inclusive boundary of the first one
-at 299 and 300 milliseconds, which is why that case asserts both sides rather
-than one.
+Both live in `src/modality.ts` (`:26` and `:29`; they are module constants, not
+options, and nothing overrides them). They carry the same rule as the scoring
+constants: changing either wants a fixture that fails before and passes after.
+`src/modality.test.ts:41-43` pins the inclusive boundary of the first one at 299
+and 300 milliseconds, which is why that case asserts both sides rather than one —
+and it is the only hard evidence either number has.
 
 ## Consequences
 
@@ -109,9 +111,10 @@ than one.
   from.
 - `alignBonus` is the one constant with no external authority. It is a local
   heuristic, so it is the first thing to question if alignment ever feels wrong.
-- Keeping v0 at parity means inheriting the source engine's behaviour including
-  its imperfections. That is deliberate: the extraction is a move, not a rewrite,
-  and behaviour changes belong in their own commits with their own fixtures.
+- Keeping v0 at parity means inheriting the predecessor implementation's
+  behaviour, imperfections included. That is deliberate: the extraction is a move,
+  not a rewrite, and behaviour changes belong in their own commits with their own
+  fixtures.
 - `scoreCandidates` (geometry.ts:202-236) recomputes the same score for the debug
   overlay, kept a separate loop on purpose so `findBestCandidate` stays free of
   debug bookkeeping on the hot path (doc comment, geometry.ts:196-201). Two call
@@ -119,12 +122,13 @@ than one.
   The *winner* rule has only one call site, since `src/debug.ts` asks
   `findBestCandidate` for it rather than restating it
   ([ADR-0010](0010-dev-mode-diagnostics.md), decision 4).
-- The performance claim needs care, and it needs more care here than in the
-  source, because **this repository has no benchmark**. The inherited
-  `geometry.bench.ts` was not ported: `vitest` 5 exports no `bench` function, so
-  there is no runner and no `bench` script in `package.json`
+- The performance claim needs care, because **this repository has no benchmark**.
+  The benchmark and the figures it produced are inherited from the predecessor
+  implementation ([ADR-0002](0002-license-and-copyright.md)) and not re-derived
+  here; there is nothing to re-run, because `vitest` 5 exports no `bench`
+  function, so there is no runner and no `bench` script in `package.json`
   ([ADR-0018](0018-testing-strategy.md), decision 7). What exists is the timing
-  guard, ported as an ordinary test — `src/spatial/geometry.test.ts:156-177`,
+  guard, an ordinary test — `src/spatial/geometry.test.ts:156-177`,
   200 warm-ups then the median of 51 samples under 1 ms for 200 candidates — and
   it calls `findBestCandidate` alone. It does not measure candidate collection,
   `querySelectorAll`, `getBoundingClientRect` or `checkVisibility`. It is not an
@@ -136,9 +140,9 @@ than one.
 
 **Blink's exact formula.** Take the whole of `spatial_navigation.cc`, weights,
 alignment term and all. Rejected for v0: it would change behaviour on day one
-with no fixture saying what improved, and break parity with the source
-repository about to become a consumer. It stays a future experiment, gated on
-fixtures.
+with no fixture saying what improved, and break parity with the predecessor
+implementation, which becomes a consumer of this package. It stays a future
+experiment, gated on fixtures.
 
 **`lrud-spatial`'s scoring as-is.** Shortest line between exit edge and entry
 edge, with the 30 % overlap tolerance of the table above (`0.3`) and nothing
@@ -156,46 +160,51 @@ on the plugin. Per-container overrides via attributes remain open.
 
 ## Evidence
 
-- This repository's `src/spatial/geometry.ts`, read 2026-09-20 (276 lines, `wc -l`):
-  constants at `:40-42`; `ScoreOptions` at `:27-38`; `scoreOf` at `:73-132`, returned
-  formula at `:129-131`; `findBestCandidate` at `:139-185`, its tolerance at
-  `:146-147`, the `gap < -tolerance` drop at `:159-160`, its two accumulators at
-  `:153-184` and the `aligned ?? any` return at `:184`; the DOM-order tie-break
-  stated in the doc comment at `:134-138`; `scoreCandidates` at `:202-236` with its
-  doc comment at `:196-201`; `findWrapCandidate` at `:243-276`. The three scoring
-  literals and the formula are byte-identical to the source's.
+- `src/spatial/geometry.ts` (276 lines, `wc -l`): constants at `:40-42`;
+  `ScoreOptions` at `:27-38`; `scoreOf` at `:73-132`, returned formula at
+  `:129-131`; `findBestCandidate` at `:139-185`, its tolerance at `:146-147`, the
+  `gap < -tolerance` drop at `:159-160`, its two accumulators at `:153-184` and the
+  `aligned ?? any` return at `:184`; the DOM-order tie-break stated in the doc
+  comment at `:134-138`; `scoreCandidates` at `:202-236` with its doc comment at
+  `:196-201`; `findWrapCandidate` at `:243-276`.
 - `alignBonus` default: `options?.alignBonus ?? (horizontal ? origin.height : origin.width)`,
   `src/spatial/geometry.ts:151` and again at `:215`.
-- miralabs-ui `packages/core/src/input/spatial/geometry.ts`, read 2026-09-18 (278 lines):
-  constants at lines 41-43; `ScoreOptions` at 28-39; `scoreOf`
-  at 74-133, returned formula at 130-132; `findBestCandidate` at 140-186, its two
-  accumulators at 154-185; DOM-order tie-break at 135-138; `scoreCandidates` at
-  197-238; `findWrapCandidate` at 245-278. Kept for comparison; the extraction
-  shifted every anchor by one or two lines and changed no arithmetic.
-- BBC 30 % default and its `data-lrud-overlap-threshold` attribute: miralabs-ui
-  `docs/research/input.md` §0, reference implementations, and §3.2 step 2 — the
-  engine specification of 2026-08-27, deleted by commit `289fa607` and readable
-  with `git show 289fa607^:docs/research/input.md`; the same file's §3.2 step 4
-  records the Blink weights and the score formula, and its reference list links
-  https://github.com/bbc/lrud-spatial.
+- `0.3` is BBC `lrud-spatial`'s own directional-overlap default, exposed there as
+  the `data-lrud-overlap-threshold` attribute: https://github.com/bbc/lrud-spatial.
+  Here the same number is `DEFAULT_OVERLAP_THRESHOLD` (`src/spatial/geometry.ts:40`),
+  a `ScoreOptions` field rather than a DOM attribute. Two corroborations in this
+  tree: the `lrud-spatial` row of the [competitor survey](../research/competitors.md),
+  and requirement **R23** of the [specification](../specification.md), which states
+  the `0.3` tolerance and attributes it to `lrud-spatial` as well.
 - Blink constants, `third_party/blink/renderer/core/page/spatial_navigation.cc`
-  on `main`, fetched 2026-09-18: line 673 `const int kOrthogonalWeightForLeftRight = 30;`,
-  line 674 `const int kOrthogonalWeightForUpDown = 2;`, line 583
+  on `main` — line numbers there drift, so these are the lines as of 2026-09-18,
+  which is what makes them falsifiable: line 673
+  `const int kOrthogonalWeightForLeftRight = 30;`, line 674
+  `const int kOrthogonalWeightForUpDown = 2;`, line 583
   `const int kAlignWeight = 5;` — the third is present in Blink and unused here.
   https://raw.githubusercontent.com/chromium/chromium/main/third_party/blink/renderer/core/page/spatial_navigation.cc
-- tvOS two-pass rule and the alignment bias it produces: miralabs-ui
-  `docs/research/input.md` §0 (tvOS Focus Engine) and §3.2 step 3, same deleted
-  file.
-- Bench scope, in the source only: miralabs-ui
-  `packages/core/src/input/spatial/geometry.bench.ts`, read 2026-09-18 —
-  `lattice(200, 20)` and `lattice(2_000, 40)`, 80×40 cells on a 90×50 pitch,
-  three benches all calling `findBestCandidate`. It was not ported and this
-  repository has no `.bench.ts` file and no `bench` script
-  (`package.json`, read 2026-09-20). Timing guard as ported:
-  `src/spatial/geometry.test.ts:156-177`, 200 warm-ups then the median of 51
-  samples under 1 ms; miralabs-ui `geometry.test.ts:156-177` is the original.
-- The constants are exercised, not only read: `src/spatial/geometry.test.ts` and
-  `src/spatial/spatial.browser.test.ts` between them cover the two passes, the
-  wrap candidate and the DOM-order tie-break. Suite state 2026-09-20:
-  `bun run test:unit` → 100 passed in 10 files; `bun run test:browser` → 169 passed
-  and 1 skipped in 10 files.
+- The two-pass rule as implemented: one loop, two accumulators declared at
+  `src/spatial/geometry.ts:153-156` and `return aligned ?? any;` at `:184`, the
+  whole of it `:153-184`, with the module doc comment at `:9-12` naming both passes
+  and the reason — what stops a right-press from landing two rows down. The
+  behaviour is covered at fixture level by `src/spatial/geometry.test.ts` and in a
+  real browser by `src/spatial/spatial.browser.test.ts`. The characterisation of it
+  as Apple's tvOS Focus Engine rule is inherited from the predecessor
+  implementation ([ADR-0002](0002-license-and-copyright.md)) and not re-derived
+  here: no measurement of tvOS exists in this tree.
+- Bench scope: this repository has no `.bench.ts` file at all and `package.json`
+  declares no `bench` script, so nothing here produces a throughput figure
+  ([ADR-0018](0018-testing-strategy.md), decision 7). What is enforced instead is
+  the timing guard at `src/spatial/geometry.test.ts:156-177`: the `"scoring cost"`
+  block opens at `:156`, 200 warm-up calls at `:165`, 51 samples at `:168-172`, and
+  `expect(samples[25]).toBeLessThan(1)` at `:175` — the median of 51 samples under
+  1 ms for 200 candidates, calling `findBestCandidate` alone.
+- The constants are exercised, not only read: `src/spatial/geometry.test.ts`
+  (205 lines) and `src/spatial/spatial.browser.test.ts` (877 lines) between them
+  cover the two passes, the wrap candidate and the DOM-order tie-break; suite state
+  belongs to [ADR-0018](0018-testing-strategy.md) rather than to this document. Two
+  of those fixtures carry the two most fragile claims above on their own:
+  `src/spatial/geometry.test.ts:186-193` pins the overlap tolerance as measured
+  *along* the move, and `:195-204` pins the align bonus as measured *across* it —
+  the pair that would still pass on square rectangles if the two were transcribed
+  the wrong way round.

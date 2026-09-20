@@ -48,13 +48,14 @@ Rules that go with that skeleton:
 - `## Evidence` is where the proof lives — a source path with its line numbers, a
   command with the date it was run, a fetched URL with the date. A claim with
   none of those is written as "not measured yet" or "to be verified".
-- Source code from the source repository is cited **with its repository named**,
-  as `miralabs-ui: packages/core/src/input/spatial/spatial.ts:198`. Code in this
-  repository is cited bare, as `src/spatial/spatial.ts:248`. Since `src/` exists
-  here, a bare `packages/...` path is ambiguous to a reader who does not already
-  know the layout of both repositories: where a record predates that and cites
-  many source paths in one table, the table says which repository it is reading.
-  A line number without a read date is not a citation.
+- Every code citation is a path in **this** repository, written bare and at a line
+  the author opened: `src/spatial/spatial.ts:248`. There is no second repository for
+  a reader to disambiguate against, and no record cites one — a claim this project
+  did not re-derive carries no path at all. It is marked as inherited from the
+  predecessor implementation ([ADR-0002](0002-license-and-copyright.md)) and not
+  re-derived here, which is honest about what a reader can check. A line number
+  without the symbol it points at is a citation waiting to drift: name the symbol
+  in the prose so the mismatch is visible when it does.
 - Related records are linked by file name, relative to this directory:
   `[ADR-0003](0003-package-boundaries.md)`.
 - Length: 60 to 150 lines is the target **for a new record**. The nineteen below
