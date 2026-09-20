@@ -21,7 +21,7 @@ import {
 import { createInputSystem, type InputPlugin, type InputSystem } from "../input-system";
 import type { IntentHandler, IntentScopeHost, IntentScopeOptions } from "../intent-bus";
 import { isDev } from "../internal/env";
-import { arrayEquals } from "../internal/equality";
+import { arrayEquals, recordEquals } from "../internal/equality";
 import type { KeymapOverrides } from "../keymap";
 import { getInputModality, trackInputModality } from "../modality";
 import type { InputModality } from "../types";
@@ -35,6 +35,14 @@ import { useSafeLayoutEffect } from "./use-safe-layout-effect";
 interface InputSystemSlot {
   readonly system: InputSystem | null;
 }
+
+// The types a consumer of this entry point needs to name what it passes in and what
+// it is handed back. A React application should not have to reach into the package
+// root to type the argument of a hook it imports from here.
+export type { InputPlugin, InputSystem } from "../input-system";
+export type { IntentHandler, IntentScopeHost, IntentScopeOptions } from "../intent-bus";
+export type { KeymapOverrides } from "../keymap";
+export type { InputModality } from "../types";
 
 const InputSystemContext = createContext<InputSystemSlot | null>(null);
 
@@ -65,10 +73,35 @@ export interface NavDocumentProviderProps {
  */
 export function NavDocumentProvider(props: NavDocumentProviderProps): ReactNode {
   const { doc, children } = props;
-  const getDocument = useMemo<() => Document>(
-    () => (typeof doc === "function" ? doc : () => doc),
-    [doc],
-  );
+  const latest = useRef(doc);
+  latest.current = doc;
+  const resolved = useRef<Document | null>(null);
+  const [generation, setGeneration] = useState(0);
+
+  // `doc={() => frame.contentDocument!}` is a new function on every parent render,
+  // and this identity is a dependency of the provider's effect below — depending on
+  // it directly would destroy and rebuild the whole input system each time, taking
+  // the modality refcount to zero on the way. So the caller's value is read through
+  // a ref and this identity changes only when the *resolved* document does.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new identity per generation is the entire point; the closure reads the source through a ref, so nothing else can be the dependency.
+  const getDocument = useMemo<() => Document>(() => {
+    return () => {
+      const source = latest.current;
+      return typeof source === "function" ? source() : source;
+    };
+  }, [generation]);
+
+  // A getter is free to answer with a different document later — an iframe that
+  // navigated, a popup that was replaced. Pinning the identity above is what makes
+  // this the only place that can notice.
+  useEffect(() => {
+    const source = latest.current;
+    const next = typeof source === "function" ? source() : source;
+    const previous = resolved.current;
+    resolved.current = next;
+    if (previous !== null && previous !== next) setGeneration((count) => count + 1);
+  });
+
   return <DocumentContext.Provider value={getDocument}>{children}</DocumentContext.Provider>;
 }
 
@@ -88,6 +121,23 @@ function useStableList<T>(list: readonly T[]): readonly T[] {
   return stored.current;
 }
 
+/**
+ * The same treatment for `keymap={{ keys: { ... } }}`, which is a fresh literal per
+ * render for exactly the same reason and reaches the same effect.
+ */
+function useStableKeymap(keymap: KeymapOverrides | undefined): KeymapOverrides | undefined {
+  const stored = useRef(keymap);
+  const current = stored.current;
+  const same =
+    current === keymap ||
+    (current !== undefined &&
+      keymap !== undefined &&
+      recordEquals(current.keys, keymap.keys) &&
+      recordEquals(current.keyCodes, keymap.keyCodes));
+  if (!same) stored.current = keymap;
+  return stored.current;
+}
+
 export interface NavProviderProps {
   readonly plugins?: readonly InputPlugin[] | undefined;
   readonly keymap?: KeymapOverrides | undefined;
@@ -97,8 +147,9 @@ export interface NavProviderProps {
 }
 
 export function NavProvider(props: NavProviderProps): ReactNode {
-  const { keymap, allowVerticalInText, children } = props;
+  const { allowVerticalInText, children } = props;
   const plugins = useStableList(props.plugins ?? NO_PLUGINS);
+  const keymap = useStableKeymap(props.keymap);
   const getDocument = useDocument();
   const [system, setSystem] = useState<InputSystem | null>(null);
 
