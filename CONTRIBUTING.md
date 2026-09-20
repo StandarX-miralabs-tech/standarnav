@@ -115,10 +115,10 @@ Conventional Commit history of `main` and keeps a release pull request open
 carrying the version bump and the CHANGELOG it writes from those commits,
 which is why the commit rules above are load-bearing rather than cosmetic.
 
-Nothing is wired yet. There is no `release-please-config.json`, no
-`.release-please-manifest.json`, and `.github/workflows/` holds `ci.yml` and
-nothing else — wiring the workflow is still work to do, and no release runs
-today.
+The wiring exists — `release-please-config.json`, `.release-please-manifest.json`
+and `.github/workflows/release.yml` — and has never run, because that workflow
+triggers on a push to `main`. Until it does, and until the publishing account has
+a token and 2FA, no release runs and the rules above are the whole mechanism.
 
 Until it is wired, the release note lives in the pull request description:
 a pull request that changes anything a consumer can observe carries one

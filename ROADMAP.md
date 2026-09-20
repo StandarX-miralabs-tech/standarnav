@@ -4,7 +4,7 @@ Status: unreleased. Nothing is published on npm, nothing has been run on a telev
 exists yet.
 
 This file lists what is still open. What is done is in the git history, and will be in the CHANGELOG
-once the release tooling is wired.
+once a release has actually run.
 
 ## How this file is maintained
 
@@ -14,10 +14,15 @@ once the release tooling is wired.
 
 ## v0: what is left before the first publication
 
-The engine navigates between focusable elements. One gap stands between that and a package worth
-publishing, and it is the reason nothing is on npm yet: nothing of the release tooling is wired.
+The engine navigates between focusable elements, the five controls that hold a value are wired, the
+`<select>` question is answered and the on-screen keyboard is built. **One thing blocks the first
+publication**: the release tooling is wired but has never run, and the account it would publish from
+has neither a token nor 2FA.
 
-Controls that hold a value used to be the third. The grammar was always public —
+The two sections below are not blockers. The keyboard's open items are limitations of a shipped
+module, documented rather than discovered; the release section is the blocker.
+
+Controls that hold a value were the last gap to close before this one. The grammar was always public —
 `pushEngageScope` takes hold of a control, the directional intents become adjustments, confirm
 commits and back restores the entry value (`src/engage.ts:49`) — and nothing used it. The five
 controls it was written for are now wired in the playground and driven by
@@ -70,13 +75,20 @@ of what is already there.
 
 ### Release tooling
 
-- [ ] Wire release-please: `release-please-config.json`, `.release-please-manifest.json` and a
-      release workflow. None of the three exists; `.github/workflows/` holds `ci.yml` only
-- [ ] The release workflow publishes with provenance. `bun publish` emits no attestation
-      ([oven-sh/bun#15601](https://github.com/oven-sh/bun/issues/15601), open), so the npm CLI is
-      called there and nowhere else — the documented exception to the rule in
-      [CONTRIBUTING.md](CONTRIBUTING.md)
-- [ ] First npm publication of a 0.x version with provenance, once the three sections above are done
+The wiring is in place: `release-please-config.json`, `.release-please-manifest.json` and
+[.github/workflows/release.yml](.github/workflows/release.yml), three jobs — release-please, a
+verify that replays every gate on the tag, then a publish that calls the npm CLI with
+`--provenance`. It has never run: nothing reaches it until this branch is on `main`.
+
+Two things about its shape are worth knowing before reading it. The publish job lives in the
+**same run** as release-please rather than in a tag-triggered workflow, because GitHub does not
+trigger workflows on events made with the default token — the same rule that leaves the release
+pull request with no checks would have left a tag-triggered publish never running at all. And the
+verify job exists precisely because of that missing-checks half: the version bump and the CHANGELOG
+that land on `main` were never seen by CI.
+
+- [ ] First npm publication of a 0.x version with provenance. Needs a granular `NPM_TOKEN` secret,
+      2FA on the publishing account, and the owner's hand on the merge of the release pull request
 - [ ] Record the published size from the registry after that publication — measure first
 - [ ] Move to npm trusted publishing and revoke the token. A trusted publisher is configured on an
       existing package, so this can only happen after the first publication

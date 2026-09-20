@@ -6,7 +6,8 @@ Deciders: Wesley Cormier
 
 The versioning scheme, the publication channel and the changelog tool are all decided. The tool is
 **release-please**, settled by the owner on 2026-09-20 (first amendment at the foot of this record);
-nothing of it is wired yet, and the workflow that runs it is still to be written.
+it is wired as of the third amendment and has never run, because the workflow triggers on a push to
+`main` and this is still a branch.
 
 ## Context
 
@@ -44,8 +45,9 @@ trailer; a pull request that adds one is not merged. Both rules are written in
 reads the commits merged since the last release, derives the next version from their types, writes
 the CHANGELOG entries from their subjects, and keeps a **release pull request** open carrying both.
 Merging that pull request is the act of releasing: it lands the version bump and the changelog, and
-the tag it creates is what the publish workflow below is to be triggered by. That last link is the
-part still to be written, so it is stated here as the intended shape and not as a description.
+the tag it creates is what the published version is built from. It is **not** what triggers the
+publish — that was the intended shape when this was written and it does not work; the amendment of
+2026-09-20 on the wiring says why, and the publish job runs in the same workflow instead.
 
 This follows from the commit convention above rather than adding a second one. The convention is
 already a review item and already the thing a reader greps to find when a behaviour changed; making
@@ -61,15 +63,15 @@ edit to the generated release pull request before it is merged — release-pleas
 request open precisely so it can be edited. Neither is configured today, so neither is a claim
 about how this repository merges; they are what the rider's closure obliges.
 
-**Nothing of this is wired yet.** There is no `release-please-config.json`, no
-`.release-please-manifest.json`, and `.github/workflows/` holds `ci.yml` and nothing else. Until
-the workflow is written, [CONTRIBUTING.md](../../CONTRIBUTING.md) and
+**This was unwired when it was decided, and is wired now** — `release-please-config.json`,
+`.release-please-manifest.json` and `.github/workflows/release.yml`, the third amendment below.
+Until it has actually run, [CONTRIBUTING.md](../../CONTRIBUTING.md) and
 [the pull-request template](../../.github/PULL_REQUEST_TEMPLATE.md) say the same thing — the
 pull-request description carries the one sentence describing the user-facing change, and that
 sentence becomes the changelog entry. The difference after wiring is that the sentence is taken
 from the squashed commit subject instead of being copied by hand.
 
-**Publication from GitHub Actions only**, in a `release.yml` workflow to be written: build,
+**Publication from GitHub Actions only**, in the `release.yml` workflow the third amendment records: build,
 typecheck, lint, unit and browser suites, then `bun run check:package` — `scripts/check-package.ts`
 packs the tarball (`scripts/check-package.ts:68`) and runs `publint --strict`
 (`scripts/check-package.ts:74`) and `attw --profile esm-only` (`scripts/check-package.ts:75`) on it
@@ -102,8 +104,8 @@ device test exists.
 ## Consequences
 
 - A pull request that changes runtime behaviour states its user-facing effect in one sentence: in
-  the pull-request description today, and in the squashed commit subject that release-please will
-  read once the tool is wired. A docs-only or refactor pull request says "no user-facing change"
+  the pull-request description today, and in the squashed commit subject release-please reads once a
+  release has run. A docs-only or refactor pull request says "no user-facing change"
   instead of skipping it.
 - One version number covers core, engines and every adapter ([ADR-0011](0011-package-layout-and-adapters.md)),
   so the changelog entry must name the affected subpath — "fix(spatial)", not "fix".
@@ -170,6 +172,44 @@ the repository exactly, which is why the switch is a second step and not a detai
 What this amendment does not change: the release workflow is still unwritten, release-please runs
 nowhere, and nothing is published.
 
+## Amendment, 2026-09-20: the wiring exists, and one sentence of the Decision was wrong
+
+`release-please-config.json`, `.release-please-manifest.json` and
+`.github/workflows/release.yml` are in the repository. Nothing has run: the workflow triggers on a
+push to `main` and this is still a branch. The configuration is a single root package,
+`release-type: node`, `bump-minor-pre-major: true` so a breaking change is a minor while the major
+is 0 — the rule of the Decision above — a manifest at `0.0.0`, and `docs`, `refactor`, `test`,
+`chore` and `ci` hidden from the changelog so it carries `feat`, `fix` and `perf` only.
+
+**What the Decision got wrong.** It said the tag release-please creates would trigger the publish
+workflow. It would not. GitHub does not trigger workflows on events made with the default
+`GITHUB_TOKEN` — that is how a workflow is kept from looping on itself — and this record already
+knew the consequence for the release pull request, which carries no checks for exactly that reason.
+It is one rule with two consequences, and only one of them had been noticed. A tag-triggered publish
+would have sat there never running, and the failure mode is silence: a merged release pull request,
+a tag, a version bumped in `package.json`, and nothing on npm.
+
+So the publish job runs in the same workflow, gated on release-please's own `release_created`
+output. Three jobs: release-please, then a `verify` that checks out the tag and replays every gate
+CI runs, then `publish`. The verify job is the answer to the other half of the same rule — the
+commit that lands the version bump and the CHANGELOG comes from a pull request that had no checks,
+so nothing had ever run against it. A version bump cannot break the browser suite, but it can break
+`check:package`, because publint reads the manifest, and it can break the build drift gate, because
+tsdown rewrites the exports map. The browser engines run there anyway: a release is rare, and it is
+the last gate before bytes reach a registry.
+
+One consequence of generating a CHANGELOG had to be settled in the citation gate rather than here.
+A commit subject may contain a `` `path:line` `` citation, and release-please writes subjects into
+`CHANGELOG.md`, where `check:docs` would then gate an anchor nobody can fix — the entry is
+generated, and rewriting it would falsify the release it describes. `CHANGELOG.md` is therefore
+excluded from that gate, on the grounds that a changelog entry is *supposed* to describe the code as
+it was at that version (`scripts/check-citations.ts:53-58`). The alternative was a rule that a
+commit subject may carry no citation, which is the worse trade: the subject is the release note.
+
+The `NPM_TOKEN` secret does not exist yet, and neither does 2FA on the publishing account. Both are
+the owner's, and the workflow fails loudly without the first rather than publishing something
+unsigned.
+
 ## Alternatives considered
 
 **Manual publish from the maintainer's laptop**, after a local build. Rejected: no
@@ -211,10 +251,11 @@ first outside pull request arrives.
   registry for a consumer to install. The name probes per candidate are recorded in
   [ADR-0001](0001-name-scope-and-attribute-prefix.md).
 - No TV device test has ever been run, for want of the hardware and of an emulator.
-- Release tooling: `.github/workflows/` holds `ci.yml` only; there is no
-  `release-please-config.json`, no `.release-please-manifest.json` and no `.changeset/` directory;
-  `package.json` is still at `0.0.0` and declares no release-please or changesets entry among the
-  `devDependencies` at `package.json:72-89`. Nothing here has run.
+- Release tooling, as of the third amendment: `.github/workflows/` holds `ci.yml` and `release.yml`,
+  and `release-please-config.json` and `.release-please-manifest.json` exist. There is still no
+  `.changeset/` directory, `package.json` is still at `0.0.0` and declares neither release-please nor
+  changesets among the `devDependencies` at `package.json:72-89` — release-please is a GitHub Action,
+  not a dependency. Nothing here has run.
 - `check:package` is wired and green: `scripts/check-package.ts` packs the tarball
   (`scripts/check-package.ts:68`), runs `publint --strict` on it (`scripts/check-package.ts:74`)
   and `attw --profile esm-only` (`scripts/check-package.ts:75`), and fails when `package.json`
