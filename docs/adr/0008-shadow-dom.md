@@ -130,7 +130,7 @@ runtime, because the traversing one is never called.
 **It is tracked by a fixture, not by a comment.** `src/spatial/spatial.browser.test.ts:856` is
 `it.skip("steers into an open shadow root (ADR-0008: light DOM only in v0)")`: a host with an open
 root and a button inside it, asserting that a move from outside lands on the button. It is the one
-skipped test in the suite (`bun run test:browser` → 169 passed, 1 skipped in 10 files),
+skipped test in the suite (`bun run test:browser` → 185 passed, 1 skipped in 11 files),
 and its comment names this ADR and this disagreement as the reason it is skipped.
 
 **Which way v1 resolves it.** Towards traversal, not away from it: `getFocusables` gains the
@@ -183,7 +183,7 @@ already the expected first one ([ADR-0010](0010-dev-mode-diagnostics.md)).
 - Only call sites of the shadow-aware `contains` at HEAD: `src/dom/dom.browser.test.ts:53-56`
   (`grep -rn "contains(" src/` — every other hit is `Node.contains`).
 - The skipped fixture: `src/spatial/spatial.browser.test.ts:855-877`, one `it.skip` at `:856`
-  naming this ADR. `bun run test:browser` → 169 passed, 1 skipped in 10 files; that skip is this
+  naming this ADR. `bun run test:browser` → 185 passed, 1 skipped in 11 files; that skip is this
   one, and it is the only one in the repository.
 - Shadow-DOM field of the 20 competitor fact sheets, adversarially verified; the `Shadowdomize`
   module in Tabster's own repository, and its README statement, are the single "supported, opt-in"

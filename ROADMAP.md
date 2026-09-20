@@ -21,11 +21,15 @@ publishing, and they are the reason nothing is on npm yet.
 
 The grammar already exists and is public: `pushEngageScope` takes hold of a control, the directional
 intents become adjustments, confirm commits and back restores the entry value (`src/engage.ts:49`).
-What is missing is everything built on it.
+The four controls it was written for are now wired in the playground and driven by
+`src/engage.browser.test.ts`, which leaves one gap in this section rather than two.
 
-- [ ] Recipes in the documentation for the controls the grammar was written for — slider,
-      number input, wheel picker, splitter. A working example per control in the playground, not
-      prose: the engage scope is easy to describe and easy to wire wrongly
+Two constraints came out of writing them, and both are worth knowing before the surface freezes.
+A number field cannot be a native `<input type="number">`: that is a text-entry target, and
+`select` is not one of the intents allowed to cross one, so A never reaches the control. And engage
+can only be released by the bus — its dispose detaches in silence — so a control the user tabs out
+of while holding it has to redo the commit-or-restore bookkeeping itself.
+
 - [ ] `<select>` on a television. A native `<select>` opens a platform popup that no library can
       navigate, so the engine loses focus into something it cannot see. Decide and document what
       the package offers instead — detection and a warning, a documented listbox pattern, or both

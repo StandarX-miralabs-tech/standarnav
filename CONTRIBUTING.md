@@ -72,8 +72,8 @@ All of those were run here on 2026-09-20 and pass. Between them they reproduce
 five of the eight checks CI runs (six jobs, one of them a three-engine matrix);
 the firefox and webkit runs and the React 18.3 floor job only exist in CI, which
 reports them on the pull request. Measured on the same date: `bun run test:unit`
-is 100 tests in 10 files, `bun run test:browser` is 169 passed and 1 skipped in
-10 files — 269 passed and 1 skipped in total. The
+is 100 tests in 10 files, `bun run test:browser` is 185 passed and 1 skipped in
+11 files — 285 passed and 1 skipped in total. The
 one skip is a documented shadow-DOM fixture
 (`src/spatial/spatial.browser.test.ts:856`, [ADR-0008](docs/adr/0008-shadow-dom.md)),
 not a test someone silenced. A red CI is about your change; treat it that way.
