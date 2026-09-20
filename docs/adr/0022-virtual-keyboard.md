@@ -29,7 +29,7 @@ There is no text-insertion code anywhere. A grep for `beforeinput`, `setRangeTex
 and `execCommand` across `src/` returns nothing. This module is the first thing here that will
 write into a field rather than move focus between fields.
 
-The package declares `"sideEffects": false` (`package.json:26`), which is what makes an unimported
+The package declares `"sideEffects": false` (`package.json`), which is what makes an unimported
 subpath disappear from a consumer's bundle ([ADR-0010](0010-dev-mode-diagnostics.md) relies on the
 same mechanism). Any design where a layout module *registers itself* by being imported is a side
 effect, and would either be dropped by a bundler or force the flag off for everyone.

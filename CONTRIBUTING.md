@@ -17,7 +17,7 @@ request, and how to report a bug. Read it before opening a pull request.
   on and the dates, in [ADR-0012](docs/adr/0012-versioning-and-release.md) —
   nothing else here may reach for npm.
 - A Playwright browser for the browser test project. The default engine is
-  Chromium (`vitest.config.ts:9`):
+  Chromium (`vitest.config.ts`):
 
   ```sh
   bun x playwright install chromium
@@ -48,7 +48,7 @@ The scripts used for contribution checks, read from the `scripts` field of
 | `format` | `biome format --write .` | Format the codebase with Biome. |
 | `test` | `vitest run` | Run every test project (unit and browser). |
 | `test:unit` | `vitest run --project unit` | Run the Node-based unit tests only. |
-| `test:browser` | `vitest run --project browser` | Run the browser tests on one engine, Chromium unless `SNAV_BROWSER` says otherwise (`vitest.config.ts:9`). |
+| `test:browser` | `vitest run --project browser` | Run the browser tests on one engine, Chromium unless `SNAV_BROWSER` says otherwise (`vitest.config.ts`). |
 | `test:watch` | `vitest` | Run tests in watch mode. |
 | `check:size` | `bun run scripts/size-budget.ts` | Measure the min+gzip size of every published entry of `dist/` against its cap. Needs a build first. |
 | `check:package` | `bun run scripts/check-package.ts` | Refuse any runtime dependency in `package.json`, then pack the tarball and run `publint --strict` and `attw --profile esm-only` on it — the real artifact npm receives, not the source tree. |
@@ -149,10 +149,10 @@ fixes.
   real DOM APIs (`focus()`, `getBoundingClientRect`, `checkVisibility`,
   `document.activeElement`) are involved. Browser tests are named
   `*.browser.test.ts` or `*.browser.test.tsx`; everything else stays in the
-  `unit` project (`vitest.config.ts:22-23` and `:29`).
+  `unit` project (`vitest.config.ts`).
 - Pure functions (geometry scoring, keymap resolution, attribute parsing) are
   covered by unit tests under the `unit` Vitest project.
-- `passWithNoTests` is deliberately **not** set (`vitest.config.ts:13-16`). An
+- `passWithNoTests` is deliberately **not** set (`vitest.config.ts`). An
   empty project means the globs stopped matching, which is a discovery
   breakage, and it has to be as red as a failing assertion rather than a green
   run of nothing. Do not add the flag to get past a red run.

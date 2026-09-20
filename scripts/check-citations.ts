@@ -129,10 +129,13 @@ for (const document of tracked()) {
       const [, cited, startText, endText] = match;
       if (cited === undefined || startText === undefined) continue;
 
-      // `spatial.ts:198` and `.../spatial.ts:60` are the shorthand these documents
-      // use once the surrounding prose has named the directory. There is nothing to
-      // resolve them against, so they are counted and left alone — the anchors worth
-      // gating are the ones written out in full.
+      // `spatial.ts:198` and `.../spatial.ts:60` — a citation carrying no directory, or
+      // the `.../` elision. There is nothing to resolve them against, so they are counted
+      // and left alone. That is a blind spot and it cost something: a root-level file has
+      // no `/` either, so `README.md:53-62` in ADR-0006 was classified here and went on
+      // pointing at a blank line that the rule below would have caught at once.
+      // The documents no longer write anchors this way. The licence record is the last
+      // one left, and its paths are a frozen external commit that cannot drift with ours.
       if (!cited.includes("/") || cited.startsWith("...")) {
         shorthand += 1;
         continue;

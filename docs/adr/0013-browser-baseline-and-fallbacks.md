@@ -78,7 +78,7 @@ detection can rescue a file the engine refused to read.
 ## Decision
 
 1. The build target is **`es2020`** and the type library is **`lib: ["es2020", "dom", "dom.iterable"]`**,
-   both in place (`tsconfig.json:3-4`). `es2020` syntax parses on Chromium 80+, Safari 13.1+,
+   both in place (`tsconfig.json`). `es2020` syntax parses on Chromium 80+, Safari 13.1+,
    Firefox 74+ and Samsung Internet 13.0+, the floor set by optional
    chaining and nullish coalescing (caniuse, fetched 2026-09-18; URLs under Evidence). Keeping `lib`
    at `es2020` is the enforcement mechanism: `WeakRef` and `Array.prototype.at` become type errors, so
@@ -165,7 +165,7 @@ fallback; there is no fallback, because there is no call. That is the stronger o
 what this ADR asked for — "raising `lib` would silence the compiler and ship the break" — but the
 row should read "rewritten", not "falls back to".
 
-The enforcement mechanism is in place and working: `tsconfig.json:3-4` is `"target": "es2020"` and
+The enforcement mechanism is in place and working: `tsconfig.json` is `"target": "es2020"` and
 `"lib": ["es2020", "dom", "dom.iterable"]`, so `WeakRef` is not in the type
 environment, and the module that uses it declares its own `WeakRefCtor` interface locally
 (`src/spatial/spatial.ts:109-111`) — exactly the "local ambient declaration in the module that
@@ -201,7 +201,7 @@ to sit above Chromium 85, is a v0 follow-up.
 
 ## Evidence
 
-- `tsconfig.json:3-4`: `"target": "es2020"`, `"lib": ["es2020", "dom", "dom.iterable"]`.
+- `tsconfig.json`: `"target": "es2020"`, `"lib": ["es2020", "dom", "dom.iterable"]`.
 - This repository's own guards: `src/spatial/spatial.ts:109-141` — `WeakRefCtor` declared locally at
   `:109-111`, the constructor read off `globalThis` at call time in `elementHandle` (`:127-128`), the
   real reference built at `:130` and read through at `:131`, and the self-releasing
@@ -216,7 +216,7 @@ to sit above Chromium 85, is a v0 follow-up.
 - The `"target": "es2022"` and `"lib": ["es2023", "dom", "dom.iterable"]` that this code was first
   compiled under: inherited from the predecessor implementation
   ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here.
-- No television, console browser or handheld has been tested here: `ROADMAP.md:3` records that
+- No television, console browser or handheld has been tested here: `ROADMAP.md` records that
   nothing has been run on a television, and `:93-94` keeps one verified set, Tizen or webOS, with a
   dated device report, open ([ROADMAP.md](../../ROADMAP.md)). There is no hardware for it here and no
   emulator.

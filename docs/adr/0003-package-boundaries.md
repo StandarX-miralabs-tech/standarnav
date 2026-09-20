@@ -38,13 +38,13 @@ src/  index.ts  intent-bus.ts  input-system.ts  keymap.ts  engage.ts
 ```
 
 The subpath exports map onto it directly — [ADR-0011](0011-package-layout-and-adapters.md).
-Ten of these files are build entries (`tsdown.config.ts:8-19`); the rest are reached through them.
+Ten of these files are build entries (`tsdown.config.ts`); the rest are reached through them.
 `keyboard/layouts/` is the one directory whose files are entries without the directory being part
 of a subpath name: a consumer writes `@standarx/nav/keyboard/qwerty`
 ([ADR-0022](0022-virtual-keyboard.md)).
 
 **3. `index.ts` re-exports the core and not the engines.** It is the target of the `.` export
-(`package.json:33`) and the module the `core` size-budget line measures
+(`package.json`) and the module the `core` size-budget line measures
 ([ADR-0017](0017-size-budgets.md)). The three engines are deliberately absent from it: Node's ESM
 runtime does no tree-shaking, so a root re-export would make every consumer of `createInputSystem`
 fetch, parse and execute the gamepad, spatial and focus-ring graphs, and `sideEffects: false`

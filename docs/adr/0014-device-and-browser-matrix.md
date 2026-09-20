@@ -30,14 +30,14 @@ runs on Chromium. It says nothing about a Tizen set that happens to embed Chromi
 
 **1. CI runs the browser suite on three engines.** The browser project runs on `chromium`,
 `firefox` and `webkit` through `@vitest/browser-playwright`, one engine per job in a
-`fail-fast: false` matrix. This is wired in this repository: `vitest.config.ts:9` reads the engine
-from `SNAV_BROWSER` and defaults to `chromium`, `vitest.config.ts:26-38` declares the browser
-project, whose `browser` block at `:30-36` names the Playwright provider and `headless: true`, and
-the `browser` job at `.github/workflows/ci.yml:103-129` fans out over
+`fail-fast: false` matrix. This is wired in this repository: `vitest.config.ts` reads the engine
+from `SNAV_BROWSER`, defaults to `chromium`, and declares the browser project, whose `browser`
+block names the Playwright provider and `headless: true`; the `browser` job at
+`.github/workflows/ci.yml:103-129` fans out over
 `matrix.browser: [chromium, firefox, webkit]` with `fail-fast: false` (`:106-108`), running
-`bun run test:browser` with `SNAV_BROWSER` set per entry (`:127-129`). The dependencies are pinned
-at `package.json:78` (`@vitest/browser-playwright` `^5.0.1`) and `package.json:80` (`playwright`
-`^1.63.0`), with the `test:browser` script at `package.json:66`.
+`bun run test:browser` with `SNAV_BROWSER` set per entry (`:127-129`). `package.json` pins the
+dependencies — `@vitest/browser-playwright` `^5.0.1` and `playwright` `^1.63.0` — and carries the
+`test:browser` script.
 
 These engines are the versions the pinned Playwright release ships, which are current engines. They
 do **not** exercise the floor set by [ADR-0013](0013-browser-baseline-and-fallbacks.md), and they do
@@ -140,8 +140,8 @@ tests are evidence about three desktop browser engines, and about nothing else.
 
 ## Evidence
 
-- `package.json:66` (`"test:browser": "vitest run --project browser"`), `:78` (`@vitest/browser-playwright` `^5.0.1`), `:80` (`playwright` `^1.63.0`) in this repository.
-- `vitest.config.ts:9` (`SNAV_BROWSER`, default `chromium`), `:26-38` (the browser project), `:30-36` (Playwright provider, `headless: true`) in this repository.
+- `package.json` in this repository: the script `"test:browser": "vitest run --project browser"`, and the pins `@vitest/browser-playwright` `^5.0.1` and `playwright` `^1.63.0`.
+- `vitest.config.ts` in this repository: `SNAV_BROWSER` defaulting to `chromium`, the browser project, and its Playwright provider with `headless: true`.
 - `.github/workflows/ci.yml:103-129` (the `browser` job), `:106-108` (`fail-fast: false`, matrix `browser: [chromium, firefox, webkit]`), `:127-129` (`bun run test:browser` with `SNAV_BROWSER`), `:75-101` (the `react-floor` job) in this repository.
 - `.github/ISSUE_TEMPLATE/device_report.yml` in this repository, whose required fields include the device vendor and model (`:16`), the OS version (`:24`) and the engine version as reported by `navigator.userAgent` (`:32`).
 - Keymap contents: `REMOTE_KEY_CODES` at `src/keymap.ts:80-84` — webOS and Tizen codes only, no Vidaa, Vizio, Roku, Fire TV or Android TV entries.

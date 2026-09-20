@@ -12,7 +12,7 @@ candidate is visible, what a composed path contains, what a scroller does when t
 viewport. The parts that are not DOM are ordinary arithmetic and string parsing: geometry, the
 container parsers, the dead zones, the repeat ladder, the keymap table, the intent bus.
 
-The tests are split along that line, and `vitest.config.ts:4-7` states it in the file itself —
+The tests are split along that line, and `vitest.config.ts` states it in the file itself —
 "anything that touches the DOM runs against a real engine, because focus order, composed paths and
 computed visibility are exactly where jsdom and the browsers disagree".
 
@@ -44,9 +44,9 @@ behaviours ship with no test at all; they are listed in decision 6 below.
 | `browser` | `@vitest/browser-playwright` | `src/**/*.browser.test.ts(x)` | spatial, input-system, gamepad plugin, focus-ring, modality, adapters |
 
 The config declares one browser instance, chosen by `SNAV_BROWSER` and defaulting to chromium
-(`vitest.config.ts:8-9`, `:30-36`). The three-browser matrix lives in CI instead: chromium, firefox
+(`vitest.config.ts`). The three-browser matrix lives in CI instead: chromium, firefox
 and webkit (`.github/workflows/ci.yml:103-129`). The file suffix is the routing rule:
-`*.browser.test.ts` is excluded from the node project (`vitest.config.ts:23`). Both projects also
+`*.browser.test.ts` is excluded from the node project (`vitest.config.ts`). Both projects also
 take `.tsx`, because the React adapter and its tests are `.tsx` (`:22-23`, `:29`).
 
 **2. Fixtures are positioned with inline styles only, never with CSS classes.** A geometric test
@@ -173,8 +173,8 @@ there was nothing to run and is a real gate now that there is.
 
 ## Consequences
 
-- CI runs the browser project three times, once per matrix entry (`ci.yml:103-129`), and a fourth
-  time on chromium alone in the `react-floor` job (`ci.yml:75-101`). It is the price
+- CI runs the browser project three times, once per matrix entry (`ci.yml`), and a fourth
+  time on chromium alone in the `react-floor` job (`ci.yml`). It is the price
   of testing focus in engines that disagree about focus, and it is what makes a webkit regression
   visible before a user finds it.
 - Playwright browsers must be installed in CI, and a test that needs a browser cannot run in a

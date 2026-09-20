@@ -11,7 +11,7 @@ it is wired as of the third amendment and has never run, because the workflow tr
 
 ## Context
 
-standarnav is unreleased: `package.json:3` is at version `0.0.0` and nothing is published on npm.
+standarnav is unreleased: `package.json` is at version `0.0.0` and nothing is published on npm.
 Everything about releasing has to be decided now rather than copied: there was no release workflow
 to inherit, no changeset flow left standing and no publication channel beyond packed tarballs
 handed around as a workspace convenience — a state inherited from the predecessor implementation
@@ -21,7 +21,7 @@ The infrastructure, on the other hand, is not an obstacle. GitHub Actions runs o
 the workflow at `.github/workflows/ci.yml` has been green since 2026-09-19, so the automation
 described here can be assumed to run rather than hoped for.
 
-One thing is already in place: `publishConfig` at `package.json:53-56` sets `"access": "public"`
+One thing is already in place: `publishConfig` at `package.json` sets `"access": "public"`
 and `"provenance": true`, so the package is built to be published with an npm provenance
 attestation from a CI run — which only makes sense if publishing happens in CI.
 
@@ -82,11 +82,11 @@ The shape of that publish is settled, not an open question. `bun publish` emits 
 attestation at all (`oven-sh/bun#15601`, open since 2024-12-05, last movement 2026-08-28), so the
 publish step calls the npm CLI. That is the one documented exception, not a silent one:
 [CONTRIBUTING.md](../../CONTRIBUTING.md) forbids the tool outright — "Never use `npm` or `npx` in
-this repository", at `CONTRIBUTING.md:12` — and records the exception in the same breath, as does
+this repository", at `CONTRIBUTING.md` — and records the exception in the same breath, as does
 the release-tooling section of [ROADMAP.md](../../ROADMAP.md). Token-based provenance requires
 npm >= 9.5.0, a cloud runner, a `permissions:` block granting `id-token: write` and
 `contents: read`, and a `repository` field matching the repository case-sensitively —
-`package.json:19-22` carries it. Trusted publishing requires npm >= 11.5.1 and Node >= 22.14.0 and
+`package.json` carries it. Trusted publishing requires npm >= 11.5.1 and Node >= 22.14.0 and
 attests on its own, but a trusted publisher is configured against a package that already exists on
 the registry, so it cannot serve the first publish; since 2026-09-03 a fresh configuration also
 defaults to `npm stage publish`, with a direct `npm publish` as an opt-in, and the workflow
@@ -141,7 +141,7 @@ has been published, and the release workflow described above is still to be writ
 
 There is no `bench` script. It went with the benchmark it ran, because `vitest` 5 exports no `bench`
 function — [ADR-0018](0018-testing-strategy.md), decision 7. The scripts declared at
-`package.json:57-71` are `dev`, `build`, `typecheck`, `lint`, `lint:fix`, `format`, `test`,
+`package.json` are `dev`, `build`, `typecheck`, `lint`, `lint:fix`, `format`, `test`,
 `test:unit`, `test:browser`, `test:watch`, `check:size`, `check:package` and `check:docs`.
 
 ## Amendment, 2026-09-20: Actions runs, and provenance is settled
@@ -161,7 +161,7 @@ provenance attestation (`oven-sh/bun#15601`, open since 2024-12-05, last movemen
 which forces the npm CLI into the publish step and makes the exception to the no-`npm` rule of
 [CONTRIBUTING.md](../../CONTRIBUTING.md) definite rather than conditional. Token-based provenance
 needs npm >= 9.5.0, a cloud runner, `id-token: write` with `contents: read`, and the `repository`
-field of `package.json:19-22` matching the repository case-sensitively. Trusted publishing needs
+field of `package.json` matching the repository case-sensitively. Trusted publishing needs
 npm >= 11.5.1 and Node >= 22.14.0 and attests on its own, but is configured against an
 already-published package, so the first publish cannot use it — `0.1.0` goes out with a granular
 token and `--provenance`, and the token is revoked once trusted publishing replaces it. Since
@@ -243,10 +243,10 @@ first outside pull request arrives.
 
 ## Evidence
 
-- `package.json:3` is `"version": "0.0.0"`, and `package.json:53-56` is the `publishConfig` block
+- `package.json` in this repository: `"version": "0.0.0"`, and a `publishConfig` block
   with `"access": "public"` and `"provenance": true`. The declared scripts are listed in the first
-  amendment above; `devDependencies` carry `publint` `^0.3.24` (`package.json:81`) and
-  `@arethetypeswrong/cli` `^0.18.5` (`package.json:73`), the two linters `check:package` runs.
+  amendment above; its `devDependencies` carry `publint` `^0.3.24` and
+  `@arethetypeswrong/cli` `^0.18.5`, the two linters `check:package` runs.
 - Nothing is published under the `@standarx` scope, so no version of this package exists on the
   registry for a consumer to install. The name probes per candidate are recorded in
   [ADR-0001](0001-name-scope-and-attribute-prefix.md).
@@ -254,7 +254,7 @@ first outside pull request arrives.
 - Release tooling, as of the third amendment: `.github/workflows/` holds `ci.yml` and `release.yml`,
   and `release-please-config.json` and `.release-please-manifest.json` exist. There is still no
   `.changeset/` directory, `package.json` is still at `0.0.0` and declares neither release-please nor
-  changesets among the `devDependencies` at `package.json:72-89` — release-please is a GitHub Action,
+  changesets among the `devDependencies` at `package.json` — release-please is a GitHub Action,
   not a dependency. Nothing here has run.
 - `check:package` is wired and green: `scripts/check-package.ts` packs the tarball
   (`scripts/check-package.ts:68`), runs `publint --strict` on it (`scripts/check-package.ts:74`)

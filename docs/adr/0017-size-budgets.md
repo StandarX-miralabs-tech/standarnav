@@ -53,7 +53,7 @@ ring) are inherited from the predecessor implementation
 historical and only ever quoted with that date attached.
 
 The budget script lives here: `scripts/size-budget.ts`, wired as
-`bun run check:size` (`package.json:68`) and run in CI
+`bun run check:size` (`package.json`) and run in CI
 (`.github/workflows/ci.yml:57-58`). It declares eleven lines
 (`scripts/size-budget.ts:77-158`), every one of them capped from a measurement
 taken in this repository — the two amendments below are that record.
@@ -333,7 +333,7 @@ and the numbers are in `scripts/size-budget.ts:77-158`.
   spatial-without-externals figure. All inherited from the predecessor implementation
   ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here.
 - This repository's `scripts/size-budget.ts`, declared as `check:size`
-  (`package.json:68`): eleven lines — `core` (`index.js`), `gamepad engine`, `spatial
+  (`package.json`): eleven lines — `core` (`index.js`), `gamepad engine`, `spatial
   engine`, `focus ring`, `debug`, `react adapter`, `keyboard`, one per keyboard layout
   and `whole package`
   (`scripts/size-budget.ts:77-158`). Each opt-in line names the part of the core graph
@@ -361,8 +361,8 @@ and the numbers are in `scripts/size-budget.ts:77-158`.
   figure is numerically identical to the gamepad line measured here on 2026-09-19 and
   again on 2026-09-20; they are measurements of different builds, and neither is
   evidence for the other.
-- Measured here: `bun run build && bun run check:size` (`package.json:59`,
-  `package.json:68`) on 2026-09-19 and again on 2026-09-20; the eleven lines and their
+- Measured here: `bun run build && bun run check:size` (both scripts in `package.json`) on
+  2026-09-19 and again on 2026-09-20; the eleven lines and their
   caps are `scripts/size-budget.ts:77-158`, and the run is enforced in CI
   (`.github/workflows/ci.yml:57-58`).
 - The rule that a size in a document travels with its command and date:

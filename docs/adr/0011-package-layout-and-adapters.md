@@ -17,7 +17,7 @@ one by one — gamepad polling, spatial navigation, the focus-ring overlay, the 
 The predecessor already shipped that shape, spread over a workspace: the engines were subpaths of a
 core package whose exports map was rewritten from the file layout rather than written by hand. That
 mechanism is the one this repository still uses, and it is inspectable here —
-`tsdown.config.ts:30-50` declares `exports.customExports`, and the table at `:32-43` rewrites
+`tsdown.config.ts` declares `exports.customExports`, and the table at `:32-43` rewrites
 `./spatial/spatial` to `./spatial`, `./gamepad/gamepad` to `./gamepad`, `./focus-ring/focus-ring` to
 `./focus-ring` and `./react/react` to `./react`. The adapter was the part that did not fit: it
 shipped as a separate package with a hard dependency on the core and non-optional `react` and
@@ -30,7 +30,7 @@ State of this repository: `package.json` declares `@standarx/nav`, `"type": "mod
 (`scripts/size-budget.ts`) and `check:package` (`scripts/check-package.ts`); `tsdown` `0.23.0`,
 `publint` `^0.3.24` and `@arethetypeswrong/cli` `^0.18.5` are devDependencies.
 The `exports` map is generated and committed, and carries ten entries plus `./package.json`
-(`package.json:32-44`): `.`, `./debug`, `./focus-ring`, `./gamepad`, `./keyboard`,
+(`package.json`): `.`, `./debug`, `./focus-ring`, `./gamepad`, `./keyboard`,
 `./keyboard/alphabetic`, `./keyboard/azerty`, `./keyboard/qwerty`, `./react` and `./spatial`.
 `src/` exists, with 22 test files among its modules
 (`find src -type f \( -name "*.test.ts" -o -name "*.test.tsx" \) | wc -l` → 22), so the layout
@@ -56,13 +56,13 @@ imports is never bundled.
 | `@standarx/nav/keyboard` | on-screen keyboard plugin ([ADR-0022](0022-virtual-keyboard.md)) | `src/keyboard/keyboard.ts` | `keyboard` |
 | `@standarx/nav/keyboard/<id>` | one layout, data only — `qwerty`, `azerty`, `alphabetic` today | `src/keyboard/layouts/<id>.ts` | one line per layout |
 
-Six of these rows were built when this record was first written: `tsdown.config.ts:7-20` lists `src/index.ts`,
+Six of these rows were built when this record was first written: `tsdown.config.ts` lists `src/index.ts`,
 `src/gamepad/gamepad.ts`, `src/spatial/spatial.ts`, `src/focus-ring/focus-ring.ts`, `src/debug.ts`
-and `src/react/react.tsx`, and the generated map at `package.json:32-44` carries the matching six
+and `src/react/react.tsx`, and the generated map at `package.json` carries the matching six
 subpaths plus `./package.json`. The keyboard and its three layouts were added on 2026-09-20 and are
 built too, so the map carries ten subpaths; `./keyboard/qwerty` and its siblings are the one place
 where a subpath name and its file path deliberately differ, because `layouts/` is a directory and not
-part of the surface (`tsdown.config.ts:37-42`). The three adapter rows are still planned and have no
+part of the surface (`tsdown.config.ts`). The three adapter rows are still planned and have no
 entry, no file and no budget line.
 
 **A subpath re-exports the types its own signatures name.** A consumer importing `spatialPlugin`
@@ -91,7 +91,7 @@ helper reading `data-snav-*` attributes, whose subpath name is the open detail o
 Framework packages are declared as `peerDependencies` with `peerDependenciesMeta` marking every
 one of them `"optional": true`, since a consumer of `@standarx/nav/spatial` alone must not be
 asked for React. That is written: `react` and `react-dom` at `>=18.3.0`, both optional
-(`package.json:41-52`). The range was re-examined when the adapter was ported, as this ADR said it
+(`package.json`). The range was re-examined when the adapter was ported, as this ADR said it
 would be, and widened from the `^19.0.0` constraint inherited from the predecessor implementation
 ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here, down to 18.3 — the release
 that ships the hooks the adapter uses, and the floor below which the provider would need a second
@@ -105,8 +105,8 @@ installs; a `dependencies` entry is something every consumer installs whether th
 which is why the two are not the same promise.
 
 Build: `tsdown` with `format: ["esm"]`, `platform: "neutral"`, `unbundle: true`, `dts: true`,
-`publint: true` (`tsdown.config.ts:21-29`), and the `exports` map **generated** by tsdown's
-`customExports` rather than hand-written (`tsdown.config.ts:30-50`, the subpath table at `:32-43`).
+`publint: true` (`tsdown.config.ts`), and the `exports` map **generated** by tsdown's
+`customExports` rather than hand-written, from the subpath table in the same file.
 The generated map is committed and CI fails on drift (`.github/workflows/ci.yml:53-54`);
 `check:package` packs the tarball and runs `publint` and `attw --profile esm-only` on it.
 
@@ -186,10 +186,10 @@ drift gate turns a mismatch into a failed build instead of a broken published pa
   `"./package.json"` (`:32-40`), optional `react`/`react-dom` peers at `>=18.3.0` (`:41-52`),
   `"publishConfig": {"access": "public", "provenance": true}` (`:53-56`), devDependencies `tsdown`
   `0.23.0`, `publint` `^0.3.24`, `@arethetypeswrong/cli` `^0.18.5`, and no `dependencies` key at
-  all. `tsdown.config.ts:7-50`: ten entries, `format: ["esm"]`, `platform: "neutral"`, `external`
+  all. `tsdown.config.ts`: ten entries, `format: ["esm"]`, `platform: "neutral"`, `external`
   for `react`, `react-dom` and `react/jsx-runtime`, `unbundle`, `dts`, `clean`, `publint`,
   `exports.customExports` rewriting `./gamepad/gamepad` to `./gamepad` and the three like it.
-  `scripts/check-package.ts:30-40`: the zero-runtime-dependency gate. `tsconfig.json:3` and
+  `scripts/check-package.ts:30-40`: the zero-runtime-dependency gate. `tsconfig.json` and
   `:13-14`: `"target": "es2020"`, `"isolatedDeclarations": true`, `"declaration": true` — the
   type-emit contract the `dts` build satisfies, `bun run typecheck` green in CI.
 - The predecessor's build configuration, its React adapter and its empty framework packages are

@@ -100,7 +100,7 @@ API is feature-detected.
 
 | Tier | Runtimes | Commitment |
 |---|---|---|
-| Supported and tested | Chromium ≥ 85, Safari ≥ 15, Firefox ≥ 79 | The browser suite runs one engine per local run, chosen by `SNAV_BROWSER` and defaulting to chromium (`vitest.config.ts:9`), and all three — chromium, firefox, webkit — as a CI matrix (`.github/workflows/ci.yml:103-129`). The three matrix jobs passed on the last run of the extraction pull request (2026-09-20). A fourth browser run is declared and has not run yet: the same suite on chromium against react 18.3, because every other job installs the lockfile's react 19 and the bottom of the declared peer range was otherwise never exercised (`.github/workflows/ci.yml:75-101`) |
+| Supported and tested | Chromium ≥ 85, Safari ≥ 15, Firefox ≥ 79 | The browser suite runs one engine per local run, chosen by `SNAV_BROWSER` and defaulting to chromium (`vitest.config.ts`), and all three — chromium, firefox, webkit — as a CI matrix (`.github/workflows/ci.yml:103-129`). The three matrix jobs passed on the last run of the extraction pull request (2026-09-20). A fourth browser run is declared and has not run yet: the same suite on chromium against react 18.3, because every other job installs the lockfile's react 19 and the bottom of the declared peer range was otherwise never exercised (`.github/workflows/ci.yml:75-101`) |
 | Best-effort | TV runtimes of 2020-2021: Tizen 5.5 and 6.0 (Chromium 69 and 76), webOS 5.x and 6.x (Chromium 68 and 79) | The es2020 output does not parse below Chromium 80. A separate legacy build is a roadmap question with a decision date — **2026-12-31**, and no device report by then means no build — not a v0 promise |
 | Out of scope | Anything older | — |
 
@@ -227,10 +227,10 @@ this working tree, run 2026-09-20.
 - **R15.** Dead zones, two treatments. Continuous analog (`scrollX`, `scrollY`): radial dead zone
   `0.15` with magnitude renormalisation (`src/gamepad/dead-zone.ts:28`). Discrete
   navigation: four 90° sectors with double hysteresis — enter at `0.5`, release at `0.3`, `12°` of
-  margin to change sector (`.../dead-zone.ts:55-57`). One flick of the stick is exactly one move.
+  margin to change sector (`dead-zone.ts`). One flick of the stick is exactly one move.
 - **R16.** Repeat: `400 ms` delay, then `130 ms`, then `60 ms` after the sixth repeat
   (`src/gamepad/repeat.ts:20-23`). On a stick the interval is modulated by magnitude, `250 ms` at
-  half deflection down to `60 ms` at full (`.../repeat.ts:26-27,41-42`). `select` never repeats.
+  half deflection down to `60 ms` at full (`repeat.ts`). `select` never repeats.
 - **R17.** Standard mapping: A `select`, B `back`, X `secondary`, Y `contextMenu`, LB/RB
   `tabPrev`/`tabNext`, LT/RT `pageUp`/`pageDown`, right stick `scrollX`/`scrollY`. This is what the
   mapping **produces**; four of those intents have no consumer in the package — see R29a.
@@ -250,8 +250,8 @@ this working tree, run 2026-09-20.
   `getBoundingClientRect` at each move, reads only. Focus is real —
   `element.focus({ preventScroll: true })` (`src/spatial/spatial.ts`, 569 lines). **The landing is
   still not verified, at HEAD on 2026-09-20.** `commit()` calls `focusElement`, writes the
-  attributes and returns `true` unconditionally (`.../spatial.ts:308-333`); `activeElement()`
-  (`.../spatial.ts:271-274`) is never read after the focus call — the three move-path reads
+  attributes and returns `true` unconditionally; `activeElement()`
+  is never read after the focus call — the three move-path reads
   (`:409`, `:455`, `:556`) all supply the `from` argument before it, and the fourth (`:473`) locates
   the scroller for right-stick scrolling. So a focus the browser refuses is reported as a successful
   move, `data-snav-focused` is written on an
@@ -270,7 +270,7 @@ this working tree, run 2026-09-20.
   (`src/focus-ring/focus-ring.ts:239-241`) — so "four attributes" is the count a consumer styles
   against, not the count the package writes. Two of the five do land on the consumer's own elements,
   because that is what a styling hook is for: `data-snav-focused` and `data-snav-active`
-  (`.../spatial.ts:276-292`). The other three land on `<html>` and on the overlay the package
+  (`spatial.ts`). The other three land on `<html>` and on the overlay the package
   created, and `aria-hidden` is the only ARIA attribute the package writes anywhere — never on
   markup it did not create (`grep -rn "aria-" src` on 2026-09-20: twelve hits, of which two are
   outside the tests — the write at `src/focus-ring/focus-ring.ts:241` and the `aria-disabled`
@@ -282,7 +282,7 @@ this working tree, run 2026-09-20.
   own markup.
 - **R23.** Directional filter with an overlap tolerance of `0.3`
   (`src/spatial/geometry.ts:40`), the value lrud-spatial uses.
-- **R24.** Scoring weights `30` horizontal and `2` vertical (`.../geometry.ts:41-42`), from Blink's
+- **R24.** Scoring weights `30` horizontal and `2` vertical (`geometry.ts`), from Blink's
   `kOrthogonalWeightForLeftRight` and `kOrthogonalWeightForUpDown`, declared at lines 673 and 674 of
   `third_party/blink/renderer/core/page/spatial_navigation.cc` on `main` (read 2026-09-18). **The
   score formula itself is not Blink's** and is never described as such.
@@ -292,15 +292,15 @@ this working tree, run 2026-09-20.
   [ADR-0016](adr/0016-scoring-constants-provenance.md).
 - **R26.** Entry strategies `last | first | nearest`, default `last` (`src/spatial/containers.ts`),
   with per-container focus memory in a `WeakMap<HTMLElement, ElementHandle>`
-  (`.../spatial.ts:248,286`, read back at `:344`). The handle is the indirection the `WeakRef`
+  (`spatial.ts`, where it is also read back). The handle is the indirection the `WeakRef`
   fallback of §3.1 needed, and it is written: the map is also dropped whole on teardown
-  (`.../spatial.ts:542`), which is what releases the elements the fallback path holds strongly.
+  (`spatial.ts`), which is what releases the elements the fallback path holds strongly.
 - **R27.** With no candidate, in order: wrap if the container wraps on that axis; else scroll one
   step and rescan; else bubble to the parent container, unless it traps or blocks that direction;
   else no-op and emit `onBoundsHit` (`src/spatial/spatial.ts:423-445`). The rescan waits exactly one
-  frame, because a virtualised list mounts its next rows on the scroll (`.../spatial.ts:378-403`).
+  frame, because a virtualised list mounts its next rows on the scroll (`spatial.ts`).
   An `onWillMove` veto fires before the real `focus()` call, so a component can refuse a move
-  (`.../spatial.ts:312-327`).
+  (`spatial.ts`).
 - **R28.** Explicit redirections `data-snav-up|down|left|right` take CSS selectors resolved against
   the whole document, read off the focused element and answered *before* anything is scored
   (`src/spatial/spatial.ts:414-418`) — documented as the last resort for pathological layouts.
@@ -333,7 +333,7 @@ this working tree, run 2026-09-20.
   option it was in the source.
 - **R31.** Visible limits, documented because a user meets them: container nesting is bounded at
   `MAX_CONTAINER_DEPTH = 16` (`src/spatial/spatial.ts:60`), and the zero-size filter is
-  `width === 0 || height === 0` (`.../spatial.ts:183-188`) — **either** dimension, so a 0×40 element
+  `width === 0 || height === 0` (`spatial.ts`) — **either** dimension, so a 0×40 element
   is not a candidate. That is [ADR-0009](adr/0009-hidden-candidates.md) filter **C1, accepted for v0
   and implemented**, against the `&&` it replaced, which let such an element through: a rect with
   a zero dimension paints nothing and its projection onto the cross axis is empty, so the alignment
@@ -350,7 +350,7 @@ this working tree, run 2026-09-20.
 - **R32.** One optional overlay module, zero bytes when not imported, listening to `focusin` and not
   to the spatial engine, so it rings a Tab, a pad move and a programmatic `focus()` alike
   (`src/focus-ring/focus-ring.ts`). Animated with the Web Animations API; hidden under `pointer` and
-  `touch` modality (`.../focus-ring.ts:215-229`); travelling from its own live rect rather than from
+  `touch` modality (`focus-ring.ts`); travelling from its own live rect rather than from
   the element it left, so a burst of presses retargets from where the ring visually is (`:175`);
   crossfading instead of travelling under `prefers-reduced-motion` (`:188-191`); appearing and
   disappearing over a 150 ms WAAPI fade, which is itself skipped under reduced motion
@@ -364,11 +364,11 @@ this working tree, run 2026-09-20.
   | Custom property | Fallback | Read at |
   |---|---|---|
   | `--snav-focus-ring-offset` | `2` px | `src/focus-ring/focus-ring.ts:104-106` |
-  | `--snav-focus-ring-duration` | 260 ms, 150 ms under reduced motion | `.../focus-ring.ts:131-136` |
-  | `--snav-focus-ring-easing` | `cubic-bezier(0.22, 1, 0.36, 1)` | `.../focus-ring.ts:137-138` |
-  | `--snav-focus-ring-color` | `#1a73e8` | `.../focus-ring.ts:52` |
-  | `--snav-focus-ring-width` | `3px` | `.../focus-ring.ts:52` |
-  | `--snav-focus-ring-z-index` | `1700` | `.../focus-ring.ts:52` |
+  | `--snav-focus-ring-duration` | 260 ms, 150 ms under reduced motion | `focus-ring.ts` |
+  | `--snav-focus-ring-easing` | `cubic-bezier(0.22, 1, 0.36, 1)` | `focus-ring.ts` |
+  | `--snav-focus-ring-color` | `#1a73e8` | `focus-ring.ts` |
+  | `--snav-focus-ring-width` | `3px` | `focus-ring.ts` |
+  | `--snav-focus-ring-z-index` | `1700` | `focus-ring.ts` |
 
   One of those fallbacks was computed here and two were restored from the source. `#1a73e8` was
   measured here — 4.51:1 on white and 4.36:1 on `#0b0b0f`, both above the 3:1 that WCAG SC 1.4.11
@@ -398,7 +398,7 @@ this working tree, run 2026-09-20.
   Only `./react` is published today (`package.json` exports), with `react` and
   `react-dom` as optional peers. It never imports the engines — `src/react/react.tsx` imports the
   input system, the bus types, the keymap types and the modality tracker, and nothing from
-  `gamepad/`, `spatial/` or `focus-ring/` (`.../react.tsx:12-28`) — so the consumer passes
+  `gamepad/`, `spatial/` or `focus-ring/` (`react.tsx`) — so the consumer passes
   `gamepadPlugin()` or `spatialPlugin()` in. `vanilla` is the core itself.
 - **R36.** No adapter ships until it passes the shared suite of `src/adapter-parity.ts`, the same one
   React passes (parity gate, §6).

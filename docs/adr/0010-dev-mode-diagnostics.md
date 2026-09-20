@@ -28,8 +28,8 @@ engine is broken":
 
 The precedent for the answer already exists in the source. `explainMove` is published as its own entry
 point so that "an application that ships spatial navigation does not ship the explanation of it"
-(`src/debug.ts:1-11`). It is exported at `package.json:34` as `./debug`, and the package declares
-`"sideEffects": false` (`package.json:26`), so a bundler drops it from any application that does not
+(`src/debug.ts:1-11`). `package.json` exports it as `./debug` and declares
+`"sideEffects": false`, so a bundler drops it from any application that does not
 import it.
 
 That same file is also the one place where a diagnostic can lie, and its own header says so: a
@@ -123,7 +123,7 @@ did ([ADR-0017](0017-size-budgets.md), the amendment of that date).
 ## Consequences
 
 - Production builds are unchanged. The core entry gains nothing: `src/index.ts` does not re-export
-  the debug module, and `./debug` is its own entry in the exports map (`package.json:34`). Measured
+  the debug module, and `./debug` is its own entry in the exports map (`package.json`). Measured
   here with `bun run build && bun run check:size`: core 3.13 kB of a 3.25 kB cap, spatial engine
   3.04 of 3.25, debug 0.49 of 0.50, min+gzip ([ADR-0017](0017-size-budgets.md)).
 - Point 4 removed a duplicate implementation of the winner rule, and that is done: `src/debug.ts`
@@ -199,7 +199,7 @@ removed.
   between them: row 3 of the table, and why points 2 and 3 above are still needed.
 - `src/tabbable.ts:17-32`, `:56-63` — `FOCUSABLE_SELECTOR` and `isFocusable`, what a candidate has to
   be.
-- `package.json:34` — `"./debug"` as its own export. `package.json:26` — `"sideEffects": false`.
+- `package.json` — `"./debug"` as its own export, and `"sideEffects": false`.
 - `scripts/size-budget.ts` — the `debug` line at `:105-111`, entry `debug.js`,
   `external: ["./spatial/spatial.js", "./spatial/geometry.js"]`, `cap: 0.5 * KB`. The rule forbidding
   globbed externals, with the `./*` failure mode spelled out, is the comment at `:65-76`.
