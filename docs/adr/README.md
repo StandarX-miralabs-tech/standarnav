@@ -9,8 +9,7 @@ rewritten when the decision changes.
 
 An ADR is not a specification and not a plan. What the engine does belongs in
 [docs/specification.md](../specification.md); what is planned and in which order
-belongs in [ROADMAP.md](../../ROADMAP.md); what happened on a given day belongs
-in [docs/journal/](../journal/). The ADR answers "why is it like this".
+belongs in [ROADMAP.md](../../ROADMAP.md). The ADR answers "why is it like this".
 
 Every ADR here is English, like every committed Markdown file of this repository
 ([ADR-0015](0015-language-policy.md)), and carries no number without the command,

@@ -26,7 +26,7 @@ const CITATION =
 /** A path in the source repository, which the house rule says must be prefixed. */
 const SOURCE_PREFIXES = ["packages/"];
 /** This repository's own top-level directories — what makes a path unambiguously ours. */
-const OWN_ROOTS = ["src/", "scripts/", "playground/", ".github/", "docs/adr/", "docs/journal/"];
+const OWN_ROOTS = ["src/", "scripts/", "playground/", ".github/", "docs/adr/"];
 // A drive letter, but not the tail of a URL scheme: the `s` of `https://` is a
 // letter followed by `:/` too, so the lookbehind for a word character is what tells
 // `D:/DevSoftware` from `https://bun.sh`.

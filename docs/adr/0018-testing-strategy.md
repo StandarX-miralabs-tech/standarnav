@@ -227,8 +227,7 @@ there was nothing to run and is a real gate now that there is.
   `packages/core/src/input/spatial/geometry.test.ts:156-177`: scope of the inherited measurement —
   200 and 2 000 candidates, and the median of 51 samples under 1 ms.
 - Untested behaviours: `grep -rn "rescan\|pointerFollowsFocus"
-  packages/core/src/input/spatial/spatial.browser.test.ts` → no match on 2026-09-18, and the same
-  gaps are listed in [docs/journal/2026-09-18.md](../journal/2026-09-18.md).
+  packages/core/src/input/spatial/spatial.browser.test.ts` → no match on 2026-09-18.
 - Historical figure, not re-measured: 4.3 µs for 200 candidates, miralabs-ui release notes of
   2026-08-27. Quote it only with that date attached.
 - Related: [ADR-0003](0003-extraction-scope.md), [ADR-0005](0005-real-dom-focus.md),

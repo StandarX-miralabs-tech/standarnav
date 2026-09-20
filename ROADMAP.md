@@ -84,7 +84,6 @@ measurement is recorded with its command and date.
       [docs/adr/README.md](docs/adr/README.md)
 - [x] [docs/specification.md](docs/specification.md), the module-by-module description of the engine
 - [x] This roadmap
-- [x] First journal entry, [docs/journal/2026-09-18.md](docs/journal/2026-09-18.md)
 
 ### Source extraction
 
@@ -399,8 +398,6 @@ measurement is recorded with its command and date.
 - [x] README comparison table, with the full verified table linked from it
 - [x] [docs/research/tv-runtime-compatibility.md](docs/research/tv-runtime-compatibility.md), the
       browser and TV runtime versions with their vendor URLs, fetched 2026-09-18
-- [x] [docs/research/name-availability-2026-09-18.md](docs/research/name-availability-2026-09-18.md),
-      the 48 candidates, their verbatim probes and the judge panel of 2026-09-18
 - [ ] README: recorded GIF of a real navigation session
 - [ ] Demo video and GIF rendered with Remotion, the React-based programmatic video renderer: one
       composition drives the playground fixtures with scripted intents and exports an MP4 for the

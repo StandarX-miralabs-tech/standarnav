@@ -450,17 +450,17 @@ worked on. Both are checked by looking, not by remembering.
    repository depending on `@standarx/nav`, a third-party issue that is not from the owner, or a
    written report of use. One separates "someone found it" from "nobody did", and every number above
    one would have been invented before the first week of data existed.
-2. **The journal exists, with eight dated entries.** `docs/journal/` holds exactly one dated entry
-   today — `docs/journal/2026-09-18.md`, beside the directory's own `README.md`; `ls docs/journal/`
-   run 2026-09-20 — so eight is a target and not a
-   claim, and saying so is the point of writing the criterion down. Eight dated entries by
-   2027-03-31 is roughly one a month across the project's first two quarters: enough to show the
-   work continued, few enough that it does not become a chore performed for the metric.
+2. **The package is published and still moving.** A first release on npm, and a CHANGELOG carrying
+   entries dated after it. Nothing is published today, so both halves are a target and not a claim,
+   and saying so is the point of writing the criterion down. Six released versions by 2027-03-31 is
+   roughly one a month across the project's first two quarters: enough to show the work continued,
+   few enough that it does not become a chore performed for the metric. It is checked by reading the
+   registry and the CHANGELOG, neither of which can be back-dated.
 
 Failure condition, stated so it can actually fire: if on 2027-03-31 there is no identifiable external
-user **and** the journal has not reached eight dated entries, the honest move is to archive the
-standalone package and keep the engine inside miralabs-ui, where it already has a consumer. One of
-the two met is a reason to look again, not to archive.
+user **and** the package has not reached six released versions, the honest move is to archive the
+standalone package and keep the engine where it already has a consumer. One of the two met is a
+reason to look again, not to archive.
 
 Two obligations survive outside the criteria, because they gate what the documents may claim rather
 than whether the project continues: no document claims TV support until a real television and a

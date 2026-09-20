@@ -24,8 +24,7 @@ not only pad. It disqualifies any name built solely on the gamepad.
 
 Forty-eight candidates were checked with the same protocol on 2026-09-18: 29
 free, 8 risky, 11 taken. Three independent judges — product, developer
-experience, risk — scored the shortlist out of 10. The protocol, the commands and the full candidate table are published in
-[docs/research/name-availability-2026-09-18.md](../research/name-availability-2026-09-18.md).
+experience, risk — scored the shortlist out of 10.
 
 ## Decision
 
@@ -99,9 +98,7 @@ attributes: adding one is a minor change, renaming or removing one is breaking. 
 ## Alternatives considered
 
 Scores, collision facts and star counts below come from the name-availability
-research of 2026-09-18, published in
-[docs/research/name-availability-2026-09-18.md](../research/name-availability-2026-09-18.md)
-(candidate table, judge panel, and the `snav` probe run after the panel).
+research of 2026-09-18.
 
 | Candidate | Score (product + devex + risk) | Why not |
 |---|---|---|
@@ -121,8 +118,7 @@ unique web token. The owner broke the tie on the product constraint.
 
 ## Evidence
 
-Availability protocol, run per candidate on 2026-09-18 (18:00 to 19:50 UTC) and published in
-[docs/research/name-availability-2026-09-18.md](../research/name-availability-2026-09-18.md).
+Availability protocol, run per candidate on 2026-09-18 (18:00 to 19:50 UTC).
 Verbatim commands and outputs for the `standarnav` entry:
 
 ```powershell
@@ -148,9 +144,7 @@ checked separately on 2026-09-18: `registry.npmjs.org/@standarx%2Fnav` → 404, 
 scope search `scope:standarx` → 0 packages.
 
 Third-party org, `gh api users/standarx`: created 2024-12-24, Brazil, 1
-repository (`.github`), 2 followers, blog standarx.com live (2026-09-18; "Known
-risks and follow-ups" in
-[docs/research/name-availability-2026-09-18.md](../research/name-availability-2026-09-18.md)).
+repository (`.github`), 2 followers, blog standarx.com live (2026-09-18).
 No formal trademark search (INPI, EUIPO, USPTO) was made for any candidate, so that dimension is unverified.
 
 Judge scores, overall ranking table of the same document:

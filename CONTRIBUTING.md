@@ -260,10 +260,6 @@ path and a scratch-directory reference outright. What it cannot see is an
 anchor that drifted onto some *other* real line, which is why the prose names
 the symbol it is pointing at: a reader can then see the mismatch.
 
-A journal entry under `docs/journal/` is the exception to the first rule in
-one direction only: it is a record of its own date, so it is not updated when
-the code moves under it. Correct the living documents instead.
-
 ## Code and comments
 
 - Code, identifiers, commit messages, and comments are in English.
@@ -279,8 +275,8 @@ its strict, file-by-file mirror. A documentation page without its mirror
 does not merge — add the French page in the same pull request, or hold the
 English page until it is ready.
 
-Neither directory exists yet: `docs/` holds `adr/`, `journal/`, `research/`
-and `specification.md` today (read 2026-09-20), all of which are English-only
+Neither directory exists yet: `docs/` holds `adr/`, `research/`
+and `specification.md` today, all of which are English-only
 by the paragraph below. The rule applies to the first page that lands under
 `docs/en`.
 

@@ -235,8 +235,7 @@ green or red for reasons belonging to another repository's build.
 - Source measurements: `bun run check:size` in miralabs-ui on 2026-09-18, dist
   built the same day, min+gzip at Bun's default gzip level — input system 1.93 kB
   of 2.00 kB (96 %), gamepad 2.35 kB of 3.00 kB (78 %), spatial 2.81 kB of
-  3.00 kB (94 %), modality tracker 0.74 kB of 1.00 kB (74 %). Recorded in
-  [docs/journal/2026-09-18.md](../journal/2026-09-18.md), together with the
+  3.00 kB (94 %), modality tracker 0.74 kB of 1.00 kB (74 %), together with the
   3 303 B spatial-without-externals figure reported the same day, not re-measured.
 - This repository's `scripts/size-budget.ts`, declared as `check:size`, read
   2026-09-18: six lines — `core` (`index.js`), `gamepad engine`, `spatial engine`
@@ -256,7 +255,6 @@ green or red for reasons belonging to another repository's build.
   `wc -l` on that file → 2006, run 2026-09-18, `lightningcss` and `sass-embedded`
   imported at lines 17-18.
 - Historical figures of 2026-08-27 (2.48 kB gamepad, 2.89 kB spatial, 1.34 kB
-  focus ring): miralabs-ui release notes of that date, quoted in
-  [docs/journal/2026-09-18.md](../journal/2026-09-18.md).
+  focus ring): miralabs-ui release notes of that date.
 - Nothing built here yet: this repository's `package.json`, read 2026-09-18, has
   `"exports": { "./package.json": "./package.json" }`, and no `dist/` exists.

@@ -215,7 +215,6 @@ A playground fixture is in this repository at `playground/index.html`, served by
 - [docs/research/competitors.md](docs/research/competitors.md) — twenty fact sheets reconciled into 18 distinct projects, with their sources.
 - [docs/research/tv-runtime-compatibility.md](docs/research/tv-runtime-compatibility.md) — browser and TV runtime versions, with their sources.
 - [docs/specification.md](docs/specification.md) — the problem, the non-goals, the user contract, the numbered requirements and the gate each public claim has to pass.
-- [docs/journal/](docs/journal/) — what was done, day by day. One dated entry so far, [2026-09-18](docs/journal/2026-09-18.md); a journal entry is a record of its own date and is never rewritten afterwards.
 
 ## Contributing
 

@@ -39,7 +39,7 @@ in the first place.
 ## Decision
 
 1. Every committed Markdown file is English. That includes the README, the
-   CHANGELOG, every ADR, the journal, the specification, issue and pull-request
+   CHANGELOG, every ADR, the specification, issue and pull-request
    templates, and the contributor guide.
 2. Code is English: identifiers, public API names, type names, error messages,
    test titles.
@@ -123,7 +123,7 @@ untracked and no reader ever sees them.
 - Rejection of bilingual ADRs: the owner's decision of 2026-09-18, recorded in
   this ADR.
 - `docs/en` and `docs/fr` do not exist in this repository on 2026-09-18, and
-  still do not on 2026-09-20 (`ls docs/` → `adr/`, `journal/`, `research/`,
+  still do not on 2026-09-20 (`ls docs/` → `adr/`, `research/`,
   `specification.md`); rule 5 and its gate stay forward-looking, and the rider
   above stays open because there is nothing yet for a CI job to check.
 - Rules 2 and 3 are satisfied by the code that arrived in the meantime: every
