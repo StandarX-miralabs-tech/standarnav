@@ -26,6 +26,8 @@ APIs: four modern APIs appear in the code, and only some of them degrade.
 
 The "used at" column below cites this repository; the amendment of 2026-09-20 at the foot of this
 record is where every row was re-read against the code as it now stands, and says what changed.
+The amendment of 2026-09-21 after it adds the API this table has no axis for: one whose floors are
+below the supported tier on every engine, and which a runtime removes anyway.
 
 | API | Chrome | Safari | Firefox | Used at | Behaviour when absent |
 |---|---|---|---|---|---|
@@ -179,6 +181,40 @@ exposure is bounded: the focus ring is an opt-in subpath, and a missing `animate
 the overlay rather than in the engine. Verifying it, and guarding the call if the floor turns out
 to sit above Chromium 85, is a v0 follow-up.
 
+## Amendment, 2026-09-21: the Gamepad API, absent by runtime rather than by version
+
+The amendment above left one API unlisted for want of a fetch. Here is a second, fetched and
+listed — and it is the row that shows why the Context table cannot be the only place this ADR
+looks.
+
+| API | Chrome | Safari | Firefox | Samsung Internet | Used at |
+|---|---|---|---|---|---|
+| Gamepad API (`navigator.getGamepads`) | 21 | 10.1 | 29 | 4 | `src/gamepad/gamepad.ts:130-144`, in `defaultRuntime` |
+
+Versions from caniuse, fetched 2026-09-21; URL in the Evidence section. Every floor sits far
+**below** the supported tier, which is what makes this row different in kind from the four above:
+no version this ADR promises to support is missing the API, so reading the table by version says
+the call is safe. It is not. What removes the Gamepad API is the runtime, not the version —
+Playwright's WebKit ships without `navigator.getGamepads` at any version, measured here on
+2026-09-21, and a television runtime that omits it is the same shape. Decision 2 asks what happens
+when an API is absent; on this axis the table had no answer because it had no row.
+
+What the unguarded call cost is the point. `Element.animate` in the amendment above is called
+unguarded too, and the exposure there is bounded — it would throw in an opt-in overlay. This one
+was read during `setup`, so the `TypeError` came out of `createInputSystem` itself and took the
+keyboard, the focus ring and every other plugin with it: a page that merely *registered* the
+gamepad plugin went dark on a runtime with no pads. An engine that cannot find a device must
+report no device, never fail the system that asked.
+
+The guard is the answer this repository had already written for a document with no window:
+`defaultRuntime` returns `null` when `navigator.getGamepads` is not callable, and a `null` runtime
+is the state in which the plugin registers nothing and tears down cleanly. Three browser cases
+cover it (`src/gamepad/gamepad.browser.test.ts:582-645`), two of which fail without the guard.
+
+One hole stays open and is not guarded: a `getGamepads` that exists and *throws* — a permissions
+policy in a cross-origin frame is the plausible case — is still an exception out of `setup`. It has
+not been reproduced here, so it gets no guard and no claim, only this sentence.
+
 ## Alternatives considered
 
 - **Keep the inherited `es2022` target.** Rejected. `es2022` was the starting point — inherited from
@@ -223,6 +259,7 @@ to sit above Chromium 85, is a v0 follow-up.
 - Syntax floor for `es2020` output, fetched 2026-09-18 — optional chaining `?.` Chrome 80, Safari 13.1, Firefox 74, Samsung Internet 13.0: https://caniuse.com/mdn-javascript_operators_optional_chaining · nullish coalescing `??` Chrome 80, Safari 13.1, Firefox 72, Samsung Internet 13.0: https://caniuse.com/mdn-javascript_operators_nullish_coalescing · the two combined give Chrome 80, Safari 13.1, Firefox 74, Samsung Internet 13.0.
 - API support, fetched 2026-09-18: https://caniuse.com/mdn-javascript_builtins_weakref · https://caniuse.com/mdn-api_element_checkvisibility · https://caniuse.com/mdn-html_global_attributes_inert
 - `Array.prototype.at` (Chrome 92, Safari 15.4, Firefox 90, Samsung Internet 16.0), fetched 2026-09-18: https://caniuse.com/mdn-javascript_builtins_array_at
+- Gamepad API (Chrome 21, Safari 10.1, Firefox 29, Samsung Internet 4), fetched 2026-09-21: https://caniuse.com/gamepad — and the runtime that has none of it regardless of version, measured here on 2026-09-21: Playwright's WebKit exposes no `navigator.getGamepads`, which is why `src/gamepad/gamepad.browser.test.ts:582-645` builds the case by deleting the accessor rather than by picking an engine.
 - Television engine tables, fetched 2026-09-18: https://developer.samsung.com/smarttv/develop/specifications/web-engine-specifications.html · https://webostv.developer.lge.com/develop/specifications/web-api-and-web-engine
 - The method behind the two inherited size figures: `check:size` against a same-day `dist`, min+gzip,
   externals `../*` and `../../*` — inherited from the predecessor implementation
