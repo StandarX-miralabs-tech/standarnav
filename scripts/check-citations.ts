@@ -15,7 +15,7 @@
 // filesystem path, and a reference to the gitignored `.local/` scratch directory.
 
 import { spawnSync } from "node:child_process";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import path from "node:path";
 
 const rootDir = path.resolve(import.meta.dirname, "..");
@@ -32,6 +32,10 @@ const OWN_ROOTS = ["src/", "scripts/", "playground/", ".github/", "docs/adr/", "
 // `D:/DevSoftware` from `https://bun.sh`.
 const ABSOLUTE = /(?<!\w)[A-Za-z]:[\\/]|\/Users\/|\/home\//;
 const SCRATCH = /(?:^|[\s(`"'])\.local\//;
+/** `[ADR-0003](0003-extraction-scope.md)` — the target, fragment and all. */
+const LINK = /\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
+/** Nothing on the filesystem to resolve: another host, a mail client, a heading here. */
+const EXTERNAL = /^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i;
 
 interface Problem {
   readonly file: string;
@@ -65,6 +69,7 @@ const unprefixed: Problem[] = [];
 let checked = 0;
 let sourceCitations = 0;
 let shorthand = 0;
+let links = 0;
 
 for (const document of tracked()) {
   const text = readFileSync(path.join(rootDir, document), "utf8");
@@ -78,6 +83,29 @@ for (const document of tracked()) {
     }
     if (SCRATCH.test(line)) {
       problems.push({ file: document, line: at, what: `reference to the gitignored .local/` });
+    }
+
+    // A `path:line` citation is checked above, but `[ADR-0003](0003-extraction-scope.md)`
+    // was not checked by anything — and those links are the dense part of this tree:
+    // one document is the target of twenty-four of them. Deleting or renaming a file
+    // therefore used to leave dead links that every gate reported as green.
+    for (const match of line.matchAll(LINK)) {
+      const target = match[1];
+      if (target === undefined || EXTERNAL.test(target)) continue;
+
+      // The fragment is the reader's business, not the filesystem's; an empty path
+      // before it means the link points inside the document it is written in.
+      const file = target.split("#")[0] ?? "";
+      if (file === "") continue;
+
+      const resolved = file.startsWith("/")
+        ? path.join(rootDir, file.slice(1))
+        : path.resolve(rootDir, path.dirname(document), decodeURIComponent(file));
+
+      links += 1;
+      if (!existsSync(resolved)) {
+        problems.push({ file: document, line: at, what: `links to ${file}, which does not exist` });
+      }
     }
 
     for (const match of line.matchAll(CITATION)) {
@@ -162,8 +190,8 @@ if (unprefixed.length > 0) {
 
 console.log("");
 console.log(
-  `checked ${checked} citation${checked === 1 ? "" : "s"} into this repository across ${tracked().length} documents` +
-    ` (${sourceCitations} into the source repository and ${shorthand} written in shorthand, neither resolvable here)`,
+  `checked ${checked} citation${checked === 1 ? "" : "s"} and ${links} link${links === 1 ? "" : "s"} into this repository across ${tracked().length} documents` +
+    ` (${sourceCitations} citations into the source repository and ${shorthand} written in shorthand, neither resolvable here)`,
 );
 
 if (problems.length > 0) {
