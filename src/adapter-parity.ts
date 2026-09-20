@@ -25,19 +25,49 @@ export interface ParityProbe {
   renders(): readonly (InputSystem | null)[];
   /** What `useInputModality` and its equivalents currently report. */
   modality(): InputModality;
-  /** Intents that reached the scope this tree pushed, in order. */
+  /**
+   * Intents that reached the tree's scopes, in the order the stack asked them,
+   * each tagged with the scope that saw it — `"inner:moveDown"`. Both scopes
+   * decline every intent, so what reaches a scope is observable rather than
+   * swallowed, and the order of this list is the order of the stack.
+   */
   intents(): readonly string[];
-  /** Scopes released as the adapter tore the tree down, in whatever order. */
+  /**
+   * Scope components whose cleanup ran as the adapter tore the tree down. This
+   * proves the adapter runs its own teardown, and nothing more: a cleanup that
+   * forgot to call the disposer would still be recorded here. The scope actually
+   * leaving the bus is asserted by the subtree case below, which is observable.
+   */
   released(): readonly string[];
+}
+
+/**
+ * The shape of the mounted tree. Every field has a default, so an adapter that
+ * only ever renders the default shape still satisfies the older cases.
+ */
+export interface ParityTree {
+  /** Whether the inner scope's component is mounted at all. Defaults to `true`. */
+  readonly inner?: boolean | undefined;
+  /** `trapped` on the inner scope. Defaults to `false`. */
+  readonly trapped?: boolean | undefined;
+  /** `base` on the outer scope. Defaults to `false`. */
+  readonly base?: boolean | undefined;
 }
 
 export interface ParityAdapter {
   readonly name: string;
   /**
    * Mounts a provider with two nested scopes named "outer" and "inner", pushing
-   * them in that order, and returns a probe over the result.
+   * them in that order, and returns a probe over the result. Both handlers record
+   * what they are asked and then decline it.
    */
-  mount(): ParityProbe;
+  mount(tree?: ParityTree | undefined): ParityProbe;
+  /**
+   * Re-renders the tree already mounted with a different shape — no remount, no
+   * new provider, no new system. This is what makes "the scope was re-registered"
+   * and "the scope left the bus" observable at all.
+   */
+  update(tree: ParityTree): void;
   unmount(): void;
   /** Lets the framework commit whatever is pending. */
   settle(): Promise<void>;
@@ -75,13 +105,13 @@ export function runAdapterParitySuite(adapter: ParityAdapter): void {
       adapter.unmount();
     });
 
-    it("delivers an intent to the scope the tree pushed", async () => {
+    it("delivers an intent to the scopes the tree pushed", async () => {
       const probe = adapter.mount();
       await adapter.settle();
 
       adapter.act(() => press("ArrowDown"));
 
-      expect(probe.intents()).toEqual(["moveDown"]);
+      expect(probe.intents()).toContain("inner:moveDown");
       adapter.unmount();
     });
 
@@ -92,9 +122,68 @@ export function runAdapterParitySuite(adapter: ParityAdapter): void {
       adapter.act(() => press("ArrowDown"));
 
       // The suite's mount pushes "outer" then "inner"; the stack is LIFO, and an
-      // adapter that re-pushes on re-render silently reverses this.
-      expect(probe.intents()[0]).toBe("moveDown");
+      // adapter that re-pushes on re-render silently reverses this. Both scopes
+      // decline, so both are asked and the order is the assertion — reading only
+      // the first entry, or recording only one scope, asserts nothing about order.
+      expect(probe.intents()).toEqual(["inner:moveDown", "outer:moveDown"]);
       expect(probe.released()).toEqual([]);
+      adapter.unmount();
+    });
+
+    it("releases a scope when its own subtree unmounts, with the tree still up", async () => {
+      const probe = adapter.mount();
+      await adapter.settle();
+      adapter.act(() => press("ArrowDown"));
+      expect(probe.intents()).toEqual(["inner:moveDown", "outer:moveDown"]);
+
+      adapter.update({ inner: false });
+      await adapter.settle();
+      adapter.act(() => press("ArrowDown"));
+
+      // The scope is gone from the bus, not merely unrendered. A cleanup that
+      // dropped the component without calling its disposer leaves "inner" in this
+      // list a second time, and a leak that no unmount-counting test can see.
+      expect(probe.intents()).toEqual(["inner:moveDown", "outer:moveDown", "outer:moveDown"]);
+      adapter.unmount();
+    });
+
+    it("keeps a trap from reaching the scope beneath it", async () => {
+      const probe = adapter.mount({ trapped: true });
+      await adapter.settle();
+
+      adapter.act(() => press("ArrowDown"));
+
+      // "inner" declines, but it traps, so the stack stops there.
+      expect(probe.intents()).toEqual(["inner:moveDown"]);
+      adapter.unmount();
+    });
+
+    it("asks a base scope even through a trap above it", async () => {
+      const probe = adapter.mount({ trapped: true, base: true });
+      await adapter.settle();
+
+      adapter.act(() => press("ArrowDown"));
+
+      // The whole point of `base`: the engine that navigates *inside* the trapping
+      // surface is still asked. An adapter that accepts `base` and drops it on the
+      // floor passes every other case in this file.
+      expect(probe.intents()).toEqual(["inner:moveDown", "outer:moveDown"]);
+      adapter.unmount();
+    });
+
+    it("re-registers a scope when its base changes on a rerender", async () => {
+      const probe = adapter.mount({ trapped: true, base: false });
+      await adapter.settle();
+      adapter.act(() => press("ArrowDown"));
+      expect(probe.intents()).toEqual(["inner:moveDown"]);
+
+      adapter.update({ trapped: true, base: true });
+      await adapter.settle();
+      adapter.act(() => press("ArrowDown"));
+
+      // Forwarding `base` on mount and ignoring it on update is the shape of bug
+      // that only shows up once a dialog changes its mind.
+      expect(probe.intents()).toEqual(["inner:moveDown", "inner:moveDown", "outer:moveDown"]);
       adapter.unmount();
     });
 

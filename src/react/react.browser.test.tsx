@@ -1,6 +1,6 @@
 import { type ReactNode, useEffect, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { type ParityProbe, runAdapterParitySuite } from "../adapter-parity";
+import { type ParityProbe, type ParityTree, runAdapterParitySuite } from "../adapter-parity";
 import { spatialPlugin } from "../spatial/spatial";
 import type { InputModality } from "../types";
 import { NavProvider, useInputModality, useInputSystem, useIntent } from "./react";
@@ -196,21 +196,35 @@ describe("a pad, through the provider, on a plain button", () => {
 const parity = (() => {
   let probe: ParityProbe | null = null;
   let handle: ReturnType<typeof mount> | null = null;
+  let tree: (shape: ParityTree) => ReactNode = () => null;
 
   return {
     name: "react",
-    mount(): ParityProbe {
+    mount(shape?: ParityTree | undefined): ParityProbe {
       const intents: string[] = [];
       const released: string[] = [];
       const renders: (ReturnType<typeof useInputSystem> | null)[] = [];
       let system: ReturnType<typeof useInputSystem> = null;
       let modality: InputModality = "pointer";
 
-      function Named({ name }: { readonly name: string }): ReactNode {
-        useIntent((event) => {
-          if (name === "inner") intents.push(event.intent);
-          return name === "inner";
-        });
+      // Both scopes decline, so both are asked and the order of the list is the
+      // order of the stack. `trapped` is what stops the walk, not a `true` return.
+      function Named({
+        name,
+        trapped,
+        base,
+      }: {
+        readonly name: string;
+        readonly trapped?: boolean | undefined;
+        readonly base?: boolean | undefined;
+      }): ReactNode {
+        useIntent(
+          (event) => {
+            intents.push(`${name}:${event.intent}`);
+            return false;
+          },
+          { trapped, base },
+        );
         useEffect(() => () => void released.push(name), [name]);
         return null;
       }
@@ -222,13 +236,17 @@ const parity = (() => {
         return null;
       }
 
-      handle = mount(
+      // The provider lives outside the shape, so an update re-renders the scopes
+      // without ever rebuilding the system underneath them.
+      tree = (next: ParityTree): ReactNode => (
         <NavProvider plugins={[spatialPlugin()]}>
           <Probe />
-          <Named name="outer" />
-          <Named name="inner" />
-        </NavProvider>,
+          <Named name="outer" base={next.base ?? false} />
+          {(next.inner ?? true) && <Named name="inner" trapped={next.trapped ?? false} />}
+        </NavProvider>
       );
+
+      handle = mount(tree(shape ?? {}));
 
       probe = {
         system: () => system,
@@ -238,6 +256,9 @@ const parity = (() => {
         released: () => released,
       };
       return probe;
+    },
+    update(shape: ParityTree): void {
+      handle?.render(tree(shape));
     },
     unmount(): void {
       handle?.unmount();
