@@ -57,6 +57,23 @@ interface Problem {
 // which is a worse trade — the subject is the release note.
 const GENERATED = new Set(["CHANGELOG.md"]);
 
+// These two belong with the patterns at the top of this file and cannot go there:
+// ADR-0012 cites the block above by line, and the citation gate is the last file in
+// the tree that may quietly move a line someone else points at.
+/** Any backticked path, quoted or not, with or without the `:line` tail `CITATION` requires. */
+const PATH_REFERENCE =
+  /`["']?((?:\.{1,2}\/)?[A-Za-z0-9_@.][A-Za-z0-9_@./-]*\.(?:ts|tsx|js|jsx|json|ya?ml|md|css|scss|html))["']?(?::\d+(?:-\d+)?)?`/g;
+/** `` `:49` `` — a line in whichever file the prose named last. */
+const BARE_ANCHOR = /`:(\d+)(?:-(\d+))?`/g;
+
+/** One of the two, found at `at` so a line can be read left to right rather than twice. */
+interface Written {
+  readonly at: number;
+  readonly reference?: string;
+  readonly start?: number;
+  readonly end?: number;
+}
+
 function tracked(): string[] {
   const result = spawnSync("git", ["ls-files", "*.md"], { cwd: rootDir, encoding: "utf8" });
   if (result.status !== 0) throw new Error("git ls-files failed");
@@ -81,16 +98,50 @@ function linesOf(relative: string): string[] | null {
   return lines;
 }
 
+/** Every tracked file, indexed by basename, so `focus-ring.ts` in prose finds its one path. */
+function byBasename(): Map<string, string[]> {
+  const result = spawnSync("git", ["ls-files"], { cwd: rootDir, encoding: "utf8" });
+  if (result.status !== 0) throw new Error("git ls-files failed");
+  const index = new Map<string, string[]>();
+  for (const entry of result.stdout.split("\n")) {
+    const file = entry.trim();
+    if (file === "") continue;
+    const base = file.slice(file.lastIndexOf("/") + 1);
+    const known = index.get(base);
+    if (known === undefined) index.set(base, [file]);
+    else known.push(file);
+  }
+  return index;
+}
+
+const basenames = byBasename();
+
+// What a reader does with a name in backticks: take it as written if it is a path from
+// the root, and otherwise as a basename, which is unambiguous only while one file in the
+// tree carries it. A name that resolves to neither resolves to nothing — and a name that
+// resolves to nothing is not a file the prose named, which is the rule that matters at
+// the call site below.
+function named(reference: string): string | null {
+  const written = reference.replace(/^\.\//, "");
+  if (existsSync(path.join(rootDir, written))) return written;
+  const candidates = basenames.get(written.slice(written.lastIndexOf("/") + 1)) ?? [];
+  return candidates.length === 1 ? (candidates[0] ?? null) : null;
+}
+
 const problems: Problem[] = [];
 const unprefixed: Problem[] = [];
 let checked = 0;
 let provenance = 0;
 let shorthand = 0;
 let links = 0;
+let anchors = 0;
+let inherited = 0;
 
 for (const document of tracked()) {
   const text = readFileSync(path.join(rootDir, document), "utf8");
   const documentLines = text.split("\n");
+  /** The file the prose named last, which is what a bare `:NNN` below resolves against. */
+  let subject: string | null = null;
 
   for (const [index, line] of documentLines.entries()) {
     const at = index + 1;
@@ -195,6 +246,88 @@ for (const document of tracked()) {
         }
       }
     }
+
+    // A path is written in full once and the lines around it are then cited as `:NNN`.
+    // Two hundred and twenty-three of those anchors are in this tree and nothing checked
+    // a single one: the pattern above needs a path, and a bare anchor has none. They are
+    // checked here against the file the prose named last, which is what a reader resolves
+    // them against too — so the two must be read in the order they appear on the line, not
+    // one pattern after the other, or `a.ts:1 … :2 … b.ts:3 … :4` sends `:2` to the wrong
+    // file. A name that resolves to nothing leaves the subject alone rather than taking
+    // it: in ADR-0010 the entry `debug.js` sits in a sentence about `scripts/size-budget.ts`,
+    // and letting that name win would have pointed the next anchor at a build artefact.
+    const written: Written[] = [];
+    for (const match of line.matchAll(PATH_REFERENCE)) {
+      if (match[1] !== undefined) written.push({ at: match.index ?? 0, reference: match[1] });
+    }
+    for (const match of line.matchAll(BARE_ANCHOR)) {
+      if (match[1] === undefined) continue;
+      const start = Number(match[1]);
+      written.push({
+        at: match.index ?? 0,
+        start,
+        end: match[2] === undefined ? start : Number(match[2]),
+      });
+    }
+    written.sort((one, other) => one.at - other.at);
+
+    for (const entry of written) {
+      if (entry.reference !== undefined) {
+        subject = named(entry.reference) ?? subject;
+        continue;
+      }
+      const start = entry.start;
+      const end = entry.end;
+      if (start === undefined || end === undefined) continue;
+
+      // The licence record's anchors belong to the predecessor repository, and this one
+      // has a `geometry.ts` of its own: resolving them here does not fail, it succeeds
+      // against the wrong file and reports a line that has nothing to do with the prose.
+      // That is worse than not checking them, so they are counted and left alone — the
+      // same exemption the full citations above already carry.
+      if (document === PROVENANCE_RECORD) {
+        inherited += 1;
+        continue;
+      }
+      if (subject === null) {
+        problems.push({
+          file: document,
+          line: at,
+          what: `\`:${start}\` before any file is named — nothing to resolve it against`,
+        });
+        continue;
+      }
+
+      const lines = linesOf(subject);
+      if (lines === null) continue;
+
+      anchors += 1;
+      if (end < start) {
+        problems.push({
+          file: document,
+          line: at,
+          what: `${subject}:${start}-${end} runs backwards`,
+        });
+        continue;
+      }
+      if (end > lines.length) {
+        problems.push({
+          file: document,
+          line: at,
+          what: `\`:${start}${entry.end === start ? "" : `-${end}`}\` is ${subject}:${end}, past the end of the file (${lines.length} lines)`,
+        });
+        continue;
+      }
+      for (const edge of end === start ? [start] : [start, end]) {
+        if ((lines[edge - 1] ?? "").trim() === "") {
+          problems.push({
+            file: document,
+            line: at,
+            what: `\`:${edge}\` is ${subject}:${edge}, a blank line — the anchor has drifted`,
+          });
+        }
+      }
+    }
   }
 }
 
@@ -210,8 +343,8 @@ if (unprefixed.length > 0) {
 
 console.log("");
 console.log(
-  `checked ${checked} citation${checked === 1 ? "" : "s"} and ${links} link${links === 1 ? "" : "s"} into this repository across ${tracked().length} documents` +
-    ` (${provenance} in the licence record and ${shorthand} written in shorthand, neither resolvable here)`,
+  `checked ${checked} citation${checked === 1 ? "" : "s"}, ${anchors} bare anchor${anchors === 1 ? "" : "s"} and ${links} link${links === 1 ? "" : "s"} into this repository across ${tracked().length} documents` +
+    ` (${provenance + inherited} in the licence record and ${shorthand} written in shorthand, neither resolvable here)`,
 );
 
 if (problems.length > 0) {

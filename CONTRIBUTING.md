@@ -272,6 +272,12 @@ path and a scratch-directory reference outright. What it cannot see is an
 anchor that drifted onto some *other* real line, which is why the prose names
 the symbol it is pointing at: a reader can then see the mismatch.
 
+A path written in full once and then cited as `` `:NNN` `` for the lines around
+it is checked the same way, against the file the prose named last — the reading
+a human already gives it. So name the file again whenever the subject changes,
+and never leave a bare anchor above the first path on the page: with nothing to
+resolve it against, it fails the run rather than pointing somewhere plausible.
+
 ## Code and comments
 
 - Code, identifiers, commit messages, and comments are in English.
