@@ -66,8 +66,8 @@ These are refusals, not backlog items. Each will be reconsidered only through an
 |---|---|
 | Shadow DOM traversal in v0 | Piercing open roots means walking every root on every move; the module is light-DOM-only by explicit choice (`src/tabbable.ts:10-12`). So `getFocusables` stops at a shadow boundary while the `contains` of `src/dom/query.ts:24-39` walks `getRootNode()` and hosts and crosses one — an inconsistency this version keeps deliberately, pinned by the skipped fixture at `src/spatial/spatial.browser.test.ts:856`, with coherence a v1 goal. Components that need it can pass their own root. See [ADR-0008](adr/0008-shadow-dom.md). |
 | RTL mirroring of directions | `moveLeft` means left on the screen. An application that mirrors its layout decides what its left arrow means; the engine does not guess. |
-| A component library | No menu, no dialog, no grid. The engine navigates whatever markup it is given. miralabs-ui is the component library, and becomes a consumer of this package — the owner's decision of 2026-09-18, recorded in [ADR-0004](adr/0004-relationship-with-miralabs-ui.md). |
-| Styling beyond focus ring defaults | The package ships the focus ring overlay and the six custom properties it reads (R33). No stylesheet ships at all — the overlay paints itself inline — and there is no theme, no reset, no component CSS. |
+| A component library | No menu, no dialog, no grid. The engine navigates whatever markup it is given, and the boundary that keeps it that way is [ADR-0003](adr/0003-package-boundaries.md). |
+| Styling beyond focus ring defaults | The package ships the focus ring overlay and the six custom properties it reads (R33). No stylesheet ships at all — the overlay paints itself inline ([ADR-0020](adr/0020-focus-ring-defaults.md)) — and there is no theme, no reset, no component CSS. |
 | Native SDKs | No Tizen `.wgt` tooling, no webOS CLI wrapper, no Android TV leanback integration. The deliverable is a web package. |
 | React Native | The engine measures DOM rects and calls `element.focus()`. Neither exists in React Native. |
 

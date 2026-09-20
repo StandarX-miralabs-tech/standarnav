@@ -7,7 +7,7 @@ Deciders: Wesley Cormier
 ## Context
 
 The gamepad engine is not designed here. It is inherited from miralabs-ui
-([ADR-0003](0003-extraction-scope.md)), specified on 2026-08-27 and implemented over the following
+([ADR-0003](0003-package-boundaries.md)), specified on 2026-08-27 and implemented over the following
 weeks in `packages/core/src/input/gamepad/{gamepad.ts, mapping.ts, dead-zone.ts, repeat.ts}` (450,
 91, 95 and 63 lines, `wc -l` on 2026-09-18). This ADR records the design and its reasons here, so
 that the numbers stop being folklore, and marks what is still unverified. Three facts frame it:
@@ -162,4 +162,4 @@ column is re-read against this repository on 2026-09-20.
   [ADR-0017](0017-size-budgets.md) first.
 - Competitor claim: [docs/research/competitors.md](../research/competitors.md), "No Gamepad API use
   in any of the eighteen" (2026-09-18).
-- Related: [ADR-0018](0018-testing-strategy.md), [ADR-0003](0003-extraction-scope.md).
+- Related: [ADR-0018](0018-testing-strategy.md), [ADR-0003](0003-package-boundaries.md).

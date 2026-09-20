@@ -148,7 +148,7 @@ marginal cost, which is the only figure this line is meant to carry.
 ## Alternatives considered
 
 **Console warnings in the production build, behind `process.env.NODE_ENV`.** Rejected. The package is
-platform-neutral ESM with no bundler assumption ([ADR-0003](0003-extraction-scope.md)); `process` does
+platform-neutral ESM with no bundler assumption ([ADR-0003](0003-package-boundaries.md)); `process` does
 not exist in a browser, `import.meta.env` is a bundler convention, and a library that reads either one
 inherits every consumer's build configuration. Dead-code elimination only works when the bundler
 replaces the expression, which excludes anyone loading the ESM build directly — and the TV runtimes in

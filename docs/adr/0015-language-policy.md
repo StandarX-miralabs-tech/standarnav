@@ -26,7 +26,7 @@ the moment an outside contributor opens an issue: a French specification
 paragraph is a wall for a reader who can read the code underneath it perfectly
 well.
 
-The extraction (see [ADR-0003](0003-extraction-scope.md)) is the moment to fix
+The extraction (see [ADR-0003](0003-package-boundaries.md)) is the moment to fix
 this, because it is the moment the repository becomes public and every file gets
 rewritten anyway. Deciding afterwards would mean a translation pass over a
 growing corpus.
@@ -129,5 +129,5 @@ untracked and no reader ever sees them.
 - Rules 2 and 3 are satisfied by the code that arrived in the meantime: every
   file under `src/` is English, comments included (read 2026-09-20). The
   committed Markdown of `docs/adr/` is English throughout.
-- Related: [ADR-0003](0003-extraction-scope.md) (what is being extracted) and
+- Related: [ADR-0003](0003-package-boundaries.md) (what is being extracted) and
   [ADR-0016](0016-scoring-constants-provenance.md) (the comments rule 3 keeps).

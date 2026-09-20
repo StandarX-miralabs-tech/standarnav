@@ -11,7 +11,7 @@ grid and focus goes to whichever candidate minimises a score; change a weight an
 the product feels different. The numbers came from three different places and the
 code does not say which came from where, so the next person to touch one would
 "tidy" a constant whose origin is a browser engine. Extracting the engine (see
-[ADR-0003](0003-extraction-scope.md)) is the moment to write it down.
+[ADR-0003](0003-package-boundaries.md)) is the moment to write it down.
 
 There is a second reason. It would be easy, and wrong, to describe this engine as
 "Chromium's spatial navigation algorithm". Two of the weights are Chromium's. The

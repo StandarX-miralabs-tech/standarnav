@@ -150,7 +150,7 @@ Chromium 85 — the engine of the 2022 TV firmwares Tizen 6.5 and webOS 22 (base
 the Samsung and LG engine tables fetched on 2026-09-18). The only surveyed implementation that does
 it, Tabster, needed a dedicated subsystem for it (`src/Shadowdomize/`: a tree walker, a mutation
 observer and its own `querySelector`), which is a fair estimate of the real cost. Nothing in the extraction scope
-([ADR-0003](0003-extraction-scope.md)) justifies paying it before v1.
+([ADR-0003](0003-package-boundaries.md)) justifies paying it before v1.
 
 **Slot-based or explicit registration.** Each component registers its focusables with the engine, so
 the engine never has to walk anything. Rejected: it gives up the declarative, attribute-driven model

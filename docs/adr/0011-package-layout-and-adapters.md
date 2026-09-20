@@ -10,7 +10,7 @@ One detail stays Proposed: the subpath name of the vanilla auto-mount helper, wo
 ## Context
 
 standarnav extracts the input system of miralabs-ui into its own repository (see
-[ADR-0003](0003-extraction-scope.md)). The extracted code is not one blob: it is a small core
+[ADR-0003](0003-package-boundaries.md)). The extracted code is not one blob: it is a small core
 (intent bus, input system, keymap, engage mode) plus engines that a consumer opts into one by
 one — gamepad polling, spatial navigation, the focus-ring overlay, the debug explainer.
 
@@ -73,8 +73,7 @@ a second way to depend on them that a rename would have to keep working.
 The modality tracker (`src/modality.ts`) and the DOM helpers (`src/dom/*.ts`, `src/tabbable.ts`)
 have no subpath of their own: nothing addresses them from outside. They are not private, though —
 the root entry re-exports the modality surface and six tabbable symbols
-(`src/index.ts:33-48`), which is what [ADR-0004](0004-relationship-with-miralabs-ui.md) step 4
-needs and what makes `isFocusable` available without pulling an engine. `src/internal/env.ts` and
+(`src/index.ts:33-48`), which is what makes `isFocusable` available without pulling an engine. `src/internal/env.ts` and
 `src/internal/equality.ts` are the genuinely internal ones: imported by the React adapter, exported
 by nothing. `vanilla` is not an
 adapter, because the core is the vanilla API; the only vanilla-specific artefact is an auto-mount

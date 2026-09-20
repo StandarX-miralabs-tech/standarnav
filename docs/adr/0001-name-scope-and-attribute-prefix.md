@@ -6,7 +6,7 @@ Deciders: Wesley Cormier
 
 ## Context
 
-The input system extracted from miralabs-ui (see [ADR-0003](0003-extraction-scope.md))
+The input system extracted from miralabs-ui (see [ADR-0003](0003-package-boundaries.md))
 needs three names before the repository can exist: a project name, an npm
 package identifier, and a prefix for the DOM attributes the engine reads and
 writes. The constraints were fixed before any candidate was generated:
@@ -61,9 +61,9 @@ five until the focus ring was reviewed before merge. The sixth is `--snav-focus-
 fallback `1700`, and it exists because the overlay is `position: fixed`, which opens no stacking
 context: without a `z-index` of its own the ring paints at the root level in DOM order and goes
 behind the first dialog it meets. `1700` is the rung the source stylesheet gave the ring, above its
-modal, popover, toast and tooltip, so the value is inherited rather than invented — but the
-stylesheet stays in miralabs-ui ([ADR-0004](0004-relationship-with-miralabs-ui.md)), which is why
-the plugin now carries it inline. The same review moved the `width` fallback from `2px` to `3px`,
+modal, popover, toast and tooltip, so the value is inherited rather than invented — but no
+stylesheet ships with this package ([ADR-0020](0020-focus-ring-defaults.md)), which is why
+the plugin carries it inline. The same review moved the `width` fallback from `2px` to `3px`,
 which changes no name and so does not change the contract.
 
 Six names is the frozen number for v0, and each is a public contract on the same terms as the
@@ -73,13 +73,6 @@ attributes: adding one is a minor change, renaming or removing one is breaking. 
 
 ## Consequences
 
-- miralabs-ui must rename every read and written attribute when it adopts this
-  package. Counted in the source at commit `289fa607` on 2026-09-18:
-  `grep -rl data-mira-nav packages/core/src/components --include=*.ts` covers
-  fourteen components once test files are removed, and
-  `grep -rl data-mira-input packages/styles/scss --include=*.scss` returns nine
-  files. Coordinated breaking change, tracked in
-  [ADR-0004](0004-relationship-with-miralabs-ui.md).
 - The prefix is a public contract from the first release; changing it later is a
   major version for every consumer's HTML and CSS.
 - `standar` without the `d` is a permanent typo trap for English speakers, the
@@ -156,4 +149,4 @@ Attribute names in the source, read 2026-09-18 at commit `289fa607`:
 `packages/core/src/input/focus-ring/focus-ring.ts:26`, `:84` and `:112`.
 
 Related: [ADR-0002](0002-license-and-copyright.md),
-[ADR-0003](0003-extraction-scope.md), [ADR-0004](0004-relationship-with-miralabs-ui.md).
+[ADR-0003](0003-package-boundaries.md), [ADR-0020](0020-focus-ring-defaults.md).

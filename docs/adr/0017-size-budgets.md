@@ -88,10 +88,10 @@ and the run fails by design.
   mechanism working, not failing.
 - Rule 4 makes some pull requests two commits instead of one. That is the price
   of a cap that means anything.
-- The focus ring is a special case the budget alone does not capture: its visual
-  defaults live in a stylesheet that stays in the source repository, so a small
-  bundled size does not mean a complete feature. See
-  [ADR-0003](0003-extraction-scope.md) for what is extracted.
+- The focus ring is a special case the budget alone does not capture: it ships no
+  stylesheet at all, so a small bundled size does not mean a complete feature.
+  Its defaults and the six custom properties that override them are
+  [ADR-0020](0020-focus-ring-defaults.md).
 - Budgets constrain the engine described in [ADR-0016](0016-scoring-constants-provenance.md);
   a change to the scoring rule is both a fixture question and a size question.
 

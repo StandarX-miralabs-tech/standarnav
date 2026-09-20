@@ -200,5 +200,5 @@ required check that nobody can re-run costs a lot. Revisit once Actions runs.
   and `attw --profile esm-only` on it, and now also fails when `package.json` declares any runtime
   dependency (`scripts/check-package.ts`, read 2026-09-20). It is the third step of the `build` job
   of `.github/workflows/ci.yml`, after `bun run build` and the `git diff --exit-code` drift gate.
-- Related: [ADR-0003](0003-extraction-scope.md) for what is being released,
+- Related: [ADR-0003](0003-package-boundaries.md) for what is being released,
   [ADR-0011](0011-package-layout-and-adapters.md) for the surface a version number covers.

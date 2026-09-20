@@ -7,7 +7,7 @@ Deciders: Wesley Cormier
 ## Context
 
 standarnav is extracted from miralabs-ui (see
-[ADR-0003](0003-extraction-scope.md)). Two questions had to be answered before
+[ADR-0003](0003-package-boundaries.md)). Two questions had to be answered before
 the first public commit: under which license the new repository ships, and
 whose name appears in the copyright line.
 
@@ -89,7 +89,7 @@ contributions". There is no CLA and no DCO sign-off requirement.
   proprietary products, provided the copyright notice and the license text
   travel with substantial portions of the software.
 - miralabs-ui, itself MIT, can depend on `@standarx/nav` with no license
-  friction in either direction ([ADR-0003](0003-extraction-scope.md)).
+  friction in either direction ([ADR-0003](0003-package-boundaries.md)).
 - MIT is the most common license in this ecosystem, not a universal one. Of the
   twenty competitor fact sheets built on 2026-09-18 (license column of
   [docs/research/competitors.md](../research/competitors.md)), ten declare MIT
@@ -164,5 +164,5 @@ contributions". There is no CLA and no DCO sign-off requirement.
   [docs/research/competitors.md](../research/competitors.md).
 
 Related: [ADR-0001](0001-name-scope-and-attribute-prefix.md),
-[ADR-0003](0003-extraction-scope.md),
+[ADR-0003](0003-package-boundaries.md),
 [ADR-0016](0016-scoring-constants-provenance.md).

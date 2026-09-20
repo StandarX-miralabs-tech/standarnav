@@ -118,9 +118,8 @@ measurement is recorded with its command and date.
       `color` and `width` were added closing the focus-ring-scope item below; `z-index` is the
       newest, added by
       [92a5f89](https://github.com/StandarX-miralabs-tech/standarnav/commit/92a5f89) once review
-      found the ring painting behind the playground's own chrome. The source-side family is a
-      separate and much larger decision that does not travel with this extraction — see step 3 of
-      [ADR-0004](docs/adr/0004-relationship-with-miralabs-ui.md)
+      found the ring painting behind the playground's own chrome. The full contract is
+      [ADR-0020](docs/adr/0020-focus-ring-defaults.md)
 - [x] Replace `WeakRef` (used for per-container focus memory) with a feature-detected fallback:
       strong reference validated with `isConnected` — see
       [ADR-0013](docs/adr/0013-browser-baseline-and-fallbacks.md). This is a `lib` coverage and
@@ -174,8 +173,8 @@ measurement is recorded with its command and date.
       out, skipped under `prefers-reduced-motion` (`src/focus-ring/focus-ring.ts:30`,
       `:147-154`). The colour
       default still measures 4.51:1 on white and 4.36:1 on `#0b0b0f`, both above the 3:1 that WCAG
-      SC 1.4.11 asks of a non-text indicator. Closes the open question of
-      [ADR-0004](docs/adr/0004-relationship-with-miralabs-ui.md); z-index and the fade landed as a
+      SC 1.4.11 asks of a non-text indicator. Recorded as
+      [ADR-0020](docs/adr/0020-focus-ring-defaults.md); z-index and the fade landed as a
       pre-merge review fix, commit
       [92a5f89](https://github.com/StandarX-miralabs-tech/standarnav/commit/92a5f89), 2026-09-20
 - [ ] Ring under `forced-colors: active`, which suppresses `box-shadow` outright, so the ring
@@ -441,20 +440,6 @@ measurement is recorded with its command and date.
 - [ ] First npm publication of a 0.x version with provenance, once CI is green and the package check
       passes
 - [ ] Record the published size from the registry after that publication — measure first
-
-### miralabs-ui migration ([ADR-0004](docs/adr/0004-relationship-with-miralabs-ui.md))
-
-- [ ] Branch in miralabs-ui, no work on its default branch
-- [ ] Replace the internal imports with `@standarx/nav` subpaths, including the value imports
-      `pushEngageScope` and `isTextEntryTarget`
-- [ ] Rename the attributes emitted by the components that emit `data-mira-nav*`: 14 component
-      directories, from `grep -rl "data-mira-nav" packages/core/src/components --include=*.ts` with
-      the test files removed, run in miralabs-ui on 2026-09-18
-- [ ] Rename the SCSS selectors reading `data-mira-input`: 9 files, from
-      `grep -rl "data-mira-input" packages/styles --include=*.scss`, run in miralabs-ui on 2026-09-18
-- [ ] Delete `packages/core/src/input` once nothing imports it
-- [ ] Run the full miralabs-ui suite as the safety net, and keep its result in the pull request
-- [ ] Decide where `_focus-ring.scss` lives after the migration
 
 ### Device verification
 

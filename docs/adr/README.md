@@ -56,18 +56,17 @@ Rules that go with that skeleton:
   many source paths in one table, the table says which repository it is reading.
   A line number without a read date is not a citation.
 - Related records are linked by file name, relative to this directory:
-  `[ADR-0003](0003-extraction-scope.md)`.
+  `[ADR-0003](0003-package-boundaries.md)`.
 - Length: 60 to 150 lines is the target **for a new record**. The nineteen below
-  ran between 117 and 150 lines when they were written (`wc -l docs/adr/0*.md`,
-  2026-09-18); on 2026-09-20 the same command gives 132 to 262, because an
-  accepted record grows by amendment and the extraction pull request gave most of
-  them one. The target governs the first draft; an amendment is judged on whether
-  it says something the record did not, not on the line count it adds.
+  run from 74 to 260 lines (`wc -l docs/adr/0*.md`, 2026-09-20), because an
+  accepted record grows by amendment. The target governs the first draft; an
+  amendment is judged on whether it says something the record did not, not on the
+  line count it adds.
 
 ## Adding one
 
-1. Take the next free number. The highest in use is ADR-0019, so the next is
-   ADR-0020. Numbers are never reused, and a superseded record keeps its number.
+1. Take the next free number. The highest in use is ADR-0020, so the next is
+   ADR-0021. Numbers are never reused, and a superseded record keeps its number.
 2. Name the file `NNNN-short-title.md`, lowercase, words separated by hyphens.
 3. Write it in English, with the skeleton above, and link it from every existing
    record it touches.
@@ -93,8 +92,7 @@ release-please. Both records carry a dated amendment saying so.
 |---|---|---|---|
 | [0001](0001-name-scope-and-attribute-prefix.md) | Name, npm scope and attribute prefix | Accepted | The project is standarnav, the package `@standarx/nav`, the DOM attributes `data-snav-*` and the custom properties `--snav-focus-ring-*`. |
 | [0002](0002-license-and-copyright.md) | License and copyright holder | Accepted | MIT, copyright Wesley Cormier, contributions inbound=outbound with no CLA. |
-| [0003](0003-extraction-scope.md) | Extraction scope and boundary with the miralabs-ui core | Accepted | The whole of `packages/core/src/input/` moves, plus a closure of eight helper modules; the planned `src/` layout and the one-way boundary rule. |
-| [0004](0004-relationship-with-miralabs-ui.md) | Relationship with miralabs-ui: consumer, not fork | Accepted | miralabs-ui deletes its copy of the input system and depends on `@standarx/nav`; the migration order and the coordinated attribute rename. |
+| [0003](0003-package-boundaries.md) | Package boundaries and module layout | Accepted | The engine imports no component, machine, stylesheet or framework context; the `src/` layout, why the root entry omits the three engines, and why `internal/` is the only private directory. |
 | [0005](0005-real-dom-focus.md) | Real DOM focus, never a virtual cursor | Accepted | The engine moves `element.focus()` and reads `document.activeElement`; no focus key, no registry, and a gate that keeps it true. |
 | [0006](0006-declarative-first.md) | Declarative first | Accepted | Containers and their behaviour are data attributes on the markup; the imperative API is the escape hatch, and `body` is the default container. |
 | [0007](0007-navigation-modes.md) | Two navigation modes, composite and app | Accepted | `composite` is the default and leaves arrow keys to the page; `app` gives them spatial movement; the gamepad crosses the page in both. |
@@ -110,3 +108,4 @@ release-please. Both records carry a dated amendment saying so.
 | [0017](0017-size-budgets.md) | Size budgets: measure before capping | Accepted | Two measured lines per subpath, caps written only after a first measurement here, and a line without a cap fails the run. Seven lines are measured and capped as of 2026-09-20. |
 | [0018](0018-testing-strategy.md) | Testing strategy | Accepted | Two Vitest projects, inline-style fixtures, tests through the real input system, one adapter parity suite, and no benchmark until a runner is chosen. The eight gaps it listed after the port are closed, by the amendment of 2026-09-20. |
 | [0019](0019-gamepad-engine-design.md) | Gamepad engine design, inherited and recorded | Accepted | The polling loop, the two dead-zone regimes, the repeat ladder, the standard mapping and the escape hatches, with their open items. |
+| [0020](0020-focus-ring-defaults.md) | Focus ring defaults, and why no stylesheet ships | Accepted | The plugin paints itself inline; six custom properties override every value, with the contrast figures and the two limits the choice carries. |

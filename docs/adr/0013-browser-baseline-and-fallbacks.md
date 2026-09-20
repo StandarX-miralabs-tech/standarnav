@@ -9,7 +9,7 @@ for a separate legacy build (see "Legacy build" in the Decision section).
 
 ## Context
 
-The engine being extracted (see [ADR-0003](0003-extraction-scope.md)) was written inside a design
+The engine being extracted (see [ADR-0003](0003-package-boundaries.md)) was written inside a design
 system whose only declared runtime floor was its own build target. That repository compiles with
 `target: "es2022"` and `lib: ["es2023", "dom", "dom.iterable"]`
 (miralabs-ui `tsconfig.base.json:3-4`, read 2026-09-18). Nothing in the code base was ever run on a

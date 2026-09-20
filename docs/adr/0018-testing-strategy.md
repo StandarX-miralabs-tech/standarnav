@@ -6,7 +6,7 @@ Deciders: Wesley Cormier
 
 ## Context
 
-This repository extracts an input system ([ADR-0003](0003-extraction-scope.md)) whose contract is
+This repository extracts an input system ([ADR-0003](0003-package-boundaries.md)) whose contract is
 written in the DOM: which element `document.activeElement` points to after a move, whether a
 candidate is visible, what a composed path contains, what a scroller does when the focus leaves the
 viewport. The parts that are not DOM are ordinary arithmetic and string parsing: geometry, the
@@ -230,5 +230,5 @@ there was nothing to run and is a real gate now that there is.
   packages/core/src/input/spatial/spatial.browser.test.ts` → no match on 2026-09-18.
 - Historical figure, not re-measured: 4.3 µs for 200 candidates, miralabs-ui release notes of
   2026-08-27. Quote it only with that date attached.
-- Related: [ADR-0003](0003-extraction-scope.md), [ADR-0005](0005-real-dom-focus.md),
+- Related: [ADR-0003](0003-package-boundaries.md), [ADR-0005](0005-real-dom-focus.md),
   [ADR-0009](0009-hidden-candidates.md), [ADR-0019](0019-gamepad-engine-design.md).

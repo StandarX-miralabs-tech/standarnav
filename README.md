@@ -211,7 +211,7 @@ A playground fixture is in this repository at `playground/index.html`, served by
 ## Documentation
 
 - [ROADMAP.md](ROADMAP.md) — what exists, what does not, in which order.
-- [docs/adr/README.md](docs/adr/README.md) — the index of ADR-0001 to ADR-0019, one file per decision, each with its evidence. The baseline is [ADR-0013](docs/adr/0013-browser-baseline-and-fallbacks.md), the package layout [ADR-0011](docs/adr/0011-package-layout-and-adapters.md).
+- [docs/adr/README.md](docs/adr/README.md) — the index of the nineteen decision records, one file per decision, each with its evidence. The baseline is [ADR-0013](docs/adr/0013-browser-baseline-and-fallbacks.md), the package layout [ADR-0011](docs/adr/0011-package-layout-and-adapters.md).
 - [docs/research/competitors.md](docs/research/competitors.md) — twenty fact sheets reconciled into 18 distinct projects, with their sources.
 - [docs/research/tv-runtime-compatibility.md](docs/research/tv-runtime-compatibility.md) — browser and TV runtime versions, with their sources.
 - [docs/specification.md](docs/specification.md) — the problem, the non-goals, the user contract, the numbered requirements and the gate each public claim has to pass.
