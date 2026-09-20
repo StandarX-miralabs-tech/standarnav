@@ -122,7 +122,15 @@
         outline: 2px solid currentColor;
         outline-offset: 2px;
       }
-      .options {
+      /* `:not([hidden])` is load-bearing, not decoration. The browser's own
+         `[hidden] { display: none }` has the specificity of a single class, so a bare
+         `.options { display: grid }` ties with it and wins on source order: the
+         attribute keeps being set and nothing happens on screen. That is what this rule
+         used to do — the closed listbox stayed painted under the trigger, and a
+         direction from the native select landed on an option of a list that was
+         supposed to be shut. The engine was right to offer them; they were visible.
+         Declining to set `display` while hidden is the fix, at the rule that caused it. */
+      .options:not([hidden]) {
         display: grid;
         gap: 4px;
         padding: 4px;
