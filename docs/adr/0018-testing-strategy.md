@@ -19,7 +19,7 @@ computed visibility are exactly where jsdom and the browsers disagree".
 The material to port was a known quantity: roughly 160 core cases and 8 React-adapter cases,
 inherited from the predecessor implementation ([ADR-0002](0002-license-and-copyright.md)) and not
 re-derived here. What the port produced is countable in this repository instead, and the amendment
-below records it: 285 passed and 1 skipped across 21 test files.
+below records it: 294 passed and 1 skipped across 21 test files.
 
 Those browser tests are not unit tests of a plugin in isolation:
 `src/spatial/spatial.browser.test.ts:2` and `src/gamepad/gamepad.browser.test.ts:2` both import
@@ -161,7 +161,7 @@ last, one `destroy()` unwinds all three, and a pause stops the focus moving unti
 this is that decision taken one level further up than a single plugin.
 
 **Suite state on the day of this amendment.** `bun run test:unit` → 100 passed in 10 files.
-`bun run test:browser` → 185 passed and 1 skipped in 11 files. 285 passed, 1 skipped in total,
+`bun run test:browser` → 194 passed and 1 skipped in 11 files. 294 passed, 1 skipped in total,
 across 21 test files. The single skip is the shadow-DOM fixture of
 [ADR-0008](0008-shadow-dom.md) (`src/spatial/spatial.browser.test.ts:855-877`), which ships skipped
 on purpose. Both commands run in this repository on 2026-09-20, vitest 5.0.1, the browser project
@@ -212,7 +212,7 @@ there was nothing to run and is a real gate now that there is.
   the chromium browser project against the declared peer floor (`:75-101`), so the range
   `package.json` advertises is a range something actually runs.
 - Suite counts, this repository, 2026-09-20: `bun run test:unit` → 100 passed in 10 files;
-  `bun run test:browser` → 185 passed, 1 skipped, in 11 files. The skip is
+  `bun run test:browser` → 194 passed, 1 skipped, in 11 files. The skip is
   `src/spatial/spatial.browser.test.ts:856` ([ADR-0008](0008-shadow-dom.md)).
 - Port budget: roughly 160 core cases and 8 React-adapter cases, inherited from the predecessor
   implementation ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here. The bullet

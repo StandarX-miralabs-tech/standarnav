@@ -127,9 +127,9 @@ Each engine and each adapter carries its own size-budget line, and a line withou
 run. `scripts/size-budget.ts` now holds **seven** lines — core, gamepad engine, spatial engine,
 focus ring, debug, react adapter, whole package — and **no cap is `null`**: the react adapter line
 was added when the adapter existed, exactly as this ADR said it would be, and the first build here
-set every cap (`scripts/size-budget.ts:77-125`). `bun run build && bun run check:size`, this
+set every cap (`scripts/size-budget.ts:77-128`). `bun run build && bun run check:size`, this
 repository, min+gzip: core 3.13 of 3.25 kB, gamepad engine 2.48 of 2.50, spatial engine 3.04 of
-3.25, focus ring 1.51 of 1.75, debug 0.40 of 0.50, react adapter 1.30 of 1.50, whole package 8.77 of
+3.25, focus ring 1.51 of 1.75, debug 0.49 of 0.50, react adapter 1.30 of 1.50, whole package 8.77 of
 9.00 ([ADR-0017](0017-size-budgets.md), amendment of 2026-09-20). The predecessor's caps were
 **not** copied over: they were measured against a workspace of several packages, so they answer a
 different question. Those figures are inherited from the predecessor implementation
@@ -198,5 +198,5 @@ drift gate turns a mismatch into a failed build instead of a broken published pa
   every one; and the rule at `:65-76` that externals are named file by file and never globbed.
 - Sizes measured here: `bun run build && bun run check:size` in this repository, min+gzip at Bun's
   default gzip level — core 3.13/3.25 kB, gamepad engine 2.48/2.50, spatial engine 3.04/3.25,
-  focus ring 1.51/1.75, debug 0.40/0.50, react adapter 1.30/1.50, whole package 8.77/9.00. Full
+  focus ring 1.51/1.75, debug 0.49/0.50, react adapter 1.30/1.50, whole package 8.77/9.00. Full
   table and the reasoning behind each cap: [ADR-0017](0017-size-budgets.md).

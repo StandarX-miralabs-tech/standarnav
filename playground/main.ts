@@ -12,12 +12,13 @@
  * is the one diagnostic that ships.
  */
 
-import { explainMove } from "../src/debug";
+import { explainMove, scanNativeSelects } from "../src/debug";
 import { focusRingPlugin } from "../src/focus-ring/focus-ring";
 import { type GamepadPlugin, gamepadPlugin } from "../src/gamepad/gamepad";
 import { createInputSystem, type InputSystem } from "../src/index";
 import { type MoveDirection, type SpatialPlugin, spatialPlugin } from "../src/spatial/spatial";
 import {
+  attachListbox,
   attachSlider,
   attachSplitter,
   attachStepper,
@@ -120,6 +121,25 @@ if (monthHost !== null && month !== null) {
 const grip = document.getElementById("grip");
 const pane = document.getElementById("pane");
 if (grip !== null && pane !== null) attachSplitter(input, grip, pane);
+
+const regionTrigger = document.getElementById("region-trigger");
+const regionList = document.getElementById("region-list");
+const region = document.getElementById("region");
+if (regionTrigger instanceof HTMLButtonElement && regionList !== null && region !== null) {
+  attachListbox(input, regionTrigger, regionList, region);
+}
+
+// The diagnostic for the one control the engine cannot rescue. A closed `<select>`
+// opens a platform popup outside the document, and on a desktop the browser navigates
+// that popup itself — so the trap is invisible exactly where the code is written. The
+// page keeps one on purpose, so this prints something.
+const unnavigable = scanNativeSelects(document.body);
+if (unnavigable.length > 0) {
+  console.warn(
+    `${unnavigable.length} native <select> the engine will focus and cannot follow into:`,
+    unnavigable,
+  );
+}
 
 spatial.focusFirst();
 

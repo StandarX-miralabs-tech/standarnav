@@ -72,8 +72,8 @@ All of those were run here on 2026-09-20 and pass. Between them they reproduce
 five of the eight checks CI runs (six jobs, one of them a three-engine matrix);
 the firefox and webkit runs and the React 18.3 floor job only exist in CI, which
 reports them on the pull request. Measured on the same date: `bun run test:unit`
-is 100 tests in 10 files, `bun run test:browser` is 185 passed and 1 skipped in
-11 files — 285 passed and 1 skipped in total. The
+is 100 tests in 10 files, `bun run test:browser` is 194 passed and 1 skipped in
+11 files — 294 passed and 1 skipped in total. The
 one skip is a documented shadow-DOM fixture
 (`src/spatial/spatial.browser.test.ts:856`, [ADR-0008](docs/adr/0008-shadow-dom.md)),
 not a test someone silenced. A red CI is about your change; treat it that way.
@@ -181,7 +181,7 @@ also imports left external, so the number is the marginal cost of adding that
 subpath next to what it already sits beside. That is usually the core, but not
 always: the debug line externalises `./spatial/spatial.js` and
 `./spatial/geometry.js`, so it is charged against the spatial engine rather than
-against the core (`scripts/size-budget.ts:105-111`), and the core line has no
+against the core (`scripts/size-budget.ts:105-114`), and the core line has no
 externals at all (`scripts/size-budget.ts:78-83`). There is then one "whole
 package" line that bundles the four runtime entries once, with nothing
 external. Every line, single-entry ones
@@ -211,7 +211,7 @@ core            3.13 / 3.25 kB
 gamepad engine  2.48 / 2.50 kB
 spatial engine  3.04 / 3.25 kB
 focus ring      1.51 / 1.75 kB
-debug           0.40 / 0.50 kB
+debug           0.49 / 0.50 kB
 react adapter   1.30 / 1.50 kB
 whole package   8.77 / 9.00 kB
 ```

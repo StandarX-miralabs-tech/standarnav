@@ -98,6 +98,13 @@
         outline: 2px dashed currentColor;
         outline-offset: 3px;
       }
+      .options {
+        display: grid;
+        gap: 4px;
+        padding: 4px;
+        border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+        background: Canvas;
+      }
       .split {
         display: flex;
         height: 60px;
@@ -190,6 +197,37 @@
       <div class="widget">
         <span>Month — comes round, where the slider stops</span>
         <button type="button" id="month-host"><span id="month">January</span></button>
+      </div>
+    </section>
+
+    <!-- The native select and its replacement, side by side. Open the first one with a
+         pad on a television and the focus is gone into a platform popup the engine
+         cannot see; the second is real markup it navigates like anything else. The
+         console prints what `scanNativeSelects` finds on this page. -->
+    <section class="widgets" data-snav="container" aria-label="Select on a television">
+      <label class="widget">
+        <span>A native <code>&lt;select&gt;</code> — the trap, kept here on purpose</span>
+        <select id="native">
+          <option>Europe</option>
+          <option>Asia</option>
+          <option>Africa</option>
+        </select>
+      </label>
+
+      <div class="widget">
+        <span>The replacement — a trigger and real options</span>
+        <button type="button" id="region-trigger" aria-haspopup="listbox">
+          <span id="region">Europe</span>
+        </button>
+        <!-- data-snav-trap is half the recipe: the trapped scope silences the
+             components above the engine, but the engine is asked anyway, so without
+             this attribute a direction walks straight out of the open list. -->
+        <div id="region-list" class="options" role="listbox" aria-label="Region"
+          data-snav="container" data-snav-trap>
+          <button type="button" role="option" data-value="Europe">Europe</button>
+          <button type="button" role="option" data-value="Asia">Asia</button>
+          <button type="button" role="option" data-value="Africa">Africa</button>
+        </div>
       </div>
     </section>
 

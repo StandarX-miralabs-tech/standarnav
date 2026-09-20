@@ -103,24 +103,29 @@ The subpath provides:
    > If it still does not work, call `explainMove(origin, direction)` from `@standarx/nav/debug`.
 
 The subpath gets its own size-budget line ([ADR-0017](0017-size-budgets.md)), and that line exists
-and is capped: `scripts/size-budget.ts:105-111` measures `debug.js` against a cap of 0.50 kB, and
-`bun run build && bun run check:size` reports **0.40 kB min+gzip**, 0.62 kB minified. The line is
+and is capped: `scripts/size-budget.ts:105-114` measures `debug.js` against a cap of 0.50 kB, and
+`bun run build && bun run check:size` reports **0.49 kB min+gzip**, 0.78 kB minified. The line is
 not optional bookkeeping: a diagnostics module with no cap is how a diagnostics module ends up in
 production bundles.
 
-That line's externals are `./spatial/spatial.js` and `./spatial/geometry.js` named one by one, never
-a glob. The glob is forbidden by the script itself (`scripts/size-budget.ts:65-76`): `*` does not
-cross a path separator, so `./*` on a top-level entry can externalise the line's own contents and
-report a re-export stub as proof — a budget line that stops measuring without ever going red. Naming
-the two spatial modules is what makes the 0.40 kB a marginal cost, which is the only figure this
-line is meant to carry.
+That line's externals are `./spatial/spatial.js`, `./spatial/geometry.js` and `./tabbable.js`, named
+one by one, never a glob. The glob is forbidden by the script itself
+(`scripts/size-budget.ts:65-76`): `*` does not cross a path separator, so `./*` on a top-level entry
+can externalise the line's own contents and report a re-export stub as proof — a budget line that
+stops measuring without ever going red. Naming those three is what makes the 0.49 kB a marginal
+cost, which is the only figure this line is meant to carry.
+
+The third was added on 2026-09-20 and is the amendment below. `tabbable.js` belongs to the core, so
+charging the debug entry for it measured a copy no consumer downloads — an omission that cost
+nothing while `explainMove` imported nothing from the core, and cost 0.28 kB the moment a diagnostic
+did ([ADR-0017](0017-size-budgets.md), the amendment of that date).
 
 ## Consequences
 
 - Production builds are unchanged. The core entry gains nothing: `src/index.ts` does not re-export
   the debug module, and `./debug` is its own entry in the exports map (`package.json:34`). Measured
   here with `bun run build && bun run check:size`: core 3.13 kB of a 3.25 kB cap, spatial engine
-  3.04 of 3.25, debug 0.40 of 0.50, min+gzip ([ADR-0017](0017-size-budgets.md)).
+  3.04 of 3.25, debug 0.49 of 0.50, min+gzip ([ADR-0017](0017-size-budgets.md)).
 - Point 4 removed a duplicate implementation of the winner rule, and that is done: `src/debug.ts`
   imports `findBestCandidate` and calls it for the winner (`src/debug.ts:13-19`, `:68`), keeping
   `scoreCandidates` for the per-candidate table alone (`:67`). The asymmetry this ADR's Context
@@ -140,6 +145,26 @@ line is meant to carry.
   scan. Point 4 is measured and covered: `src/debug.browser.test.ts` holds six
   cases, three of which pin where the diagnostic is *meant* to differ from the engine
   (`:113-180`) — the differences that remain once the winner rule is shared.
+
+## Amendment, 2026-09-20: a sixth diagnostic, and it ships
+
+The five items above are still five, and only item 4 of them ships in v0. A sixth
+diagnostic has been added outside that list: `scanNativeSelects(root)`, which reports
+the native `<select>`s the engine will focus and cannot follow into
+([ADR-0021](0021-native-select-on-television.md)).
+
+It ships where items 1, 2, 3 and 5 did not, and the reason is the one this record gave
+for deferring them: they had no source file behind them and would have been new design
+work inside the extraction window. This one is nine lines calling the engine's own
+`isFocusable`, and the window is closed. It obeys both rules that matter here — it
+lives in the debug subpath and never in the core, and it asks the engine rather than
+re-deriving the answer.
+
+It is a scan and not a warning for a reason this record did not anticipate: the
+condition it reports is not an error, and the runtime where it matters is not the
+runtime where the code is written. A television opens a platform popup; a desktop
+browser navigates its own. A warning would fire on every desktop and be right on
+neither.
 
 ## Alternatives considered
 
@@ -179,7 +204,7 @@ removed.
   `external: ["./spatial/spatial.js", "./spatial/geometry.js"]`, `cap: 0.5 * KB`. The rule forbidding
   globbed externals, with the `./*` failure mode spelled out, is the comment at `:65-76`.
 - Sizes measured here: `bun run build && bun run check:size`, min+gzip at Bun's default gzip level —
-  debug 0.40 kB of 0.50, core 3.13 of 3.25, spatial engine 3.04 of 3.25. Any earlier figure for a
+  debug 0.49 kB of 0.50, core 3.13 of 3.25, spatial engine 3.04 of 3.25. Any earlier figure for a
   differently shaped build is inherited from the predecessor implementation
   ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here.
 - The winner rule is shared, not restated: `src/debug.ts:13-19` imports `findBestCandidate`,

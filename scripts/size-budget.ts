@@ -106,8 +106,11 @@ const LINES: readonly Line[] = [
     name: "debug",
     entries: ["debug.js"],
     cap: 0.5 * KB,
-    external: ["./spatial/spatial.js", "./spatial/geometry.js"],
-    note: "explainMove, measured next to the spatial engine",
+    // `tabbable.js` is external here for the same reason it is on the spatial line: the
+    // core exports it, and nobody reaches `/debug` without the core. Charging it here
+    // measured a second copy no consumer downloads.
+    external: ["./spatial/spatial.js", "./spatial/geometry.js", "./tabbable.js"],
+    note: "explainMove and the native-select scan, measured next to the spatial engine",
   },
   {
     name: "react adapter",

@@ -18,6 +18,7 @@ import {
   scoreCandidates,
 } from "./spatial/geometry";
 import { collectNavNodes, containerOf, type NavNode } from "./spatial/spatial";
+import { isFocusable } from "./tabbable";
 import type { Rect } from "./types";
 
 export type { MoveDirection, NavNode, ScoredCandidate, ScoreOptions };
@@ -68,4 +69,23 @@ export function explainMove(
   const winner = findBestCandidate(originRect, nodes, direction, options.score);
 
   return { origin, originRect, container, candidates, winner };
+}
+
+/**
+ * The native `<select>`s in `root` that the engine will focus and cannot follow into.
+ *
+ * A closed `<select>` opens a platform popup — a native menu on a television, drawn
+ * outside the document — and the engine loses the focus into something it cannot see
+ * or score. The trap is silent on a desktop, where the popup is navigable by the
+ * browser itself, so it is not reproducible where it is written: hence a scan rather
+ * than a runtime warning ([ADR-0021](../docs/adr/0021-native-select-on-television.md)).
+ *
+ * `multiple`, and `size` above one, render as a list box inside the document instead
+ * and navigate like any other markup, so they are not reported. Focusability is asked
+ * of the engine's own `isFocusable`, never re-derived here (ADR-0010).
+ */
+export function scanNativeSelects(root: HTMLElement): readonly HTMLSelectElement[] {
+  return [...root.querySelectorAll<HTMLSelectElement>("select")].filter(
+    (element) => isFocusable(element) && !element.multiple && element.size <= 1,
+  );
 }

@@ -14,25 +14,25 @@ once the release tooling is wired.
 
 ## v0: what is left before the first publication
 
-The engine navigates between focusable elements. Three gaps stand between that and a package worth
+The engine navigates between focusable elements. Two gaps stand between that and a package worth
 publishing, and they are the reason nothing is on npm yet.
 
-### Controls that hold a value
+Controls that hold a value used to be the third. The grammar was always public —
+`pushEngageScope` takes hold of a control, the directional intents become adjustments, confirm
+commits and back restores the entry value (`src/engage.ts:49`) — and nothing used it. The five
+controls it was written for are now wired in the playground and driven by
+`src/engage.browser.test.ts`, and the `<select>` question is settled in
+[ADR-0021](docs/adr/0021-native-select-on-television.md).
 
-The grammar already exists and is public: `pushEngageScope` takes hold of a control, the directional
-intents become adjustments, confirm commits and back restores the entry value (`src/engage.ts:49`).
-The four controls it was written for are now wired in the playground and driven by
-`src/engage.browser.test.ts`, which leaves one gap in this section rather than two.
-
-Two constraints came out of writing them, and both are worth knowing before the surface freezes.
-A number field cannot be a native `<input type="number">`: that is a text-entry target, and
-`select` is not one of the intents allowed to cross one, so A never reaches the control. And engage
-can only be released by the bus — its dispose detaches in silence — so a control the user tabs out
-of while holding it has to redo the commit-or-restore bookkeeping itself.
-
-- [ ] `<select>` on a television. A native `<select>` opens a platform popup that no library can
-      navigate, so the engine loses focus into something it cannot see. Decide and document what
-      the package offers instead — detection and a warning, a documented listbox pattern, or both
+Four constraints came out of writing them, and all four are worth knowing before the surface
+freezes at v1. A number field cannot be a native `<input type="number">`: that is a text-entry
+target, and `select` is not one of the intents allowed to cross one, so A never reaches the control.
+Engage can only be released by the bus — its dispose detaches in silence — so a control the user
+tabs out of while holding it has to redo the commit-or-restore bookkeeping itself. A trapped scope
+does not confine the focus; `data-snav-trap` on the container does, because the engine is a `base`
+scope and is asked through a trap on purpose. And inside a trap nothing activates the focused
+element for you: `select` cannot escape a trap, so the dispatch reports it consumed and
+`activateFocused` stands down.
 
 ### Virtual keyboard
 

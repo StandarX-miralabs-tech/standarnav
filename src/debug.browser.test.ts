@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { explainMove } from "./debug";
+import { explainMove, scanNativeSelects } from "./debug";
 import { createInputSystem } from "./input-system";
 import type { MoveDirection } from "./spatial/geometry";
 import { spatialPlugin } from "./spatial/spatial";
@@ -176,5 +176,47 @@ describe("explainMove — where it is meant to differ from the engine", () => {
     expect(explainMove(from, "right", { root }).winner).toBeNull();
     plugin.move("right");
     expect(document.activeElement?.id).toBe("w1");
+  });
+});
+
+describe("scanNativeSelects", () => {
+  function mount(html: string): HTMLElement {
+    const host = document.createElement("div");
+    host.innerHTML = html;
+    document.body.append(host);
+    cleanups.push(() => host.remove());
+    return host;
+  }
+
+  it("reports the closed select the engine will focus and cannot follow into", () => {
+    // In FOCUSABLE_SELECTOR (`select:not([disabled])`), so the engine focuses it and
+    // then `activateFocused` clicks it — which on a television opens a platform popup
+    // outside the document. That is the whole defect ADR-0021 is about.
+    const host = mount(`<select id="one"><option>a</option></select>`);
+
+    expect(scanNativeSelects(host).map((element) => element.id)).toEqual(["one"]);
+  });
+
+  it("leaves the list-box forms alone, because those navigate", () => {
+    const host = mount(
+      `<select id="sized" size="4"><option>a</option></select>
+       <select id="many" multiple><option>a</option></select>`,
+    );
+
+    // `size` above one and `multiple` render inside the document, so the engine moves
+    // through their options like any other markup. Reporting them would be noise.
+    expect(scanNativeSelects(host)).toEqual([]);
+  });
+
+  it("asks the engine about focusability rather than deciding for itself", () => {
+    const host = mount(
+      `<select id="off" disabled><option>a</option></select>
+       <select id="gone" hidden><option>a</option></select>`,
+    );
+
+    // A disabled select is out of FOCUSABLE_SELECTOR and a hidden one fails isHidden,
+    // so neither is ever a candidate and neither is a trap. The scan is only right
+    // here because it calls the engine's own isFocusable (ADR-0010).
+    expect(scanNativeSelects(host)).toEqual([]);
   });
 });

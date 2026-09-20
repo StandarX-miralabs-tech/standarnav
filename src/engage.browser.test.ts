@@ -11,6 +11,7 @@
 
 import { afterEach, describe, expect, it } from "vitest";
 import {
+  attachListbox,
   attachSlider,
   attachSplitter,
   attachStepper,
@@ -66,6 +67,16 @@ function press(node: EventTarget, key: string, init: KeyboardEventInit = {}): Ke
   const event = new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true, ...init });
   node.dispatchEvent(event);
   return event;
+}
+
+/**
+ * A pad's A. A synthetic `keydown` produces no click — the browser only does that for
+ * a real key press — so a recipe that relies on Enter becoming a click cannot be
+ * driven from a test that way. A gamepad `select` does arrive, through
+ * `activateFocused`, and it is the path a television actually exercises.
+ */
+function padSelect(view: Scene): void {
+  view.input.emit({ intent: "select", source: "gamepad" });
 }
 
 function box(id: string, x = 0, extra = ""): string {
@@ -341,5 +352,101 @@ describe("a splitter", () => {
     expect(view.at("pane").style.flexBasis).toBe("54%");
     expect(view.at("grip").getAttribute("aria-valuenow")).toBe("54");
     expect(view.active()).toBe("grip");
+  });
+});
+
+/**
+ * The listbox is the one recipe here that is not engage, and it is in this file because
+ * it answers the same question — what a control that holds a value does on a television
+ * — by the opposite mechanism. A trap, not an adjustment.
+ */
+describe("a listbox, the replacement for a native select", () => {
+  function listScene() {
+    const view = scene(
+      // `data-snav-trap` is load-bearing: the trapped scope silences the components
+      // between it and the engine, but the engine is a `base` scope and is asked
+      // anyway, so without the attribute a direction walks straight out of the list.
+      // The list is offset so its options sit on a row of their own: `box` places
+      // everything at the same top, and options overlapping the trigger would make
+      // the navigation assertions meaningless rather than wrong.
+      `${box("trigger", 0)}<span id="picked">February</span>
+       <div id="list" data-snav="container" data-snav-trap
+            style="position:absolute;left:0;top:60px">
+         ${box("jan", 0, 'data-value="January"')}
+         ${box("feb", 130, 'data-value="February"')}
+         ${box("mar", 260, 'data-value="March"')}
+       </div>
+       ${box("outside", 460)}`,
+    );
+    const widget = attachListbox(
+      view.input,
+      view.at<HTMLButtonElement>("trigger"),
+      view.at("list"),
+      view.at("picked"),
+    );
+    cleanups.push(() => widget.dispose());
+    const trigger = view.at<HTMLButtonElement>("trigger");
+    trigger.focus();
+    return { view, trigger, widget };
+  }
+
+  it("opens on A and lands on the option that is already chosen", () => {
+    const { view, widget } = listScene();
+
+    padSelect(view);
+
+    expect(widget.isOpen()).toBe(true);
+    // Not the first option: the one matching the current value, which is what makes
+    // reopening a list feel like returning rather than starting over.
+    expect(view.active()).toBe("feb");
+  });
+
+  it("moves between the options and never out of the list", () => {
+    const { view } = listScene();
+    padSelect(view);
+
+    press(view.at("feb"), "ArrowRight");
+    expect(view.active()).toBe("mar");
+
+    // `outside` sits to the right of `mar` and is never reached: this is the claim
+    // the trap attribute carries, and the engine is still the thing navigating.
+    press(view.at("mar"), "ArrowRight");
+    expect(view.active()).toBe("mar");
+  });
+
+  it("commits on A and gives the focus back to the trigger", () => {
+    const { view, widget } = listScene();
+    padSelect(view);
+    press(view.at("feb"), "ArrowRight");
+
+    padSelect(view);
+
+    expect(view.at("picked").textContent).toBe("March");
+    expect(widget.isOpen()).toBe(false);
+    // The list is hidden now, and a hidden element is no candidate — leaving the
+    // focus inside it would leave the engine with nowhere to move from.
+    expect(view.active()).toBe("trigger");
+  });
+
+  it("closes on B without choosing", () => {
+    const { view, widget } = listScene();
+    padSelect(view);
+    press(view.at("feb"), "ArrowRight");
+
+    press(view.at("mar"), "Escape");
+
+    expect(view.at("picked").textContent).toBe("February");
+    expect(widget.isOpen()).toBe(false);
+    expect(view.active()).toBe("trigger");
+  });
+
+  it("hides the list until it is opened, so it is no candidate meanwhile", () => {
+    const { view, trigger } = listScene();
+
+    press(trigger, "ArrowRight");
+
+    // The options are in the document from the start, and `hidden` is what keeps them
+    // out of the candidate list — no popup, and no phantom candidates either.
+    expect(view.active()).toBe("outside");
   });
 });

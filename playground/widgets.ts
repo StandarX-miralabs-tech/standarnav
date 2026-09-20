@@ -229,6 +229,114 @@ export function attachWheelPicker(
   });
 }
 
+export interface Listbox {
+  open(): void;
+  close(): void;
+  isOpen(): boolean;
+  dispose(): void;
+}
+
+/**
+ * What the package offers in place of a native `<select>` on a television: a trigger
+ * and a list of real focusable elements in the document, which the engine navigates
+ * like any other markup ([ADR-0021](../docs/adr/0021-native-select-on-television.md)).
+ *
+ * This one is not built on engage, and the contrast is the point. Engage is for a
+ * control whose value the directions *change*; a list is a surface the directions
+ * *move through*, so the mechanism is a trap, not an adjustment. While the list is
+ * open the scope is `trapped`, which silences every component between it and the
+ * bottom of the stack — and the spatial engine still moves the focus inside the list,
+ * because it is pushed as a `base` scope and a base scope is asked even through a
+ * trap. That is the case `base` was added for.
+ *
+ * Which means the scope alone does not confine the focus: a `base` scope is asked, so
+ * the engine would happily move out of the list. `list` must carry `data-snav-trap`
+ * for the confinement, and that is markup this function cannot supply — it is half
+ * the recipe and the half that is easy to leave out.
+ *
+ * Opening goes through a click, where the slider needed its own scope: the trigger is
+ * a `<button>` outside any trap, so the browser clicks it for a keyboard Enter and
+ * `activateFocused` clicks it for a gamepad A, and neither needs a scope.
+ *
+ * Choosing cannot. A `trapped` scope swallows whatever it does not handle — `select`
+ * is not one of the three intents allowed to escape a trap — so `dispatch` reports the
+ * A as consumed and `activateFocused` never runs. Inside a trap, nothing clicks the
+ * focused element for you, and the scope has to do it itself.
+ */
+export function attachListbox(
+  bus: IntentScopeHost,
+  trigger: HTMLButtonElement,
+  list: HTMLElement,
+  output: HTMLElement,
+): Listbox {
+  let pop: VoidFunction | null = null;
+  const options = (): readonly HTMLButtonElement[] => [
+    ...list.querySelectorAll<HTMLButtonElement>("button"),
+  ];
+
+  function close(): void {
+    if (pop === null) return;
+    const detach = pop;
+    pop = null;
+    detach();
+    list.hidden = true;
+    trigger.setAttribute("aria-expanded", "false");
+    // The focus was inside a list that is now hidden, and `isHidden` makes hidden
+    // elements no candidates: without this the focus would be nowhere the engine
+    // can move from.
+    trigger.focus();
+  }
+
+  function open(): void {
+    if (pop !== null) return;
+    list.hidden = false;
+    trigger.setAttribute("aria-expanded", "true");
+    pop = bus.pushScope(
+      (event: IntentEvent): boolean => {
+        if (event.intent === "back") {
+          close();
+          return true;
+        }
+        if (event.intent === "select") {
+          const focused = document.activeElement;
+          if (!(focused instanceof HTMLElement) || !list.contains(focused)) return false;
+          // Claiming it also suppresses the native Enter-to-click on a real keyboard,
+          // so the option is picked once rather than twice.
+          focused.click();
+          return true;
+        }
+        return false;
+      },
+      { trapped: true },
+    );
+    const current = options().find((option) => option.dataset.value === output.textContent);
+    (current ?? options()[0])?.focus();
+  }
+
+  const onTrigger = (): void => open();
+  const onPick = (event: Event): void => {
+    const picked = event.currentTarget;
+    if (picked instanceof HTMLElement) output.textContent = picked.dataset.value ?? "";
+    close();
+  };
+
+  trigger.addEventListener("click", onTrigger);
+  for (const option of options()) option.addEventListener("click", onPick);
+  list.hidden = true;
+  trigger.setAttribute("aria-expanded", "false");
+
+  return {
+    open,
+    close,
+    isOpen: (): boolean => pop !== null,
+    dispose(): void {
+      trigger.removeEventListener("click", onTrigger);
+      for (const option of options()) option.removeEventListener("click", onPick);
+      close();
+    },
+  };
+}
+
 /**
  * Resizes the pane before it by moving a grid fraction. A splitter is the one control
  * here whose value is not its own display: the number lives in the parent's

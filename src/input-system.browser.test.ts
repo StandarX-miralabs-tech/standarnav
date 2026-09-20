@@ -120,6 +120,21 @@ describe("createInputSystem — activation", () => {
 
     expect(clicks).not.toHaveBeenCalled();
   });
+
+  it("stands down inside a trap, even one that claimed nothing", () => {
+    const input = system();
+    const { clicks } = focusedButton();
+    // A scope that handles nothing at all. `select` is not among the three intents
+    // allowed to escape a trap, so the dispatch reports it consumed anyway.
+    cleanups.push(input.pushScope(() => false, { trapped: true }));
+
+    input.emit({ intent: "select", source: "gamepad" });
+
+    // Which means a trapped surface gets no activation convenience: A on its focused
+    // element is its own business. Found by writing a listbox that assumed otherwise
+    // and picked nothing — worth a test here rather than a comment there.
+    expect(clicks).not.toHaveBeenCalled();
+  });
 });
 
 describe("createInputSystem", () => {
