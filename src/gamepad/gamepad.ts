@@ -41,6 +41,20 @@ import {
 import { firstRepeatAt, nextRepeatAt, type RepeatOptions } from "./repeat";
 
 const MAX_PADS = 4;
+
+// Every type `GamepadPluginOptions` and `GamepadPlugin` name, so a consumer of this
+// entry point can declare what it passes in without reaching into a module the
+// exports map does not publish.
+export type {
+  ButtonOverrides,
+  IntentHandler,
+  NavigationIntent,
+  PadType,
+  RepeatOptions,
+  SectorOptions,
+  StickCurve,
+};
+
 const MAX_BUTTONS = 20;
 /** The two analogue shoulders, which need a threshold pair rather than `pressed`. */
 const LEFT_TRIGGER = 6;
