@@ -19,6 +19,10 @@ jobs:
           bun-version-file: .bun-version
       - run: bun install --frozen-lockfile
       - run: bun run lint
+      # Every document cites the code by `path:line`, and those anchors drift the
+      # moment a line is inserted above them. Two review passes shipped anchors
+      # pointing at the wrong line before this existed.
+      - run: bun run check:docs
 
   typecheck:
     runs-on: ubuntu-latest
