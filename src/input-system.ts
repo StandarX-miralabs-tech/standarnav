@@ -67,6 +67,25 @@ export interface InputSystem {
   destroy(): void;
 }
 
+/**
+ * Runs every teardown whatever any one of them does, in reverse order because a
+ * plugin set up last may hold something an earlier one owns. An unguarded loop lets
+ * one broken plugin strand the listeners of every other, which is the one failure a
+ * teardown must not have.
+ */
+function unwind(teardowns: VoidFunction[]): unknown[] {
+  const failures: unknown[] = [];
+  for (const teardown of teardowns.reverse()) {
+    try {
+      teardown();
+    } catch (error) {
+      failures.push(error);
+    }
+  }
+  teardowns.length = 0;
+  return failures;
+}
+
 export function createInputSystem(options: InputSystemOptions = {}): InputSystem {
   const doc = options.doc ?? globalThis.document;
   // Typed as always present by lib.dom and absent for real on a server, which is
@@ -175,7 +194,15 @@ export function createInputSystem(options: InputSystemOptions = {}): InputSystem
     getModality: (): InputModality => getInputModality(doc),
   };
 
-  for (const plugin of plugins) teardowns.push(plugin.setup(context));
+  try {
+    for (const plugin of plugins) teardowns.push(plugin.setup(context));
+  } catch (error) {
+    // The modality tracker and the capture keydown listener are installed by now,
+    // and a throwing setup leaves the caller with no system to call destroy() on.
+    // Any failure from the unwind is dropped on purpose: this error is the cause.
+    unwind(teardowns);
+    throw error;
+  }
 
   return {
     get modality(): InputModality {
@@ -210,11 +237,12 @@ export function createInputSystem(options: InputSystemOptions = {}): InputSystem
     destroy(): void {
       if (destroyed) return;
       destroyed = true;
-      // Reverse order: a plugin set up last may hold something an earlier one owns.
-      for (const teardown of teardowns.reverse()) teardown();
-      teardowns.length = 0;
+      const failures = unwind(teardowns);
       intentListeners.clear();
       modalityListeners.clear();
+      // Everything is down before this surfaces, so the caller still learns that a
+      // plugin misbehaved.
+      if (failures.length > 0) throw failures[0];
     },
   };
 }
