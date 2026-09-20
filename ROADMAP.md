@@ -53,19 +53,31 @@ a side effect and a registry is how a French application ends up shipping Cyrill
 and composition is deferred, so a CJK layout needs its own record first. `back` closes the keyboard
 and **keeps** what was typed — deliberately unlike engage mode, where B restores, because a slider's
 value is re-set with one press and thirty seconds of typing on a remote is not re-entered at all.
-The keyboard draws no caret; `data-snav-editing` is the hook and the application styles it.
+The field draws no caret while the keys hold the focus; the keyboard's own preview row, at the
+bottom of its box, draws one mirrored from the field's selection, and the directions move it from
+that row. `data-snav-editing` is the field-side hook and the application styles it.
 
-Writing it corrected three things the record had not foreseen, and the amendment to ADR-0022 carries
-them: a controlled React field rejected a keystroke on the one path that assigns `value` directly,
-because that is the property React instruments — fixed by going through the prototype's setter; a
-field with no selection at all, `type="email"` among them, would have thrown on `setRangeText`; and
-the caret had to be placed on open, because `focus()` leaves it at 0 and a space then lands in front
-of what is already there.
+Writing it corrected three things the record had not foreseen, and the first amendment to ADR-0022
+carries them: a controlled React field rejected a keystroke on the one path that assigns `value`
+directly, because that is the property React instruments — fixed by going through the prototype's
+setter; a field with no selection at all, `type="email"` among them, would have thrown on
+`setRangeText`; and the caret had to be placed on open, because `focus()` leaves it at 0 and a space
+then lands in front of what is already there. Driving it on a real page corrected more, and the two
+later amendments carry those: a keyboard that opened on hover, a box with no paint, an open keyboard
+that swallowed the page's activations, a shift key that dropped the focus to `body`, and a stale
+playground rule that stretched the box over the field.
 
-- [ ] **Caret movement.** In v0 the caret cannot be moved at all: the directions navigate the keys,
-      so text is appended and erased from the end and nothing else. This is the keyboard's largest
-      remaining limitation and it needs a gesture that does not collide with navigating the grid —
-      a modifier key in the layout, or a held direction
+- [ ] **A clear-all and a forward-delete action.** Erasing a forty-character email is forty presses,
+      and the caret sits between characters where `⌫` removes the one before it. Both are new
+      `action` values a layout carries; the azerty layout line is at 97% of its cap, so the first
+      layout to carry them needs an [ADR-0017](docs/adr/0017-size-budgets.md) amendment
+- [ ] Feedback when an application cancels `beforeinput`: the preview row does not change and the
+      user presses again. `edit()` returns `false` on that path and nothing reads it
+- [ ] Up from the preview row lands on the key nearest the row's centre, not on the key the user
+      came from. Remembering that key costs a hidden state; measure whether the extra presses matter
+      on a real remote first
+- [ ] Selection in the preview row. A range the application set is drawn as a caret at its start and
+      the next key edits the range; the keyboard never creates one
 - [ ] A CJK layout, and the composition ADR it needs first. The package stands aside from IME today
       (`src/input-system.ts:158-160`), and a layout that composes would have to own it
 - [ ] `contenteditable`. The keyboard declines it deliberately — inserting into a range is easy and

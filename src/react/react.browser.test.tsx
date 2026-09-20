@@ -417,4 +417,49 @@ describe("the on-screen keyboard against a controlled React input", () => {
     // that record stale. This test is what found it and what keeps it fixed.
     expect(stateValue).toBe("a");
   });
+
+  it("mirrors a field that transforms what was typed, caret back at the end", async () => {
+    function Uppercased(): ReactNode {
+      const [value, setValue] = useState("ab");
+      return (
+        <input
+          data-testid="uppercased"
+          type="text"
+          value={value}
+          onChange={(event) => setValue(event.target.value.toUpperCase())}
+        />
+      );
+    }
+    const keyboard = keyboardPlugin({ layout: alphabetic, openOn: "focus" });
+    mount(
+      <NavProvider plugins={[keyboard]}>
+        <Uppercased />
+      </NavProvider>,
+    );
+    await settle();
+    const field = document.querySelector<HTMLInputElement>("[data-testid=uppercased]");
+    if (field === null) throw new Error("no field");
+    fire(() => field.focus());
+    await settle();
+    const row = document.querySelector<HTMLElement>("[data-snav-keyboard-preview]");
+    const key = document.querySelector<HTMLButtonElement>("[data-snav-keyboard] button");
+    if (row === null || key === null) throw new Error("the keyboard did not open");
+
+    // The caret moved to 1 from the preview row, then "a" is typed there.
+    fire(() => row.focus());
+    fire(() =>
+      row.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowLeft", bubbles: true })),
+    );
+    fire(() => key.click());
+    await settle();
+
+    // React re-assigns the transformed value to a field that is not focused, and that
+    // assignment puts the caret at the end. The row mirrors the field as it ends up —
+    // not where the keyboard left the caret — which is the point of reading it back.
+    expect({ value: field.value, caret: field.selectionStart, shown: row.textContent }).toEqual({
+      value: "AAB",
+      caret: 3,
+      shown: "AAB",
+    });
+  });
 });

@@ -68,12 +68,12 @@ bun run check:package
 bun run check:size
 ```
 
-All of those were run here on 2026-09-20 and pass. Between them they reproduce
+All of those were run here on 2026-09-21 and pass. Between them they reproduce
 five of the eight checks CI runs (six jobs, one of them a three-engine matrix);
 the firefox and webkit runs and the React 18.3 floor job only exist in CI, which
 reports them on the pull request. Measured on the same date: `bun run test:unit`
-is 100 tests in 10 files, `bun run test:browser` is 224 passed and 1 skipped in
-12 files — 324 passed and 1 skipped in total. The
+is 100 tests in 10 files, `bun run test:browser` is 240 passed and 1 skipped in
+12 files — 340 passed and 1 skipped in total. The
 one skip is a documented shadow-DOM fixture
 (`src/spatial/spatial.browser.test.ts:856`, [ADR-0008](docs/adr/0008-shadow-dom.md)),
 not a test someone silenced. A red CI is about your change; treat it that way.
@@ -205,7 +205,7 @@ external that resolves to no file is a hard error rather than a silent
 no-op, which is the check that keeps this honest.
 
 Every line is capped. Measured here with `bun run build && bun run check:size`
-on 2026-09-20, min+gzip against cap:
+on 2026-09-21, min+gzip against cap:
 
 ```
 core            3.13 / 3.25 kB
@@ -214,7 +214,7 @@ spatial engine  3.04 / 3.25 kB
 focus ring      1.51 / 1.75 kB
 debug           0.49 / 0.50 kB
 react adapter   1.30 / 1.50 kB
-keyboard        1.55 / 1.75 kB
+keyboard        2.82 / 3.00 kB
 layout qwerty   0.45 / 0.50 kB
 layout azerty   0.49 / 0.50 kB
 layout alphabetic  0.36 / 0.50 kB

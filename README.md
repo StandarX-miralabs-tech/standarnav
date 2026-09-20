@@ -63,7 +63,7 @@ The rest is markup.
 | `data-snav-ignore` | any element | bare | Excludes the element from the candidate list. |
 | `data-snav-up` / `-down` / `-left` / `-right` | a focusable | a CSS selector | Sends that direction to the first match in the document, before any geometry runs. |
 
-The engine writes five attributes, which you can style against:
+The engine writes nine attributes, which you can style against:
 
 | Attribute | Written on | Values |
 |---|---|---|
@@ -72,8 +72,12 @@ The engine writes five attributes, which you can style against:
 | `data-snav-input` | `<html>` | `keyboard` \| `pointer` \| `touch` \| `gamepad` |
 | `data-snav-focus-ring` | the focus ring overlay element, when the ring plugin is mounted | bare |
 | `data-snav-editing` | the field the on-screen keyboard is open on, when the keyboard plugin is mounted | bare |
+| `data-snav-keyboard` | the on-screen keyboard's box | the layout's id |
+| `data-snav-keyboard-row` | each row of keys in that box; `[data-snav-keyboard-row] button` is a key | bare |
+| `data-snav-keyboard-preview` | the preview row at the bottom of the box, which mirrors the field and moves its caret | bare |
+| `data-snav-keyboard-caret` | the caret drawn inside the preview row | bare |
 
-Both tables are this repository's own contract, set by [ADR-0001](docs/adr/0001-name-scope-and-attribute-prefix.md), and they are part of what is not frozen yet. The attribute constants live in `src/spatial/containers.ts`, `src/modality.ts` and `src/focus-ring/focus-ring.ts`.
+Both tables are this repository's own contract, set by [ADR-0001](docs/adr/0001-name-scope-and-attribute-prefix.md), and they are part of what is not frozen yet. The attribute constants live in `src/spatial/containers.ts`, `src/modality.ts`, `src/focus-ring/focus-ring.ts` and `src/keyboard/keyboard.ts`.
 
 ## React
 

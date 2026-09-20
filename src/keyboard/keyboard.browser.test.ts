@@ -7,7 +7,15 @@
 
 import { afterEach, describe, expect, it } from "vitest";
 import { createInputSystem, type InputPlugin, type InputSystem } from "../input-system";
-import { EDITING_ATTRIBUTE, type KeyboardPlugin, keyboardPlugin } from "./keyboard";
+import { spatialPlugin } from "../spatial/spatial";
+import type { NavigationIntent } from "../types";
+import {
+  CARET_ATTRIBUTE,
+  EDITING_ATTRIBUTE,
+  type KeyboardPlugin,
+  keyboardPlugin,
+  PREVIEW_ATTRIBUTE,
+} from "./keyboard";
 import { alphabetic } from "./layouts/alphabetic";
 import { qwerty } from "./layouts/qwerty";
 
@@ -35,6 +43,11 @@ interface Scene {
   key(label: string): HTMLButtonElement;
   labels(): readonly string[];
   grid(): HTMLElement | null;
+  preview(): HTMLElement;
+  /** What the preview row shows on either side of its caret. */
+  mirror(): { readonly before: string; readonly after: string };
+  /** A pad's direction, aimed at whatever has the focus. */
+  pad(intent: NavigationIntent): boolean;
   active(): string;
 }
 
@@ -43,6 +56,7 @@ function scene(
   options: {
     readonly openOn?: "activate" | "gamepad" | "focus" | "manual";
     readonly pad?: boolean;
+    readonly spatial?: boolean;
   } = {},
 ): Scene {
   const host = document.createElement("div");
@@ -54,20 +68,27 @@ function scene(
     container: host,
     openOn: options.openOn ?? "focus",
   });
-  const input = createInputSystem({
-    plugins: options.pad === true ? [pretendGamepad(), keyboard] : [keyboard],
-  });
+  const plugins: InputPlugin[] = [keyboard];
+  if (options.pad === true) plugins.unshift(pretendGamepad());
+  if (options.spatial === true) plugins.unshift(spatialPlugin({ root: host, mode: "app" }));
+  const input = createInputSystem({ plugins });
   cleanups.push(() => {
     input.destroy();
     host.remove();
   });
 
   const grid = (): HTMLElement | null => host.querySelector("[data-snav-keyboard]");
+  const preview = (): HTMLElement => {
+    const row = grid()?.querySelector(`[${PREVIEW_ATTRIBUTE}]`);
+    if (!(row instanceof HTMLElement)) throw new Error("no preview row");
+    return row;
+  };
   return {
     input,
     keyboard,
-    field: host.querySelector("input") as HTMLInputElement,
+    field: host.querySelector("input, textarea") as HTMLInputElement,
     grid,
+    preview,
     labels: (): readonly string[] =>
       [...(grid()?.querySelectorAll("button") ?? [])].map((button) => button.textContent ?? ""),
     key(label): HTMLButtonElement {
@@ -77,6 +98,18 @@ function scene(
       if (match === undefined) throw new Error(`no key labelled ${label}`);
       return match as HTMLButtonElement;
     },
+    mirror(): { before: string; after: string } {
+      let before = "";
+      let after = "";
+      let past = false;
+      for (const node of preview().childNodes) {
+        if (node instanceof HTMLElement && node.hasAttribute(CARET_ATTRIBUTE)) past = true;
+        else if (past) after += node.textContent ?? "";
+        else before += node.textContent ?? "";
+      }
+      return { before, after };
+    },
+    pad: (intent): boolean => input.emit({ intent, source: "gamepad" }).consumed,
     active: (): string => document.activeElement?.id ?? "",
   };
 }
@@ -222,8 +255,8 @@ describe("typing", () => {
     view.field.focus();
 
     // `email` is a text entry by `isTextEntryTarget` and exposes `selectionStart` as
-    // `null`; `setRangeText` throws `InvalidStateError` on it. The keyboard appends
-    // instead, because on such a field the caret is always at the end.
+    // `null`; `setRangeText` throws `InvalidStateError` on it. The keyboard rewrites
+    // the whole value around a caret it owns, which starts at the end.
     expect(view.field.selectionStart).toBeNull();
     view.key("c").click();
     expect(view.field.value).toBe("a@bc");
@@ -254,15 +287,15 @@ describe("typing", () => {
     expect(view.field.value).toBe("a ");
   });
 
-  it("puts the caret at the end on open, because nothing can move it afterwards", () => {
+  it("puts the caret at the end on open, where the preview row shows it", () => {
     const view = scene(`<input type="text" id="field" value="ab" />`);
 
     view.field.focus();
 
     // A programmatic `focus()` leaves the caret at 0, which would type in front of what
-    // is already there. In v0 the directions navigate the keys, so there is no way to
-    // move a caret at all and the end is the only defensible place to start.
+    // is already there. The end is where typing continues, and the row says so.
     expect(view.field.selectionStart).toBe(2);
+    expect(view.mirror()).toEqual({ before: "ab", after: "" });
     view.key("c").click();
     expect(view.field.value).toBe("abc");
   });
@@ -299,6 +332,238 @@ describe("layers", () => {
 
     press("abc");
     expect(labels()).toContain("q");
+  });
+});
+
+/**
+ * Rebuilding the keys used to be `replaceChildren` on the box, which destroyed the
+ * focused key: the focus fell to `body`, and the next direction walked out of the
+ * keyboard — onto an unrelated button on chromium and webkit, back onto the field on
+ * firefox. Found by pressing shift on a real page, on all three engines.
+ */
+describe("re-rendering the keys", () => {
+  it("keeps the focus on the key at the same position through shift", () => {
+    const view = scene();
+    view.field.focus();
+    view.key("b").focus();
+
+    view.key("⇧").click();
+
+    expect(document.activeElement?.textContent).toBe("B");
+    // And the keyboard still answers A: the trapped scope clicks the focused key.
+    view.pad("select");
+    expect(view.field.value).toBe("B");
+  });
+
+  it("keeps the preview row through a layer switch", () => {
+    const host = document.createElement("div");
+    host.innerHTML = `<input type="text" id="field" value="q" />`;
+    document.body.append(host);
+    const keyboard = keyboardPlugin({ layout: qwerty, container: host, openOn: "focus" });
+    const input = createInputSystem({ plugins: [keyboard] });
+    cleanups.push(() => {
+      input.destroy();
+      host.remove();
+    });
+    (host.querySelector("input") as HTMLInputElement).focus();
+    const row = host.querySelector(`[${PREVIEW_ATTRIBUTE}]`);
+    const layerKey = [...host.querySelectorAll<HTMLButtonElement>("button")].find(
+      (button) => button.textContent === "?#=",
+    );
+
+    layerKey?.click();
+
+    // The same node, not a fresh one: the row is built once and painted in place.
+    expect(host.querySelector(`[${PREVIEW_ATTRIBUTE}]`)).toBe(row);
+    expect(row?.textContent).toBe("q");
+  });
+});
+
+describe("the preview row", () => {
+  it("mirrors the field and follows every keystroke", () => {
+    const view = scene(`<input type="text" id="field" value="ab" />`);
+    view.field.focus();
+
+    view.key("c").click();
+
+    expect(view.mirror()).toEqual({ before: "abc", after: "" });
+  });
+
+  it("shows a password as bullets", () => {
+    const view = scene(`<input type="password" id="field" value="abc" />`);
+
+    view.field.focus();
+
+    expect(view.mirror()).toEqual({ before: "•••", after: "" });
+  });
+
+  it("follows an input event the keyboard did not produce", () => {
+    const view = scene(`<input type="text" id="field" value="ab" />`);
+    view.field.focus();
+
+    view.field.value = "zz";
+    view.field.dispatchEvent(new Event("input", { bubbles: true }));
+
+    expect(view.preview().textContent).toBe("zz");
+  });
+
+  it("stays one line: a newline is one glyph", () => {
+    const view = scene(`<textarea id="field">ab\ncd</textarea>`);
+
+    view.field.focus();
+
+    expect(view.mirror()).toEqual({ before: "ab↵cd", after: "" });
+  });
+
+  it("does not widen the box for a long value", () => {
+    const view = scene(`<input type="text" id="field" value="" />`);
+    view.field.focus();
+    const empty = (view.grid() as HTMLElement).getBoundingClientRect().width;
+    view.keyboard.close();
+
+    view.field.value = "m".repeat(200);
+    view.keyboard.open(view.field);
+
+    const row = view.preview();
+    expect({
+      width: (view.grid() as HTMLElement).getBoundingClientRect().width,
+      overflows: row.scrollWidth > row.clientWidth,
+    }).toEqual({ width: empty, overflows: true });
+  });
+});
+
+/**
+ * No mode to enter: the row spans the box, nothing is to its left or right, so the
+ * two directions are free to move the caret while it has the focus. The caret is the
+ * field's own selection, moved with `setSelectionRange` and read back for the paint —
+ * the row never holds a position of its own (ADR-0022, the amendment on the preview).
+ */
+describe("moving the caret from the preview row", () => {
+  it("moves the field's own selection with left and right, and the row follows", () => {
+    const view = scene(`<input type="text" id="field" value="ab" />`);
+    view.field.focus();
+    view.preview().focus();
+
+    const consumed = view.pad("moveLeft");
+
+    expect({
+      consumed,
+      caret: view.field.selectionStart,
+      mirror: view.mirror(),
+      // ADR-0005's gate wording: the element with the focus is the one the test names.
+      stillOnTheRow: document.activeElement === view.preview(),
+    }).toEqual({
+      consumed: true,
+      caret: 1,
+      mirror: { before: "a", after: "b" },
+      stillOnTheRow: true,
+    });
+
+    view.pad("moveLeft");
+    view.pad("moveLeft");
+    expect(view.field.selectionStart).toBe(0);
+    view.pad("moveRight");
+    expect(view.field.selectionStart).toBe(1);
+  });
+
+  it("types at the moved caret and deletes before it", () => {
+    const view = scene(`<input type="text" id="field" value="ac" />`);
+    view.field.focus();
+    view.preview().focus();
+    view.pad("moveLeft");
+
+    view.key("b").click();
+    expect({ value: view.field.value, caret: view.field.selectionStart }).toEqual({
+      value: "abc",
+      caret: 2,
+    });
+
+    view.key("⌫").click();
+    expect(view.field.value).toBe("ac");
+  });
+
+  it("jumps to the ends of the line and of the value", () => {
+    const view = scene(`<textarea id="field">ab\ncd</textarea>`);
+    view.field.focus();
+    view.preview().focus();
+    view.field.setSelectionRange(4, 4);
+
+    const positions: number[] = [];
+    for (const intent of ["home", "end", "pageUp", "pageDown"] as const) {
+      view.pad(intent);
+      positions.push(view.field.selectionStart ?? -1);
+    }
+
+    expect(positions).toEqual([3, 5, 0, 5]);
+  });
+
+  it("moves a line up and down in a textarea, keeping the column where it can", () => {
+    const view = scene(`<textarea id="field">abc\nd\nefg</textarea>`);
+    view.field.focus();
+    view.preview().focus();
+    view.field.setSelectionRange(8, 8);
+
+    const positions: number[] = [];
+    for (const intent of ["moveUp", "moveUp", "moveDown", "moveDown"] as const) {
+      view.pad(intent);
+      positions.push(view.field.selectionStart ?? -1);
+    }
+
+    // From column 2 of "efg": onto "d" (one character, so its end), then column 1 of
+    // "abc", then back down the same way.
+    expect(positions).toEqual([5, 1, 5, 7]);
+  });
+
+  it("hands up on the first line to the engine, which is how the focus leaves the row", () => {
+    const view = scene(`<input type="text" id="field" value="ab" />`, { spatial: true });
+    view.field.focus();
+    view.preview().focus();
+
+    view.pad("moveUp");
+
+    const landed = document.activeElement;
+    expect({
+      onAKey: landed instanceof HTMLButtonElement && view.grid()?.contains(landed) === true,
+      caret: view.field.selectionStart,
+    }).toEqual({ onAKey: true, caret: 2 });
+  });
+
+  it("owns the caret of a field that exposes no selection", () => {
+    const view = scene(`<input type="email" id="field" value="ab" />`);
+    view.field.focus();
+    view.preview().focus();
+
+    view.pad("moveLeft");
+    expect(view.mirror()).toEqual({ before: "a", after: "b" });
+
+    // The field has no position to mirror, so the plugin's own index is where the
+    // whole-value rewrite splices, and it moves with what it typed.
+    view.key("c").click();
+    expect({ value: view.field.value, mirror: view.mirror() }).toEqual({
+      value: "acb",
+      mirror: { before: "ac", after: "b" },
+    });
+
+    view.key("⌫").click();
+    expect({ value: view.field.value, mirror: view.mirror() }).toEqual({
+      value: "ab",
+      mirror: { before: "a", after: "b" },
+    });
+  });
+
+  it("leaves the field with the caret the row set when the focus goes back", () => {
+    const view = scene(`<input type="text" id="field" value="abc" />`);
+    view.field.focus();
+    view.preview().focus();
+    view.pad("moveLeft");
+
+    view.pad("back");
+
+    // A selection set on a blurred field survives its refocus, on every engine.
+    expect({ active: view.active(), caret: view.field.selectionStart }).toEqual({
+      active: "field",
+      caret: 2,
+    });
   });
 });
 
@@ -420,6 +685,30 @@ describe("the activate default", () => {
       narrowerThanTheViewport: rect.width < window.innerWidth,
       onScreen: rect.top >= 0 && rect.left >= 0,
     }).toEqual({ position: "fixed", narrowerThanTheViewport: true, onScreen: true });
+  });
+
+  it("owns all four insets, so a stylesheet cannot stretch it over the field", () => {
+    // The playground once carried exactly this rule, from before the box painted
+    // itself: the plugin wrote `top` and `left`, the stylesheet kept `bottom`, and the
+    // box was stretched from the one to the other — over the field it was editing.
+    const plain = activateScene();
+    plain.field.click();
+    const unstretched = (plain.grid() as HTMLElement).getBoundingClientRect();
+    for (const dispose of cleanups.splice(0, cleanups.length)) dispose();
+
+    const view = activateScene(
+      `<style>[data-snav-keyboard]{inset:auto 0 72px 0}</style><input type="text" id="field" />`,
+    );
+    view.field.click();
+    const box = view.grid() as HTMLElement;
+
+    const rect = box.getBoundingClientRect();
+
+    expect({ bottom: box.style.bottom, height: rect.height, width: rect.width }).toEqual({
+      bottom: "auto",
+      height: unstretched.height,
+      width: unstretched.width,
+    });
   });
 });
 

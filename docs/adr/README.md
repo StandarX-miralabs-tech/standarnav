@@ -66,8 +66,8 @@ Rules that go with that skeleton:
 
 ## Adding one
 
-1. Take the next free number. The highest in use is ADR-0020, so the next is
-   ADR-0021. Numbers are never reused, and a superseded record keeps its number.
+1. Take the next free number. The highest in use is ADR-0022, so the next is
+   ADR-0023. Numbers are never reused, and a superseded record keeps its number.
 2. Name the file `NNNN-short-title.md`, lowercase, words separated by hyphens.
 3. Write it in English, with the skeleton above, and link it from every existing
    record it touches.
@@ -91,7 +91,7 @@ release-please. Both records carry a dated amendment saying so.
 
 | ADR | Title | Status | What it decides |
 |---|---|---|---|
-| [0001](0001-name-scope-and-attribute-prefix.md) | Name, npm scope and attribute prefix | Accepted | The project is standarnav, the package `@standarx/nav`, the DOM attributes `data-snav-*` and the custom properties `--snav-focus-ring-*`. |
+| [0001](0001-name-scope-and-attribute-prefix.md) | Name, npm scope and attribute prefix | Accepted | The project is standarnav, the package `@standarx/nav`, the DOM attributes `data-snav-*` and the custom properties `--snav-focus-ring-*` and `--snav-keyboard-*`. Nine written attributes and eleven custom properties as of 2026-09-21. |
 | [0002](0002-license-and-copyright.md) | License and copyright holder | Accepted | MIT, copyright Wesley Cormier, contributions inbound=outbound with no CLA. |
 | [0003](0003-package-boundaries.md) | Package boundaries and module layout | Accepted | The engine imports no component, machine, stylesheet or framework context; the `src/` layout, why the root entry omits the three engines, and why `internal/` is the only private directory. |
 | [0005](0005-real-dom-focus.md) | Real DOM focus, never a virtual cursor | Accepted | The engine moves `element.focus()` and reads `document.activeElement`; no focus key, no registry, and a gate that keeps it true. |
@@ -106,9 +106,9 @@ release-please. Both records carry a dated amendment saying so.
 | [0014](0014-device-and-browser-matrix.md) | Device and browser test matrix | Accepted, one rider Proposed | Three engines in CI, no device claim without a dated device report, a matrix in three columns of which two are empty today. Open: which devices are bought and which are borrowed. |
 | [0015](0015-language-policy.md) | Language policy | Accepted, one rider Proposed | Every committed file is English; user documentation is `docs/en` canonical with a strict `docs/fr` mirror. Open: the CI mechanism enforcing that mirror. |
 | [0016](0016-scoring-constants-provenance.md) | Scoring constants and their provenance | Accepted | Where `0.3`, `30`, `2` and the alignment bonus come from, what the score formula is, and that it is not Blink's. |
-| [0017](0017-size-budgets.md) | Size budgets: measure before capping | Accepted | Two measured lines per subpath, caps written only after a first measurement here, and a line without a cap fails the run. Seven lines are measured and capped as of 2026-09-20. |
+| [0017](0017-size-budgets.md) | Size budgets: measure before capping | Accepted | Two measured lines per subpath, caps written only after a first measurement here, and a line without a cap fails the run. Eleven lines are measured and capped as of 2026-09-21. |
 | [0018](0018-testing-strategy.md) | Testing strategy | Accepted | Two Vitest projects, inline-style fixtures, tests through the real input system, one adapter parity suite, and no benchmark until a runner is chosen. The eight gaps it listed after the port are closed, by the amendment of 2026-09-20. |
 | [0019](0019-gamepad-engine-design.md) | Gamepad engine design, inherited and recorded | Accepted | The polling loop, the two dead-zone regimes, the repeat ladder, the standard mapping and the escape hatches, with their open items. |
 | [0020](0020-focus-ring-defaults.md) | Focus ring defaults, and why no stylesheet ships | Accepted | The plugin paints itself inline; six custom properties override every value, with the contrast figures and the two limits the choice carries. |
 | [0021](0021-native-select-on-television.md) | A native `<select>` on a television, and what the package offers instead | Accepted | A closed `<select>` opens a platform popup the engine cannot see, and the trap is invisible on a desktop. A `scanNativeSelects` diagnostic in the debug subpath names it; a trigger-and-list recipe replaces it. Why no runtime warning, and the two bus mechanics the recipe depends on. |
-| [0022](0022-virtual-keyboard.md) | The virtual keyboard — layout data, insertion, and what closes it | Accepted | Keys take real focus; a layout is data in its own module with no registry; insertion is `beforeinput`, mutate, `input`, with the framework-tracking risk named; `back` closes and keeps, deliberately unlike engage mode; no caret is drawn; composition deferred to its own ADR. Nothing built yet. |
+| [0022](0022-virtual-keyboard.md) | The virtual keyboard — layout data, insertion, and what closes it | Accepted | Keys take real focus; a layout is data in its own module with no registry; insertion is `beforeinput`, mutate, `input`, with the framework-tracking risk named; `back` closes and keeps, deliberately unlike engage mode; composition deferred to its own ADR. Built, then amended three times against a real page: `activate` opens it, the box paints and places itself, and a preview row at its bottom draws the caret the field cannot show and moves it with the directions — decision 9 reversed on 2026-09-21. |
