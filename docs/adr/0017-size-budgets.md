@@ -297,6 +297,36 @@ behaviour that leaked into one. The azerty line at 0.49 of 0.50 is the tightest 
 file, and it is tight for an honest reason — it carries an accented layer qwerty does not.
 The next character added to it needs an amendment here.
 
+## Amendment, 2026-09-20: the keyboard cap goes to 2.25 kB, for a plugin that had no paint
+
+`bun run build && bun run check:size`, same toolchain as the amendments above.
+
+| Line | min | min+gzip | old cap | new cap |
+|---|---|---|---|---|
+| keyboard | 4.47 kB | 2.01 kB | 1.75 kB | 2.25 kB |
+
+**Rule 4, properly this time.** The 1.75 kB cap above was committed, so unlike the note
+in the previous amendment this is a cap *in the repository* being raised. That is what
+rule 4 reserves an amendment in its own commit for, and this is that commit: the code it
+pays for lands in the next one.
+
+**What the 0.46 kB buys.** The keyboard shipped with no style at all. A plugin that
+appends an unstyled `<div>` to `document.body` inherits the page's block layout, so it
+drew itself the full width of the viewport — measured at 1280 by 304 on a 1280 by 800
+window, 38% of the screen, over whatever was under it — and it was anchored to nothing,
+which is the opposite of the `<select>` menu a surface expects. That was a defect
+against [ADR-0020](0020-focus-ring-defaults.md)'s own reasoning, which the focus ring
+follows and this plugin did not: a plugin that needs a stylesheet imported ships broken
+to whoever forgets, so it carries its own paint inline.
+
+So the bytes are the paint, the placement that anchors the box to the field and flips it
+above when there is no room below, the `activate` opening mode, and the close-on-leave
+that stops an open keyboard from swallowing the page's activations. Measured after the
+fix at 492 by 338, 16% of the same viewport.
+
+**Rule 3 gives 2.25.** The measurement is 2.01 kB and the next quarter above it is 2.25.
+The line sits at 89% used, which is the same headroom the module had before.
+
 ## Alternatives considered
 
 **A bundlephobia badge in the README.** Rejected: it is not blocking, it lags

@@ -122,7 +122,7 @@ const LINES: readonly Line[] = [
   {
     name: "keyboard",
     entries: ["keyboard/keyboard.js"],
-    cap: 1.75 * KB,
+    cap: 2.25 * KB,
     // Every module it reaches for is one the core already ships — the keymap for
     // `isTextEntryTarget`, tabbable for `focusElement` — so all four are external and
     // the number is what a consumer who already has the core pays to add a keyboard.
