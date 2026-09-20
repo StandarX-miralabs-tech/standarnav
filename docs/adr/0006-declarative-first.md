@@ -70,8 +70,8 @@ Three rules complete the decision.
 
 - Third-party markup is navigable with no application code. A page adds a setup of
   four lines — three imports and one `createInputSystem` call with the two plugins —
-  and nothing else (`README.md:40-44`; the playground does the same against the
-  sources, with the focus ring added, at `playground/main.ts:15-29`).
+  and nothing else (the Usage snippet of `README.md`; the playground does the same
+  against the sources, with the focus ring added, at `playground/main.ts:15-29`).
 - Attribute names become a public contract. The prefix and the full list of names are
   decided in [ADR-0001](0001-name-scope-and-attribute-prefix.md), and that decision is
   what there is to freeze: the markup is written against those names, so they are
@@ -155,8 +155,11 @@ than an invention. See the [competitor comparison](../research/competitors.md).
   clears the stale markers, sets `FOCUSED_ATTRIBUTE` on the element and
   `ACTIVE_ATTRIBUTE` on every container up the path to it —
   `src/spatial/spatial.ts:276-292`. Both tables of the Decision are the published
-  contract: `README.md:53-62` for the attributes read, `:66-71` for the four
-  written.
+  contract, and `README.md` carries both under Usage — the attributes read, then the
+  five written. That second table has grown since this record was accepted:
+  `data-snav-editing` arrived with the on-screen keyboard
+  ([ADR-0022](0022-virtual-keyboard.md)), so a reader who remembers four should look
+  again.
 - Proof that unprepared markup navigates, executable rather than anecdotal: the fixture
   at `src/spatial/spatial.browser.test.ts:62` is "a three by three grid of plain
   buttons, carrying no attributes whatsoever", and the `spatialPlugin — plain HTML`
