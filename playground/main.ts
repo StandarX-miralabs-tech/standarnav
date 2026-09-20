@@ -34,16 +34,12 @@ import {
 const spatial: SpatialPlugin = spatialPlugin({ mode: "app" });
 const gamepad: GamepadPlugin = gamepadPlugin();
 
-// `openOn: "focus"` rather than the `gamepad` default, so the keyboard is reachable from
-// a laptop with no pad — which is the only way most of this page gets driven. A real
-// television application wants the default.
+// The keyboard takes the `activate` default: a click on the field, or A on it from a pad.
+// This page used to pass `openOn: "focus"` so a laptop with no pad could reach it, and
+// that was the bug — `mode: "app"` turns on `pointerFollowsFocus`, so the pointer focuses
+// whatever it crosses, and a keyboard on focus is a keyboard on hover.
 const input: InputSystem = createInputSystem({
-  plugins: [
-    gamepad,
-    spatial,
-    focusRingPlugin(),
-    keyboardPlugin({ layout: alphabetic, openOn: "focus" }),
-  ],
+  plugins: [gamepad, spatial, focusRingPlugin(), keyboardPlugin({ layout: alphabetic })],
 });
 
 const status = document.getElementById("status");

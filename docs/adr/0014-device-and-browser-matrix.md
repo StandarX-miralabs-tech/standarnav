@@ -113,12 +113,12 @@ columns are still empty, because no emulator run and no device report exists.
 
 The three-engine CI matrix of decision 1 runs and is green: `fail-fast: false` over
 `[chromium, firefox, webkit]`, `SNAV_BROWSER` set per entry, and `bun run test:browser` reporting
-218 passed and 1 skipped in 12 files on each (2026-09-20). A fourth job, `react-floor`
+224 passed and 1 skipped in 12 files on each (2026-09-20). A fourth job, `react-floor`
 (`.github/workflows/ci.yml:75-101`), runs the same browser project on chromium alone against the
 declared React peer floor. That is a fourth browser run, not a fourth engine, and it changes
 nothing about this decision.
 
-Which is the point worth restating on the day this package is about to be published: 318 passing
+Which is the point worth restating on the day this package is about to be published: 324 passing
 tests are evidence about three desktop browser engines, and about nothing else.
 
 ## Alternatives considered

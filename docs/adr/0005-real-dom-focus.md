@@ -101,7 +101,7 @@ gate. Second, a source-level check that no id-keyed focus store — a
 reads `document.activeElement` through its scene helper on every move assertion
 (`src/spatial/spatial.browser.test.ts`), as does the composition suite
 (`src/composition.browser.test.ts`), and nothing in either asserts a class, an
-attribute or a getter in place of it. `bun run test:browser` on 2026-09-20 → 218
+attribute or a getter in place of it. `bun run test:browser` on 2026-09-20 → 224
 passed and 1 skipped in 12 files; the skip is the shadow-DOM fixture of
 [ADR-0008](0008-shadow-dom.md) and is unrelated to this gate.
 

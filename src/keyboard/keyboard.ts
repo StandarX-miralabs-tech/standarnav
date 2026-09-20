@@ -23,6 +23,45 @@ import type { IntentEvent } from "../types";
 /** Written on the field while the keyboard is open: it is not `:focus`, the keys are. */
 export const EDITING_ATTRIBUTE = "data-snav-editing";
 
+/**
+ * The paint, inline, for the same reason the focus ring carries its own: a plugin that
+ * needs a stylesheet imported is a plugin that ships broken to whoever forgets. Before
+ * this the box had no style at all, so it inherited the page's block layout and drew
+ * itself full-bleed — 1280 by 304 on a 1280 by 800 viewport, 38% of the screen, over
+ * whatever it landed on.
+ *
+ * `1600` is a rung below the focus ring's `1700`, so the ring still draws over the key
+ * it is ringing, and above an ordinary dialog. Sizes are in `em` so a surface sets the
+ * whole keyboard's scale with `--snav-keyboard-font-size` and nothing else.
+ */
+const KEYBOARD_PAINT =
+  "position:fixed;z-index:var(--snav-keyboard-z-index, 1600);" +
+  "display:flex;flex-direction:column;gap:0.25em;width:max-content;max-width:100vw;" +
+  "padding:0.5em;border-radius:0.5em;font-size:var(--snav-keyboard-font-size, 1rem);" +
+  "background:var(--snav-keyboard-background, #16161c);" +
+  "box-shadow:var(--snav-keyboard-shadow, 0 0.5em 2em rgb(0 0 0 / 45%))";
+
+const ROW_PAINT = "display:flex;gap:0.25em";
+
+/** Below the field like a `<select>` menu, flipped above when the room is not there. */
+const GAP = 4;
+
+function place(box: HTMLElement, field: HTMLElement): void {
+  const view = box.ownerDocument.defaultView;
+  if (view === null) return;
+  const anchor = field.getBoundingClientRect();
+  const self = box.getBoundingClientRect();
+
+  const below = view.innerHeight - anchor.bottom - GAP;
+  const top =
+    below >= self.height || below >= anchor.top - GAP
+      ? Math.min(anchor.bottom + GAP, view.innerHeight - self.height)
+      : anchor.top - GAP - self.height;
+
+  box.style.top = `${Math.max(GAP, top)}px`;
+  box.style.left = `${Math.max(GAP, Math.min(anchor.left, view.innerWidth - self.width - GAP))}px`;
+}
+
 export interface KeyboardKey {
   /** What the key shows. The only string a user reads. */
   readonly label: string;
@@ -60,10 +99,15 @@ export interface KeyboardOptions {
   /** Where the keys are appended. The field's own document body by default. */
   readonly container?: HTMLElement | null | undefined;
   /**
-   * `gamepad` opens only when the modality is a pad, which is why it is the default: a
-   * laptop with a real keyboard focusing a field must not get one of these in its way.
+   * `activate` is the default, and it means what it says: a click on the field, or a
+   * `select` on it from any device. A focus alone never opens the keyboard, because a
+   * focus is not a decision — under `pointerFollowsFocus` a mouse crossing the page
+   * focuses whatever it passes over, and `focus` turned every hover into a keyboard.
+   *
+   * `focus` keeps the old behaviour for a surface that wants it, `gamepad` restricts
+   * that to a pad modality, and `manual` leaves it all to `open()`.
    */
-  readonly openOn?: "gamepad" | "focus" | "manual" | undefined;
+  readonly openOn?: "activate" | "focus" | "gamepad" | "manual" | undefined;
 }
 
 export interface KeyboardPlugin extends InputPlugin {
@@ -163,7 +207,7 @@ function edit(field: EditableField, inputType: string, data: string | null): boo
 }
 
 export function keyboardPlugin(options: KeyboardOptions): KeyboardPlugin {
-  const openOn = options.openOn ?? "gamepad";
+  const openOn = options.openOn ?? "activate";
   let context: InputPluginContext | null = null;
   let root: HTMLElement | null = null;
   let field: EditableField | null = null;
@@ -182,6 +226,7 @@ export function keyboardPlugin(options: KeyboardOptions): KeyboardPlugin {
     for (const row of rows) {
       const line = box.ownerDocument.createElement("div");
       line.dataset.snavKeyboardRow = "";
+      line.style.cssText = ROW_PAINT;
       const keys: readonly KeyboardKey[] =
         typeof row === "string"
           ? [...row].map((character) => ({ label: character, value: character }))
@@ -258,9 +303,13 @@ export function keyboardPlugin(options: KeyboardOptions): KeyboardPlugin {
     box.dataset.snav = "container";
     box.dataset.snavTrap = "";
     box.dataset.snavKeyboard = options.layout.id;
+    box.style.cssText = KEYBOARD_PAINT;
     root = box;
     render();
     (options.container ?? doc.body).append(box);
+    // Appended first: the box has to be laid out before it can be measured against
+    // the field, and `width: max-content` means its width is not knowable until then.
+    place(box, next);
     next.setAttribute(EDITING_ATTRIBUTE, "");
 
     // The caret goes to the end, and in v0 that is the only place it can be: the
@@ -294,7 +343,13 @@ export function keyboardPlugin(options: KeyboardOptions): KeyboardPlugin {
     if (first instanceof HTMLElement) focusElement(first);
   }
 
-  function close(): void {
+  /**
+   * `restoreFocus` is false for exactly one caller: the keyboard closing *because* the
+   * focus left it. Handing the focus back there would drag it off whatever the user
+   * was reaching for and onto the field again — pressing a button elsewhere on the page
+   * put the focus back in the field and the button never answered.
+   */
+  function close(restoreFocus = true): void {
     if (pop === null) return;
     const detach = pop;
     pop = null;
@@ -307,6 +362,7 @@ export function keyboardPlugin(options: KeyboardOptions): KeyboardPlugin {
 
     if (leaving === null) return;
     leaving.removeAttribute(EDITING_ATTRIBUTE);
+    if (!restoreFocus) return;
     closing = true;
     focusElement(leaving);
     closing = false;
@@ -316,16 +372,52 @@ export function keyboardPlugin(options: KeyboardOptions): KeyboardPlugin {
     name: "keyboard",
     setup(pluginContext): VoidFunction {
       context = pluginContext;
-      const teardown = addDomEvent(pluginContext.doc, "focusin", (event: Event) => {
-        if (closing || openOn === "manual") return;
-        const target = getEventTarget(event);
-        if (!isHTMLElement(target) || !isTextEntryTarget(target)) return;
-        if (openOn === "gamepad" && pluginContext.getModality() !== "gamepad") return;
-        open(target);
-      });
+      const doc = pluginContext.doc;
+      const opensOnFocus = openOn === "focus" || openOn === "gamepad";
+
+      const teardowns: VoidFunction[] = [
+        addDomEvent(doc, "focusin", (event: Event) => {
+          const target = getEventTarget(event);
+          if (!isHTMLElement(target)) return;
+
+          // Leaving is closing. While the keyboard is open its scope traps, and a trap
+          // makes `dispatch` report the intent consumed even when this handler declines
+          // it — so the system cancels the browser's own activation and every button on
+          // the page stops answering Enter. A focus that walks out of the keyboard has
+          // to take the keyboard with it.
+          if (pop !== null && !closing) {
+            if (target !== field && root?.contains(target) !== true) close(false);
+            return;
+          }
+
+          if (closing || !opensOnFocus || !isTextEntryTarget(target)) return;
+          if (openOn === "gamepad" && pluginContext.getModality() !== "gamepad") return;
+          open(target);
+        }),
+      ];
+
+      if (openOn === "activate") {
+        teardowns.push(
+          addDomEvent(doc, "click", (event: Event) => {
+            const target = getEventTarget(event);
+            if (pop === null && isHTMLElement(target) && isTextEntryTarget(target)) open(target);
+          }),
+          // `select` on a focused field, whatever produced it. `activateFocused` already
+          // refuses to click a text entry and says why in its own comment: A on a field
+          // belongs to the virtual keyboard. This is the half that was never written.
+          pluginContext.bus.pushScope((event: IntentEvent): boolean => {
+            if (event.intent !== "select" || pop !== null) return false;
+            const active = doc.activeElement;
+            if (!isHTMLElement(active) || !isTextEntryTarget(active)) return false;
+            open(active);
+            return pop !== null;
+          }),
+        );
+      }
+
       return () => {
         close();
-        teardown();
+        for (const teardown of teardowns.reverse()) teardown();
         context = null;
       };
     },

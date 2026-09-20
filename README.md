@@ -15,7 +15,7 @@ Spatial navigation for the web: d-pad, gamepad sticks, TV remotes and arrow keys
 - Two modes: `composite` (arrow keys stay inside composites, a gamepad crosses the page) and `app` (arrow keys navigate the whole page).
 - `onWillMove` can veto a move before focus changes; `onBoundsHit` fires when a direction has nowhere left to go.
 - A **focus ring** is an optional plugin: a WAAPI overlay that follows `focusin`, off unless you mount it.
-- An **on-screen keyboard** is an optional plugin, for a surface with no keyboard. It opens on a focused text field, its keys are real focusable buttons the engine navigates, and it writes into the field through `beforeinput` and `input`, so a mask or a length limit can refuse a keystroke. Layouts are data in their own subpaths — `@standarx/nav/keyboard/qwerty`, `/azerty`, `/alphabetic` — so an application ships only the alphabet it needs ([ADR-0022](docs/adr/0022-virtual-keyboard.md)).
+- An **on-screen keyboard** is an optional plugin, for a surface with no keyboard. It opens on a click on a text field or on a `select` from any device — never on a focus alone, because under `pointerFollowsFocus` a focus is what a mouse does by crossing the page. Its keys are real focusable buttons the engine navigates, it paints and places its own box against the field like a menu, and it writes into the field through `beforeinput` and `input`, so a mask or a length limit can refuse a keystroke. Layouts are data in their own subpaths — `@standarx/nav/keyboard/qwerty`, `/azerty`, `/alphabetic` — so an application ships only the alphabet it needs ([ADR-0022](docs/adr/0022-virtual-keyboard.md)).
 - `explainMove` returns the scored candidate list of a move, for debugging (`src/debug.ts`).
 
 ## Install
@@ -30,7 +30,7 @@ The name is free as of 2026-09-18: a GET on `https://registry.npmjs.org/@standar
 
 While the major stays 0, a minor may break: the snippet above pins an exact minor once a 0.x exists ([ADR-0012](docs/adr/0012-versioning-and-release.md)).
 
-Zero runtime dependencies, and the packaging check fails if `package.json` ever declares one (`bun run check:package`). Every subpath carries a size cap that CI enforces against the built `dist/`, and the whole package bundled once is capped at 9 kB min+gzip. The per-line measurements, the caps and the rule for raising one are in [ADR-0017](docs/adr/0017-size-budgets.md); `bun run check:size` prints the current table.
+Zero runtime dependencies, and the packaging check fails if `package.json` ever declares one (`bun run check:package`). Every subpath carries a size cap that CI enforces against the built `dist/` — eleven capped lines, each measured next to the entries it already imports, so its number is what adding that subpath costs rather than a second copy of the core. The per-line measurements, the caps and the rule for raising one are in [ADR-0017](docs/adr/0017-size-budgets.md); `bun run check:size` prints the current table.
 
 ## Usage
 

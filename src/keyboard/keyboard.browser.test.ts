@@ -40,7 +40,10 @@ interface Scene {
 
 function scene(
   markup = `<input type="text" id="field" value="" />`,
-  options: { readonly openOn?: "gamepad" | "focus" | "manual"; readonly pad?: boolean } = {},
+  options: {
+    readonly openOn?: "activate" | "gamepad" | "focus" | "manual";
+    readonly pad?: boolean;
+  } = {},
 ): Scene {
   const host = document.createElement("div");
   host.innerHTML = markup;
@@ -358,5 +361,106 @@ describe("closing", () => {
 
     expect(view.keyboard.isOpen()).toBe(false);
     expect(view.grid()).toBeNull();
+  });
+});
+
+/**
+ * The `activate` default, and the defect that produced it. The playground drives the
+ * spatial engine in `app` mode, where `pointerFollowsFocus` is on, so the pointer
+ * focuses whatever it crosses. With `openOn: "focus"` that turned every hover into an
+ * open keyboard — and an open keyboard traps, which is the rest of the damage: a trap
+ * makes `dispatch` report a `select` consumed even when this plugin declines it, so the
+ * system cancels the browser's own activation and nothing else on the page answers.
+ */
+describe("the activate default", () => {
+  function activateScene(markup?: string) {
+    return scene(markup, { openOn: "activate" });
+  }
+
+  it("does not open on a focus alone, which is what a hover produces", () => {
+    const view = activateScene();
+
+    view.field.focus();
+
+    expect({ open: view.keyboard.isOpen(), grid: view.grid() }).toEqual({
+      open: false,
+      grid: null,
+    });
+  });
+
+  it("opens on a click, which is a decision", () => {
+    const view = activateScene();
+
+    view.field.click();
+
+    expect(view.keyboard.isOpen()).toBe(true);
+  });
+
+  it("opens on a select on the focused field, whatever the device", () => {
+    const view = activateScene();
+    view.field.focus();
+
+    const result = view.input.emit({ intent: "select", source: "gamepad" });
+
+    expect({ open: view.keyboard.isOpen(), consumed: result.consumed }).toEqual({
+      open: true,
+      consumed: true,
+    });
+  });
+
+  it("paints and places itself rather than inheriting the page's block layout", () => {
+    const view = activateScene();
+    view.field.click();
+    const box = view.grid() as HTMLElement;
+
+    const rect = box.getBoundingClientRect();
+
+    expect({
+      position: getComputedStyle(box).position,
+      narrowerThanTheViewport: rect.width < window.innerWidth,
+      onScreen: rect.top >= 0 && rect.left >= 0,
+    }).toEqual({ position: "fixed", narrowerThanTheViewport: true, onScreen: true });
+  });
+});
+
+describe("when the focus leaves an open keyboard", () => {
+  function pageScene() {
+    const view = scene(
+      `<input type="text" id="field" /><button type="button" id="other"></button>`,
+      {
+        openOn: "activate",
+      },
+    );
+    view.field.click();
+    return view;
+  }
+
+  it("closes, and leaves the focus where it was going", () => {
+    const view = pageScene();
+    const other = document.getElementById("other") as HTMLButtonElement;
+
+    other.focus();
+
+    // Closing used to hand the focus back to the field unconditionally, which dragged
+    // it off whatever the user was reaching for.
+    expect({ open: view.keyboard.isOpen(), active: view.active() }).toEqual({
+      open: false,
+      active: "other",
+    });
+  });
+
+  it("gives the page its activations back", () => {
+    const view = pageScene();
+    const other = document.getElementById("other") as HTMLButtonElement;
+    let clicked = 0;
+    other.addEventListener("click", () => {
+      clicked += 1;
+    });
+    other.focus();
+
+    const result = view.input.emit({ intent: "select", source: "gamepad" });
+
+    // While the keyboard was open and trapping, this was `consumed: true` and no click.
+    expect({ consumed: result.consumed, clicked }).toEqual({ consumed: false, clicked: 1 });
   });
 });

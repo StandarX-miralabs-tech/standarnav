@@ -67,6 +67,11 @@ television, `"gamepad"` to open only when the modality is a pad, and `"manual"` 
 that has its own trigger. `"gamepad"` is the default, because a laptop with a physical keyboard
 focusing a field must not get an on-screen one in its way.
 
+> **Amended 2026-09-20.** `"activate"` was added and is now the default; `"gamepad"` is not.
+> Opening on a focus turned out to mean opening on a *hover*, because `pointerFollowsFocus`
+> focuses whatever the pointer crosses. The amendment at the end of this record has the
+> reproduction and the reasoning.
+
 **3. A layout is data in its own module, and the consumer passes it in.** There is no registry and
 no self-registration.
 
@@ -244,6 +249,62 @@ said a layout contains no function. Spelling twenty-six letters as objects would
 data too, and heavy, and paid again by every language — so a row may be a **string**, one
 key per character, expanded by the keyboard. That keeps the promise literally: `"abcdefg"`
 is data, the expansion is paid once, and the layout entries measure 0.36 to 0.49 kB.
+
+## Amendment, 2026-09-20: driven on a real page, which broke three of these decisions
+
+Nothing below was found by a test. The playground was opened in a browser and used, and
+the whole chain came apart in the first minute. Two of the decisions above are reversed
+and one is narrowed.
+
+**1. `openOn` gains `"activate"`, and it is the default.** The old default was
+`"gamepad"`, and the playground passed `"focus"` so a laptop with no pad could reach the
+keyboard. That is the bug. The playground arms `mode: "app"`, where
+`pointerFollowsFocus` is on, so the pointer focuses whatever it crosses — and a keyboard
+that opens on focus is a keyboard that opens on **hover**. Reproduced with a real mouse
+move and no click.
+
+The missing idea was that a focus is not a decision. `"activate"` opens on a click on
+the field, or on a `select` on it from any device, and never on a focus alone. It is the
+default because it is the only value that is safe under a pointer, and because it is
+what a `<select>` does. `"focus"` and `"gamepad"` are kept for a surface that wants
+them; `"manual"` is unchanged.
+
+`activateFocused` already refused to click a text entry and its comment already said why
+— "A belongs to the virtual keyboard" (`src/input-system.ts`). The half that receives
+that A was never written. It is written now, as a scope the plugin pushes at setup.
+
+**2. The keyboard paints its own box.** Decision "no default style" above was about the
+*field*: no caret, no theme on `data-snav-editing`, and that part stands unchanged. It
+was applied to the keyboard's own container, which had no style at all — and an unstyled
+`<div>` appended to `document.body` inherits the page's block layout. It drew itself the
+full width of the viewport: 1280 by 304 on a 1280 by 800 window, 38% of the screen,
+anchored to nothing, over whatever was beneath it.
+
+That is not a missing theme, it is a missing geometry, and no amount of documentation
+fixes a widget that has no box. The plugin now carries `KEYBOARD_PAINT` inline the way
+[ADR-0020](0020-focus-ring-defaults.md) carries `RING_PAINT`, and places itself against
+the field like a menu — below it, flipped above when the room is not there, clamped into
+the viewport. Measured after the fix at 492 by 338, 16% of the same window. The size cost
+is an amendment to [ADR-0017](0017-size-budgets.md), in its own commit, as rule 4 asks.
+
+Four custom properties are the contract: `--snav-keyboard-z-index` (1600, a rung under
+the focus ring so the ring still draws over the key it rings),
+`--snav-keyboard-font-size`, `--snav-keyboard-background` and `--snav-keyboard-shadow`.
+The failure mode ADR-0020 named — an invalid custom property erasing the declaration
+silently — applies here too, and is accepted for the same reason.
+
+**3. Closing no longer always restores the focus, because an open keyboard was eating
+the page.** The keyboard's scope is `trapped`. When a `select` arrived and the focus was
+*outside* the box, the handler declined it — but a trap makes `dispatch` report the
+intent consumed anyway, so the system called `preventDefault` and the browser's own
+activation never happened. Every button on the page stopped answering Enter and A while
+the keyboard was open. That is the defect behind "the listbox will not open with a pad
+or a keyboard".
+
+A focus that leaves the keyboard now closes it. And that close does **not** hand the
+focus back to the field: doing so dragged the focus off whatever the user was reaching
+for and put it back in the field, so the button they had just moved to never answered
+either. `close(restoreFocus)` distinguishes the two, and both halves are pinned by tests.
 
 ## Alternatives considered
 
