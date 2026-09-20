@@ -40,6 +40,11 @@ import {
   type ScoreOptions,
 } from "./geometry";
 
+// `move()`, `WillMoveEvent.direction` and `SpatialPluginOptions.score` all name
+// these, and `./geometry` is not a published subpath — without the re-export a
+// consumer can call the API but cannot write its types down.
+export type { MoveDirection, ScoreOptions };
+
 const MOVE_DIRECTIONS: Readonly<Record<string, MoveDirection>> = {
   moveUp: "up",
   moveDown: "down",
@@ -231,7 +236,11 @@ export function spatialPlugin(options: SpatialPluginOptions = {}): SpatialPlugin
 
   // A container remembers the child that had the focus, and forgets it for free when
   // that child is removed.
-  const memory = new WeakMap<HTMLElement, ElementHandle>();
+  // Re-assignable so the teardown can drop the whole map: on the `WeakRef` fallback
+  // path a handle holds its element strongly, so every remembered element would
+  // stay reachable through this closure for as long as the plugin object lives —
+  // long after `destroy()`.
+  let memory = new WeakMap<HTMLElement, ElementHandle>();
   const willMoveListeners = new Set<(event: WillMoveEvent) => void>();
   const boundsListeners = new Set<(direction: MoveDirection) => void>();
 
@@ -241,6 +250,7 @@ export function spatialPlugin(options: SpatialPluginOptions = {}): SpatialPlugin
 
   let context: InputPluginContext | null = null;
   let rescanning = false;
+  let cancelRescan: VoidFunction | null = null;
   let focused: HTMLElement | null = null;
 
   function doc(): Document | null {
@@ -379,7 +389,8 @@ export function spatialPlugin(options: SpatialPluginOptions = {}): SpatialPlugin
     scroller.scrollBy(isHorizontal(direction) ? { left: delta } : { top: delta });
 
     rescanning = true;
-    raf(win, () => {
+    cancelRescan = raf(win, () => {
+      cancelRescan = null;
       move(direction);
       rescanning = false;
     });
@@ -509,12 +520,21 @@ export function spatialPlugin(options: SpatialPluginOptions = {}): SpatialPlugin
 
       return () => {
         for (const teardown of teardowns.reverse()) teardown();
+        // A scroll-and-rescan in flight owns both a frame and the latch that stops a
+        // second one starting. Leaving either behind would fire a move into a torn
+        // down plugin, or latch the feature off for good on a plugin set up again.
+        cancelRescan?.();
+        cancelRescan = null;
+        rescanning = false;
         willMoveListeners.clear();
         boundsListeners.clear();
         for (const stale of activeContainers) stale.removeAttribute(ACTIVE_ATTRIBUTE);
         activeContainers.length = 0;
         focused?.removeAttribute(FOCUSED_ATTRIBUTE);
         focused = null;
+        // Dropping the map releases every handle, and with them every element the
+        // fallback path is holding strongly.
+        memory = new WeakMap();
         context = null;
       };
     },
