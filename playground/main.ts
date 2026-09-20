@@ -17,6 +17,13 @@ import { focusRingPlugin } from "../src/focus-ring/focus-ring";
 import { type GamepadPlugin, gamepadPlugin } from "../src/gamepad/gamepad";
 import { createInputSystem, type InputSystem } from "../src/index";
 import { type MoveDirection, type SpatialPlugin, spatialPlugin } from "../src/spatial/spatial";
+import {
+  attachSlider,
+  attachSplitter,
+  attachStepper,
+  attachWheelPicker,
+  ENGAGED_ATTRIBUTE,
+} from "./widgets";
 
 // `app` rather than the `composite` default: this page is a television surface, and
 // in `composite` the arrow keys stay inside a composite and only a gamepad crosses
@@ -34,7 +41,8 @@ const readout = document.getElementById("readout");
 function describe(): string {
   const active = document.activeElement;
   const id = active instanceof HTMLElement ? (active.textContent ?? "").trim() : "nothing";
-  return `${input.modality} · focus: ${id || "nothing"}`;
+  const held = document.querySelector(`[${ENGAGED_ATTRIBUTE}]`) !== null;
+  return `${input.modality} · focus: ${id || "nothing"}${held ? " · held: arrows adjust" : ""}`;
 }
 
 function refresh(): void {
@@ -43,6 +51,9 @@ function refresh(): void {
 
 document.addEventListener("focusin", refresh);
 input.onModalityChange(refresh);
+// Taking hold and letting go are intents, not focus changes: without this the status
+// line would keep claiming the arrows navigate while a control is holding them.
+input.onIntent(refresh);
 refresh();
 
 // Nowhere left to go. On a television this is where a bump animation or a rumble
@@ -82,6 +93,33 @@ for (const button of document.querySelectorAll<HTMLButtonElement>("[data-move]")
     spatial.move(button.dataset.move as MoveDirection);
   });
 }
+
+// The four controls that hold a value. `pushEngageScope` is public and tested, and
+// until now nothing used it — the gap was the recipe, not the engine. These are that
+// recipe, and `src/engage.browser.test.ts` drives this very code with real keys.
+const volume = document.getElementById("volume");
+if (volume instanceof HTMLInputElement) attachSlider(input, volume);
+
+const quantityHost = document.getElementById("quantity-host");
+const quantity = document.getElementById("quantity");
+if (quantityHost instanceof HTMLButtonElement && quantity !== null) {
+  attachStepper(input, quantityHost, quantity, { min: 0, max: 20, step: 1 });
+}
+
+const monthHost = document.getElementById("month-host");
+const month = document.getElementById("month");
+if (monthHost !== null && month !== null) {
+  attachWheelPicker(
+    input,
+    monthHost,
+    ["January", "February", "March", "April", "May", "June"],
+    month,
+  );
+}
+
+const grip = document.getElementById("grip");
+const pane = document.getElementById("pane");
+if (grip !== null && pane !== null) attachSplitter(input, grip, pane);
 
 spatial.focusFirst();
 

@@ -72,6 +72,51 @@
         font-size: 0.875rem;
         opacity: 0.7;
       }
+      .widgets {
+        display: flex;
+        gap: 24px;
+        align-items: flex-end;
+        padding: 8px;
+        border: 1px dashed color-mix(in srgb, currentColor 30%, transparent);
+      }
+      .widget {
+        display: grid;
+        gap: 4px;
+        font-size: 0.875rem;
+      }
+      .widget button {
+        font: inherit;
+        min-width: 120px;
+        min-height: 44px;
+        border-radius: 8px;
+        border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+        background: color-mix(in srgb, currentColor 6%, transparent);
+      }
+      /* Held, not merely focused. The two states have to look different or the
+         playground cannot show that a direction stopped navigating. */
+      [data-engaged] {
+        outline: 2px dashed currentColor;
+        outline-offset: 3px;
+      }
+      .split {
+        display: flex;
+        height: 60px;
+        border: 1px dashed color-mix(in srgb, currentColor 30%, transparent);
+      }
+      #pane {
+        flex-basis: 50%;
+        background: color-mix(in srgb, currentColor 12%, transparent);
+      }
+      #grip {
+        flex: 0 0 14px;
+        padding: 0;
+        border: none;
+        background: color-mix(in srgb, currentColor 45%, transparent);
+        cursor: col-resize;
+      }
+      .split .rest {
+        flex: 1;
+      }
       /* Ordinary application chrome, stacked the way a real page stacks it. The ring
          has to paint above this: it did not, until it carried its own z-index. */
       .chrome {
@@ -124,6 +169,37 @@
       <button type="button" disabled>Grid 6 (disabled)</button>
       <button type="button">Grid 7</button>
       <button type="button">Grid 8</button>
+    </section>
+
+    <!-- Engage mode: A takes hold, the directions adjust instead of navigating, B puts
+         the value back. Press A on one of these and the arrows stop moving the focus.
+         The recipes are in widgets.ts and are driven by src/engage.browser.test.ts. -->
+    <section class="widgets" data-snav="container" aria-label="Controls that hold a value">
+      <label class="widget">
+        <span>Volume — a native range, engageable because `range` is not text entry</span>
+        <input type="range" id="volume" min="0" max="100" step="5" value="50" />
+      </label>
+
+      <div class="widget">
+        <span>Quantity — a button, because A never reaches a number input</span>
+        <button type="button" id="quantity-host">
+          <span id="quantity">3</span>
+        </button>
+      </div>
+
+      <div class="widget">
+        <span>Month — comes round, where the slider stops</span>
+        <button type="button" id="month-host"><span id="month">January</span></button>
+      </div>
+    </section>
+
+    <section class="split" aria-label="Splitter">
+      <div id="pane"></div>
+      <!-- biome-ignore lint/a11y/useSemanticElements: the suggested <hr> cannot take
+           focus, and a separator that takes focus is the whole window-splitter pattern. -->
+      <div id="grip" role="separator" tabindex="0" aria-orientation="vertical"
+        aria-valuemin="10" aria-valuemax="90" aria-valuenow="50" aria-label="Resize pane"></div>
+      <div class="rest"></div>
     </section>
 
     <section class="rail" aria-label="Plain markup, no container">
