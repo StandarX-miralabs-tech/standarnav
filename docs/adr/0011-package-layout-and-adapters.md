@@ -96,7 +96,7 @@ would be, and widened from the `^19.0.0` constraint inherited from the predecess
 ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here, down to 18.3 — the release
 that ships the hooks the adapter uses, and the floor below which the provider would need a second
 implementation. That floor is built and run here rather than merely declared: the `react-floor`
-job (`.github/workflows/ci.yml:75-88`) installs `react@^18.3.1`, `react-dom@^18.3.1` and the
+job (`.github/workflows/ci.yml:75-101`) installs `react@^18.3.1`, `react-dom@^18.3.1` and the
 matching 18 type packages over the lockfile, then typechecks and runs the browser suite on them.
 
 Runtime dependencies are zero and now enforced: `scripts/check-package.ts:30-40` fails the run when
@@ -122,9 +122,9 @@ Adapter order, each shipping only once it passes the same browser suite as the c
    `useDocument` at `:64-110`) — and `useDocument()` here reads nothing but this module's own
    `DocumentContext` (`src/react/react.tsx:62`, consumed at `:108-110`), so the adapter depends on
    React and nothing else. It also carries a test file of its own, which the predecessor's adapter
-   did not: `src/react/react.browser.test.tsx`, 340 lines, nine direct cases by
-   `grep -cE "^\s*(it|test)\("`, ending in `runAdapterParitySuite(parity)` at `:340` on the adapter
-   object built at `:260-338` — the shared parity suite that is the ship condition below.
+   did not: `src/react/react.browser.test.tsx`, 465 lines, twelve direct cases by
+   `grep -cE "^\s*(it|test)\("`, ending in `runAdapterParitySuite(parity)` at `:342` on the adapter
+   object built at `:262-340` — the shared parity suite that is the ship condition below.
 2. **vanilla auto-mount helper** — attribute-driven start-up, no framework.
 3. **Vue**, 4. **Svelte**, 5. **Angular** — this repository has no `src/vue`, `src/svelte` or
    `src/angular`, and no predecessor code to port: they are new code, not a migration.
@@ -182,9 +182,9 @@ drift gate turns a mismatch into a failed build instead of a broken published pa
 ## Evidence
 
 - This repository. `package.json`: name `@standarx/nav`,
-  `"type": "module"`, `"sideEffects": false`, the generated `"exports"` map with six subpaths plus
-  `"./package.json"` (`:32-40`), optional `react`/`react-dom` peers at `>=18.3.0` (`:41-52`),
-  `"publishConfig": {"access": "public", "provenance": true}` (`:53-56`), devDependencies `tsdown`
+  `"type": "module"`, `"sideEffects": false`, the generated `"exports"` map with ten subpaths plus
+  `"./package.json"` (`:32-43`), optional `react`/`react-dom` peers at `>=18.3.0` (`:45-56`),
+  `"publishConfig": {"access": "public", "provenance": true}` (`:57-60`), devDependencies `tsdown`
   `0.23.0`, `publint` `^0.3.24`, `@arethetypeswrong/cli` `^0.18.5`, and no `dependencies` key at
   all. `tsdown.config.ts`: ten entries, `format: ["esm"]`, `platform: "neutral"`, `external`
   for `react`, `react-dom` and `react/jsx-runtime`, `unbundle`, `dts`, `clean`, `publint`,
@@ -199,7 +199,7 @@ drift gate turns a mismatch into a failed build instead of a broken published pa
   implementation ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here, and every cap
   in `scripts/size-budget.ts` was measured against this repository's built `dist/`.
 - Budget rule (a line without a cap fails the run): `scripts/size-budget.ts` in this repository —
-  `Line.cap` documented at `:58-59` and enforced at `:253-257`, where a `null` cap sets the status
+  `Line.cap` documented at `:58-59` and enforced at `:286-290`, where a `null` cap sets the status
   to `UNCAPPED` and pushes a failure; `LINES` at `:77-158` holding eleven lines with a numeric cap on
   every one; and the rule at `:65-76` that externals are named file by file and never globbed.
 - Sizes measured here: `bun run build && bun run check:size` in this repository, min+gzip at Bun's

@@ -18,7 +18,7 @@ consumer who writes their own has to reimplement the intent plumbing to do it.
 What exists today is the refusal, not the answer. `isTextEntryTarget` decides that an `<input>`,
 a `<textarea>`, a `contenteditable` or a `role="textbox"` is a text entry (`src/keymap.ts:151-161`),
 and the input system then **drops** every intent aimed at one except `back`, `tabNext`, `tabPrev`
-and `contextMenu` (`src/input-system.ts:166-171`, `src/keymap.ts:184-190`). So the arrows move a
+and `contextMenu` (`src/input-system.ts:166-171`, `src/keymap.ts:164-190`). So the arrows move a
 caret and Space types a space, and a navigation scope never sees them. That is correct for a
 physical keyboard and it is why a television is stuck: the d-pad is dropped too, and there is
 nothing to type with.

@@ -98,7 +98,7 @@ taken in this repository — the two amendments below are that record.
 - No cap can be written before a build exists, so rule 5 keeps `check:size` red
   until the first measurement is recorded — and red earlier still, with a message
   telling the reader to run `bun run build`, while `dist/` is missing
-  (`scripts/size-budget.ts:245-248`). The sequence is red, measure, cap, green, and
+  (`scripts/size-budget.ts:275-278`). The sequence is red, measure, cap, green, and
   the amendments below are where each cap was written from its measurement.
 - Bundling every subpath alone and then all of them together is more work per run
   and a longer report. Accepted: the single-number version lets a shared module
@@ -380,13 +380,13 @@ import, and hides a regression in one subpath behind slack in another. The same
 choice was made once before, a single 4 kB line for the two engines **split** rather
 than raised when the pair measured 5.16 kB — inherited from the predecessor
 implementation ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here.
-The split is what this repository does: seven separate lines, one per entry
+The split is what this repository does: eleven separate lines, one per entry
 (`scripts/size-budget.ts:77-158`).
 
 **`size-limit` instead of a written script.** Rejected: these budgets ask "what does
 a consumer pay", not "how big is this file" (`scripts/size-budget.ts:5-7`), so
 `size-limit` would need a synthetic entry per line anyway — which is what every line
-here is already bundled through (`scripts/size-budget.ts:174-175`).
+here is already bundled through (`scripts/size-budget.ts:204-228`).
 
 **Inherit the caps rather than measure them.** Rejected by rule 2. An inherited cap
 would be green or red for reasons belonging to a build this repository does not run:
@@ -409,21 +409,23 @@ and the numbers are in `scripts/size-budget.ts:77-158`.
   it also imports as `external`, file by file and never globbed, because `*` does not
   cross a path separator and a glob is how a line stops measuring while staying green
   (`scripts/size-budget.ts:65-76`; the lists themselves at
-  `scripts/size-budget.ts:84-121`), while `core` and `whole package` declare none. The
+  `scripts/size-budget.ts:84-131`), while `core` and `whole package` declare none. The
   whole-package line bundles the four runtime entries through one synthetic module
   with nothing external and excludes the debug entry on purpose
-  (`scripts/size-budget.ts:152-157`). All seven caps are written
+  (`scripts/size-budget.ts:152-157`). All eleven caps are written
   (`scripts/size-budget.ts:81`, `scripts/size-budget.ts:87`,
   `scripts/size-budget.ts:94`, `scripts/size-budget.ts:101`,
   `scripts/size-budget.ts:108`, `scripts/size-budget.ts:118`,
+  `scripts/size-budget.ts:125`, `scripts/size-budget.ts:135`,
+  `scripts/size-budget.ts:143`, `scripts/size-budget.ts:149`,
   `scripts/size-budget.ts:155`); a line whose `cap` is `null` prints its measurement
   and exits non-zero (`scripts/size-budget.ts:286-290`), and a missing `dist/` exits
   first with a message pointing at `bun run build`
-  (`scripts/size-budget.ts:245-248`).
+  (`scripts/size-budget.ts:275-278`).
 - Bun's default gzip level, and the instruction never to mix it with `gzip -9`:
   `scripts/size-budget.ts:9-10`. Why `size-limit` would need a synthetic entry per line
   anyway, and the synthetic module every line is bundled through:
-  `scripts/size-budget.ts:5-7` and `scripts/size-budget.ts:174-175`.
+  `scripts/size-budget.ts:5-7` and `scripts/size-budget.ts:204-228`.
 - Historical figures of 2026-08-27 (2.48 kB gamepad, 2.89 kB spatial, 1.34 kB focus
   ring): inherited from the predecessor implementation
   ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here. That gamepad

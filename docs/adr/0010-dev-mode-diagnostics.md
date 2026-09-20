@@ -127,8 +127,8 @@ did ([ADR-0017](0017-size-budgets.md), the amendment of that date).
   here with `bun run build && bun run check:size`: core 3.13 kB of a 3.25 kB cap, spatial engine
   3.04 of 3.25, debug 0.49 of 0.50, min+gzip ([ADR-0017](0017-size-budgets.md)).
 - Point 4 removed a duplicate implementation of the winner rule, and that is done: `src/debug.ts`
-  imports `findBestCandidate` and calls it for the winner (`src/debug.ts:13-19`, `:68`), keeping
-  `scoreCandidates` for the per-candidate table alone (`:67`). The asymmetry this ADR's Context
+  imports `findBestCandidate` and calls it for the winner (`src/debug.ts:13-19`, `:69`), keeping
+  `scoreCandidates` for the per-candidate table alone (`:68`). The asymmetry this ADR's Context
   described — the debug loop's second pass excluding aligned candidates where the engine's does not
   — no longer exists, because there is no second loop.
 - The scan has false negatives it cannot fix: a click listener attached with `addEventListener` is
@@ -200,18 +200,19 @@ removed.
 - `src/tabbable.ts:17-32`, `:56-63` — `FOCUSABLE_SELECTOR` and `isFocusable`, what a candidate has to
   be.
 - `package.json` — `"./debug"` as its own export, and `"sideEffects": false`.
-- `scripts/size-budget.ts` — the `debug` line at `:105-111`, entry `debug.js`,
-  `external: ["./spatial/spatial.js", "./spatial/geometry.js"]`, `cap: 0.5 * KB`. The rule forbidding
-  globbed externals, with the `./*` failure mode spelled out, is the comment at `:65-76`.
+- `scripts/size-budget.ts` — the `debug` line at `:105-114`, entry `debug.js`,
+  `external: ["./spatial/spatial.js", "./spatial/geometry.js", "./tabbable.js"]`,
+  `cap: 0.5 * KB`. The rule forbidding globbed externals, with the `./*` failure mode
+  spelled out, is the comment at `:65-76`.
 - Sizes measured here: `bun run build && bun run check:size`, min+gzip at Bun's default gzip level —
   debug 0.49 kB of 0.50, core 3.13 of 3.25, spatial engine 3.04 of 3.25. Any earlier figure for a
   differently shaped build is inherited from the predecessor implementation
   ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here.
 - The winner rule is shared, not restated: `src/debug.ts:13-19` imports `findBestCandidate`,
-  `scoreCandidates` and the scoring types from `./spatial/geometry`; `:67-68` calls `scoreCandidates`
-  for the table and `findBestCandidate` for the winner; the comment at `src/debug.ts:63-66` names
-  this ADR's decision 4 as the reason. `src/debug.ts` is 71 lines. Cases:
-  `src/debug.browser.test.ts`, six of them.
+  `scoreCandidates` and the scoring types from `./spatial/geometry`; `:68-69` calls `scoreCandidates`
+  for the table and `findBestCandidate` for the winner; the comment at `src/debug.ts:64-67` names
+  this ADR's decision 4 as the reason. `src/debug.ts` is 91 lines. Cases:
+  `src/debug.browser.test.ts`, nine of them.
 - Row 1 of the Context table survives in a different shape: the zero-size filter is
   `rect.width === 0 || rect.height === 0` (`src/spatial/spatial.ts:188`,
   [ADR-0009](0009-hidden-candidates.md) C1), so a 0 x 40 element is silently *dropped* rather than
