@@ -80,7 +80,7 @@ application persists, because a core with zero dependencies does no I/O (`gamepa
 generic` for glyphs — a heuristic over vendor text, not a lookup (`mapping.ts:71-83`).
 `swapNintendoConfirm` is **off by default**: the standard mapping already normalises by physical
 position, so confirm stays under the thumb that confirms on every other pad; the option exists for
-applications that would rather match the printed glyph (`mapping.ts:37-52`, `gamepad.ts:88-89`).
+applications that would rather match the printed glyph (`mapping.ts:37-53`, `gamepad.ts:88-89`).
 
 **Multi-pad merge by default.** Every connected pad drives the same navigation — any pad in the
 living room works — and `activeIndex` is the pad that moved last, for glyphs (`gamepad.ts:157`,
@@ -112,12 +112,15 @@ nothing on this side adds to it.
 
 ## Open items recorded, not resolved
 
-| Item | Where | Status |
+Line references in this table are miralabs-ui's, as everywhere else in this record; the status
+column is re-read against this repository on 2026-09-20.
+
+| Item | Where (miralabs-ui) | Status |
 |---|---|---|
-| `MAX_BUTTONS = 20` while the standard table has 16 entries | `gamepad.ts:44`, `mapping.ts:18-35` | Undocumented. The four extra slots are polled and resolve to `null` unless `setMapping` overrides them (`mapping.ts:48-49`). Kept for v0 parity; to be explained or reduced with a test. |
-| The modality is pushed on every emission, including the two closing zeros of the scroll | `gamepad.ts:158`, `gamepad.ts:290-291` | A stick returning to centre re-asserts `gamepad` modality. Harmless today, wrong in principle; to be verified against the anti-flicker rule before it becomes a fix. |
-| No test on real hardware | — | Not measured yet. Every gamepad test runs through the runtime seam with synthetic pads. Nothing here is evidence about a physical controller, a television or a Steam Deck. |
-| `MAX_PADS = 4` | `gamepad.ts:43` | Inherited limit, no stated reason in the source and no ADR of its own. A boundary fixture is on the list in [ADR-0018](0018-testing-strategy.md). |
+| `MAX_BUTTONS = 20` while the standard table has 16 entries | `gamepad.ts:44`, `mapping.ts:18-35` | Still unexplained, but no longer untested. `src/gamepad/gamepad.browser.test.ts:316-324` reads twenty buttons and stops there, driven by a harness with a settable button count so the engine's own bound is what the assertion reads. The four extra slots are polled and resolve to `null` unless `setMapping` overrides them. Kept for v0 parity; the *reason* is still owed. |
+| The modality is pushed on every emission, including the two closing zeros of the scroll | `gamepad.ts:158`, `gamepad.ts:290-291` | Unchanged and still open. A stick returning to centre re-asserts `gamepad` modality. Harmless today, wrong in principle; to be verified against the anti-flicker rule before it becomes a fix. |
+| No test on real hardware | — | Unchanged. Not measured. Every gamepad test runs through the runtime seam with synthetic pads: nothing in this repository is evidence about a physical controller, a television or a Steam Deck ([ADR-0014](0014-device-and-browser-matrix.md)). |
+| `MAX_PADS = 4` | `gamepad.ts:43` | Inherited limit, no stated reason in the source and no ADR of its own — that part stands. The boundary fixture [ADR-0018](0018-testing-strategy.md) asked for is written: `src/gamepad/gamepad.browser.test.ts:304-314` polls four pads and ignores a fifth, from a harness offering six slots. |
 
 ## Alternatives considered
 
@@ -142,9 +145,21 @@ nothing on this side adds to it.
   <https://minimuino.github.io/thumbstick-deadzones/>.
 - Code read on 2026-09-18 in miralabs-ui (read-only): `packages/core/src/input/gamepad/gamepad.ts`
   (450 lines), `mapping.ts` (91), `dead-zone.ts` (95), `repeat.ts` (63), counted with `wc -l` the
-  same day. Every line reference above points there; in this repository those files become
-  `src/gamepad/*.ts`. The `assign` signature was corrected from input.md §2.6
-  (`assign(padIndex, scopeId)`) to what shipped.
+  same day. Every line reference above points there; in this repository those files are
+  `src/gamepad/*.ts`, and the design they describe was extracted unchanged. The `assign` signature
+  was corrected from input.md §2.6 (`assign(padIndex, scopeId)`) to what shipped.
+- The engine as extracted, and its coverage, read 2026-09-20:
+  `src/gamepad/{gamepad,mapping,dead-zone,repeat}.ts`, with unit cases in
+  `src/gamepad/{dead-zone,mapping,repeat}.test.ts` and the frame-driven suite in
+  `src/gamepad/gamepad.browser.test.ts` — the `GamepadRuntime` seam this ADR describes is what
+  drives it, one frame at a time, with no hardware and no timers. `gamepadPlugin` also carries its
+  own public types on the `./gamepad` subpath (`src/gamepad/gamepad.ts:48-56`), so a consumer can
+  name what it passes and what it gets back without importing the core entry
+  ([ADR-0011](0011-package-layout-and-adapters.md)).
+- Size, measured here rather than inherited: the gamepad engine is 2.48 kB min+gzip against a
+  2.50 kB cap, `bun run build && bun run check:size` on 2026-09-20 — the one line at 99 % of its
+  cap, and the next commit that grows it needs an amendment to
+  [ADR-0017](0017-size-budgets.md) first.
 - Competitor claim: [docs/research/competitors.md](../research/competitors.md), "No Gamepad API use
   in any of the eighteen" (2026-09-18).
 - Related: [ADR-0018](0018-testing-strategy.md), [ADR-0003](0003-extraction-scope.md).

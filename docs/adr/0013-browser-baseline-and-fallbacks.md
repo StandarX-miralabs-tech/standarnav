@@ -25,6 +25,9 @@ are hopes.
 Two things set the floor today. The first is syntax: the compiled output must parse. The second is
 APIs: four modern APIs appear in the code, and only some of them degrade.
 
+The "used at" column below is the source repository; the amendment of 2026-09-20 at the foot of
+this record re-reads every row against this repository's own code.
+
 | API | Chrome | Safari | Firefox | Used at (miralabs-ui) | Behaviour when absent |
 |---|---|---|---|---|---|
 | `WeakRef` | 84 | 14.1 | 79 | `input/spatial/spatial.ts:235` constructs it; `:198` is a type position and erases; `:293` reads through `deref()` | `ReferenceError` on the **first successful move**, not at construction — `new WeakRef` sits inside `remember()`, so an unguarded build mounts, renders and accepts focus, then throws the first time the user presses a direction |
@@ -86,7 +89,8 @@ detection can rescue a file the engine refused to read.
      forgotten for free; `isConnected` on read gives the same observable behaviour, at the cost of
      holding one element per container until the next read.
    - `checkVisibility` → the fallback already written in the source
-     (`focus/tabbable.ts:40-46`), kept as is, including its known blind spot for `visibility: hidden`.
+     (`miralabs-ui: packages/core/src/focus/tabbable.ts:40-46`), kept as is, including its known
+     blind spot for `visibility: hidden`.
    - `inert` → `closest("[inert]")` is an attribute read and works on every engine we target; only
      the native effect differs, and the library does not rely on it.
    - `Array.prototype.at` → index arithmetic (`list[list.length - 1]`).
@@ -109,24 +113,67 @@ it work on a 2021 Tizen set" is "no, and there is no work in progress".
 
 ## Consequences
 
-- The size budgets inherited from the source repository were measured on `es2022` output and are no
-  longer valid. `bun run check:size` in miralabs-ui on 2026-09-18 reported the spatial engine at
-  2.81 kB of a 3.00 kB cap (94 %) and the input system at 1.93 kB of 2.00 kB (96 %), min+gzip with
-  `../*` externals. Downlevelling to `es2020` replaces the logical assignment operators and class
-  fields with longer forms, and both lines already sit close to their caps, so every budget is
-  re-measured on the first `es2020` build here ([ADR-0017](0017-size-budgets.md)). Until then: not
-  measured yet.
-- A CI check must be added that greps the built `dist` for `WeakRef` and for `.at(` and fails when
-  either appears outside the single module that guards it. The workflow in this repository
-  (`.github/workflows/ci.yml`, read 2026-09-18) runs lint, typecheck, build, unit and browser jobs
-  and carries no such grep today. Without it, one refactor silently restores the Chrome 84 floor and
-  nothing in the test suite notices — the CI browsers are current engines, so they have every API
-  the fallbacks exist for.
-- The fallback paths are the ones no CI browser exercises. They need unit tests that hide the modern
-  API from the module under test, otherwise the guarded branch is dead code that has never run.
+- The size budgets inherited from the source repository were measured on `es2022` output and were
+  never valid here. They have been replaced by measurements of this repository's own `es2020`
+  output: `bun run build && bun run check:size`, 2026-09-20, min+gzip — core 3.13 kB of a 3.25 kB
+  cap, gamepad engine 2.48 of 2.50, spatial engine 3.04 of 3.25, focus ring 1.51 of 1.75, debug
+  0.40 of 0.50, react adapter 1.30 of 1.50, whole package 8.77 of 9.00, every line under its cap
+  ([ADR-0017](0017-size-budgets.md)). The inherited figures — spatial 2.81 kB of 3.00, input system
+  1.93 of 2.00, `bun run check:size` in miralabs-ui on 2026-09-18 — remain context about another
+  repository's build and are not comparable line for line, because the lines were drawn
+  differently. Downlevelling did not blow a budget, which was the open worry here.
+- A CI check must still be added that greps the built `dist` for `WeakRef` and for `.at(` and fails
+  when either appears outside the single module that guards it. The workflow
+  (`.github/workflows/ci.yml`, read 2026-09-20) now runs six jobs — lint (`:13`), typecheck
+  (`:23`), build (`:33`), unit test (`:51`), react-floor (`:66-92`, the declared peer floor
+  re-typechecked and re-run on chromium) and browser (`:94-120`, a matrix over chromium, firefox
+  and webkit), which is eight checks — and the build job runs `bun run build`, the
+  `git diff --exit-code` exports-map drift gate, `check:package` and `check:size`. **None of them
+  is this grep.** Without it, one refactor silently restores the Chrome 84 floor and nothing
+  notices — the CI browsers are current engines, so they have every API the fallbacks exist for.
+- The fallback paths are the ones no CI browser exercises, so they need a test that hides the
+  modern API from the module under test. The `WeakRef` one is written:
+  `src/spatial/spatial.browser.test.ts:794-826` deletes `WeakRef` from `globalThis` for the
+  duration of the case and asserts that the memory still remembers and still forgets a removed
+  child, which is the only thing that ever runs the strong-reference branch. The other two rows
+  have no such test: nothing hides `checkVisibility` from `src/tabbable.ts`, and the
+  `Array.prototype.at` row cannot have one because the rewrite removed the call rather than
+  guarding it.
 - The documented floor and the tested floor are different numbers, and both go in the README. The
   library is built to parse on Chromium 80; the suite runs on whatever engines the pinned Playwright
   release ships.
+
+## Amendment, 2026-09-20: the baseline checked against the code that now exists
+
+The four rows of the Context table were read in the source repository. The engine is here now, so
+each was re-read against this repository. Decision 2 holds on every row; what changed is that the
+line numbers are local and one row is no longer a fallback at all.
+
+| API | What the code does here | Read at |
+|---|---|---|
+| `WeakRef` | Feature-detected at call time, not at module scope, and the constructor is read off `globalThis` so a test can delete it. Present → a real `WeakRef`; absent → a strong reference that drops itself on the first read finding the element detached | `src/spatial/spatial.ts:109-141` |
+| `Element.checkVisibility()` | Feature-detected through an `unknown` cast to an interface whose method is optional, with the comment saying the cast exists so the fallback does not read as dead code. Present → `checkVisibility({ contentVisibilityAuto: true, visibilityProperty: true })`; absent → `offsetParent === null && getClientRects().length === 0` | `src/tabbable.ts:34-50` |
+| `inert` | `closest("[inert]")`, an attribute read with no detection and no fallback, because the attribute is readable on every engine in the tier and only the native focus-blocking effect differs | `src/tabbable.ts:52-54` |
+| `Array.prototype.at` | **Not detected — removed.** `getTabbableEdges` uses `tabbables[tabbables.length - 1]`, with a comment naming this ADR's tier as the reason | `src/tabbable.ts:85-93` |
+
+The last row is the one that changed category. Decision 2 listed `.at` among the APIs with a
+fallback; there is no fallback, because there is no call. That is the stronger outcome and it is
+what this ADR asked for — "raising `lib` would silence the compiler and ship the break" — but the
+row should read "rewritten", not "falls back to".
+
+The enforcement mechanism is in place and working: `tsconfig.json:3-4` is `"target": "es2020"` and
+`"lib": ["es2020", "dom", "dom.iterable"]` (read 2026-09-20), so `WeakRef` is not in the type
+environment, and the module that uses it declares its own `WeakRefCtor` interface locally
+(`src/spatial/spatial.ts:109-111`) — exactly the "local ambient declaration in the module that
+guards it" decision 1 describes. `bun run typecheck` is green in CI on that configuration.
+
+One API this ADR does not list is now in the code and should be: `Element.animate` (WAAPI), called
+unguarded three times by the focus ring (`src/focus-ring/focus-ring.ts:150`, `:190`, `:192`). Its
+support floor across the three engines has **not been verified here** — no caniuse or BCD fetch was
+made for it on 2026-09-20 — so it gets no row in the table above until someone fetches it. The
+exposure is bounded: the focus ring is an opt-in subpath, and a missing `animate` would throw in
+the overlay rather than in the engine. Verifying it, and guarding the call if the floor turns out
+to sit above Chromium 85, is a v0 follow-up.
 
 ## Alternatives considered
 
@@ -147,7 +194,15 @@ it work on a 2021 Tizen set" is "no, and there is no work in progress".
 
 ## Evidence
 
-- `tsconfig.json:3-4` of this repository (read 2026-09-18): `"target": "es2020"`, `"lib": ["es2020", "dom", "dom.iterable"]`.
+- `tsconfig.json:3-4` of this repository (re-read 2026-09-20, unchanged since 2026-09-18):
+  `"target": "es2020"`, `"lib": ["es2020", "dom", "dom.iterable"]`.
+- This repository's own guards, read 2026-09-20: `src/spatial/spatial.ts:109-141`
+  (`WeakRefCtor` declared locally, the constructor read off `globalThis` at call time, and the
+  self-releasing strong-reference fallback); `src/tabbable.ts:34-50` (`VisibilityCheck` with an
+  optional method, the `unknown` cast and its comment, and the `offsetParent`/`getClientRects`
+  fallback); `:52-54` (`closest("[inert]")`); `:85-93` (`tabbables[tabbables.length - 1]` with the
+  comment naming this ADR). The fallback that has a test:
+  `src/spatial/spatial.browser.test.ts:794-826`.
 - miralabs-ui `tsconfig.base.json:3-4` (read 2026-09-18): `"target": "es2022"`, `"lib": ["es2023", "dom", "dom.iterable"]`.
 - miralabs-ui `packages/core/src/input/spatial/spatial.ts:198` (`new WeakMap<HTMLElement, WeakRef<HTMLElement>>()`), `:235` (`new WeakRef(element)`), `:293` (`.deref()`), read 2026-09-18.
 - miralabs-ui `packages/core/src/focus/tabbable.ts:40-46` (`isHidden`, `checkVisibility` at `:41-43` with the fallback at `:45`), `:49` (`closest("[inert]")`), `:85` (`tabbables.at(-1)`), read 2026-09-18.

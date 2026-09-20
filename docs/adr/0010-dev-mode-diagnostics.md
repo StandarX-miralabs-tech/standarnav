@@ -34,12 +34,19 @@ point so that "an application that ships spatial navigation does not ship the ex
 that does not import it.
 
 That same file is also the one place where a diagnostic can lie. Its own header says a diagnostic that
-measures something else is worse than none — and then it restates the winner rule in its own loop
-(`debug.ts:57-70`) instead of calling the engine's `findBestCandidate` (`geometry.ts:140-186`). Read
-side by side on 2026-09-18 the two agree, and one asymmetry is already visible: the engine's "any"
-accumulator considers aligned candidates too, while the debug loop's second pass excludes them. It is
-unreachable today, because an eligible aligned candidate short-circuits the engine's return. It is
-exactly the shape of a future divergence, and nothing tests the two against each other.
+measures something else is worse than none — and in the source it restates the winner rule in its own
+loop (miralabs-ui: `packages/core/src/input/spatial/debug.ts:57-70`) instead of calling the engine's
+`findBestCandidate` (`geometry.ts:140-186`). Read side by side on 2026-09-18 the two agree, and one
+asymmetry is already visible: the engine's "any" accumulator considers aligned candidates too, while
+the debug loop's second pass excludes them. It is unreachable there, because an eligible aligned
+candidate short-circuits the engine's return. It is exactly the shape of a future divergence, and
+nothing in the source tests the two against each other.
+
+That is the state this ADR was written against, and decision 4 below is the answer to it. The
+extracted `src/debug.ts` does not carry the second loop: it was refactored to call
+`findBestCandidate` before the extraction branch merged, so the divergence described above never
+existed in this repository. The paragraph stays as written because it is the reason decision 4 is
+in the record at all.
 
 ## Decision
 
@@ -96,19 +103,33 @@ The subpath provides:
    > Check that it is inside the container the move starts from, or in one the walk can reach.
    > If it still does not work, call `explainMove(origin, direction)` from `@standarx/nav/debug`.
 
-The subpath gets its own size-budget line ([ADR-0017](0017-size-budgets.md)), and that line already
-exists here: `scripts/size-budget.ts` measures `debug.js` with `./*` external, and its cap is `null`,
-which fails the run until the first build in this repository produces the number that sets it. In
-miralabs-ui no budget line matched `debug` at all, and a diagnostics module with no cap is how a
-diagnostics module ends up in production bundles.
+The subpath gets its own size-budget line ([ADR-0017](0017-size-budgets.md)), and that line exists
+and is capped: `scripts/size-budget.ts:105-111` measures `debug.js` against a cap of 0.50 kB, and
+`bun run build && bun run check:size` on 2026-09-20 reported **0.40 kB min+gzip**, 0.62 kB
+minified. In miralabs-ui no budget line matched `debug` at all, and a diagnostics module with no
+cap is how a diagnostics module ends up in production bundles.
+
+That line's externals are `../spatial/spatial.js` and `../spatial/geometry.js` named one by one, not
+the `./*` glob this ADR described on 2026-09-18. The glob is now forbidden by the script itself
+(`scripts/size-budget.ts:65-76`): `*` does not cross a path separator, so `./*` on a top-level entry
+can externalise the line's own contents and report a re-export stub as proof — a budget line that
+stops measuring without ever going red. Naming the two spatial modules is what makes the 0.40 kB a
+marginal cost, which is the only figure this line is meant to carry.
 
 ## Consequences
 
-- Production builds are unchanged. The core entry gains nothing, and the measured budgets stay as they
-  are (`bun run check:size` in miralabs-ui on 2026-09-18: spatial engine 2.81 kB of a 3.00 kB cap,
-  input system 1.93 kB of 2.00 kB).
-- Point 4 removes a duplicate implementation of the winner rule, which is a small behaviour risk today
-  (the two agree by reading) and a large one later.
+- Production builds are unchanged. The core entry gains nothing: `src/index.ts` does not re-export
+  the debug module, and `./debug` is its own entry in the exports map (`package.json:34`, read
+  2026-09-20). Measured here, `bun run build && bun run check:size` on 2026-09-20: core 3.13 kB of
+  a 3.25 kB cap, spatial engine 3.04 of 3.25, debug 0.40 of 0.50, min+gzip
+  ([ADR-0017](0017-size-budgets.md)). The older figures — spatial 2.81 kB of 3.00, input system
+  1.93 of 2.00 — are `bun run check:size` in miralabs-ui on 2026-09-18 and describe that
+  repository's build, not this one.
+- Point 4 removed a duplicate implementation of the winner rule. Done, 2026-09-19: `src/debug.ts`
+  imports `findBestCandidate` and calls it for the winner (`src/debug.ts:13-19`, `:68`), keeping
+  `scoreCandidates` for the per-candidate table alone (`:67`). The asymmetry this ADR's Context
+  described — the debug loop's second pass excluding aligned candidates where the engine's does not
+  — no longer exists, because there is no second loop.
 - The scan has false negatives it cannot fix: a click listener attached with `addEventListener` is
   invisible to it. The documentation says so, rather than let an empty report read as "your page is fine".
 - Diagnostics are opt-in. An application that never imports the subpath never sees a warning: that is
@@ -116,7 +137,13 @@ diagnostics module ends up in production bundles.
 - The depth and redirection warnings need a hook the engine does not have yet: the engine must expose
   enough state for the debug module to observe a saturated walk without re-running it. That surface is
   designed with point 4, not before.
-- Nothing here is measured or tested yet. The scan, the warnings and the parity test are v0 work items.
+- Of the five items, only point 4 has shipped, which is what decision "which of the five are in v0"
+  above says should happen. The scan (point 1), the depth warning (2), the redirection warning (3)
+  and the documentation note (5) are v1 and no code exists for any of them (`src/debug.ts`, 71
+  lines, `wc -l` 2026-09-20: `SpatialExplanation`, `explainMove` and type re-exports, no DOM
+  written and no scan). Point 4 is measured and covered: `src/debug.browser.test.ts` holds six
+  cases, three of which pin where the diagnostic is *meant* to differ from the engine
+  (`:113-180`) — the differences that remain once the winner rule is shared.
 
 ## Alternatives considered
 
@@ -151,10 +178,29 @@ removed.
 - `packages/core/src/focus/tabbable.ts:16-31`, `:52-59` — what a candidate has to be.
 - `packages/core/package.json:61` — `"./input/spatial/debug"` as its own export.
 - `packages/core/package.json:14` — `"sideEffects": false`.
-- `scripts/size-budget.ts` in this repository (read 2026-09-18) — a `debug` line, entry `debug.js`,
-  `external: ["./*"]`, `cap: null`; miralabs-ui has no budget line matching `debug`.
-- Sizes quoted above: `bun run check:size` in miralabs-ui on 2026-09-18, min+gzip, externals `../*`
-  and `../../*`, dist built the same day.
+- `scripts/size-budget.ts` in this repository, read 2026-09-20 — the `debug` line at `:105-111`,
+  entry `debug.js`, `external: ["./spatial/spatial.js", "./spatial/geometry.js"]`, `cap: 0.5 * KB`.
+  The rule forbidding globbed externals, with the `./*` failure mode spelled out, is the comment at
+  `:65-76`. On 2026-09-18 this line read `external: ["./*"]` with `cap: null`; both are gone.
+  miralabs-ui still has no budget line matching `debug`.
+- Sizes measured here: `bun run build && bun run check:size` in this repository on 2026-09-20,
+  min+gzip at Bun's default gzip level — debug 0.40 kB of 0.50, core 3.13 of 3.25, spatial engine
+  3.04 of 3.25. Sizes inherited: `bun run check:size` in miralabs-ui on 2026-09-18, min+gzip,
+  externals `../*` and `../../*`, dist built the same day.
+- The winner rule is shared, not restated, in this repository: `src/debug.ts:13-19` imports
+  `findBestCandidate`, `scoreCandidates` and the scoring types from `./spatial/geometry`; `:67-68`
+  calls `scoreCandidates` for the table and `findBestCandidate` for the winner; the comment at
+  `src/debug.ts:63-66` names this ADR's decision 4 as the reason. `src/debug.ts` is 71 lines (`wc -l`,
+  2026-09-20). Cases: `src/debug.browser.test.ts`, six of them.
+- Rows 2 and 3 of the Context table are still present at HEAD, read 2026-09-20, all in `src/spatial/spatial.ts`: `:60` and
+  `:423-444` (`MAX_CONTAINER_DEPTH = 16` and the walk that ends in the bounds listeners at `:444`),
+  and `:414-417` — the redirection resolved with `root.ownerDocument.querySelector` and handed
+  straight to `commit` (`:308-333`) with no `isFocusable` between them. Points 2 and 3 above are
+  still needed. Row 1 has changed shape rather than gone away: the zero-size filter is now
+  `rect.width === 0 || rect.height === 0` (`src/spatial/spatial.ts:188`,
+  [ADR-0009](0009-hidden-candidates.md) C1), so a 0 x 40 element is silently *dropped* where it
+  used to be silently focused. The move still does nothing and still says nothing, which is the
+  symptom the scan exists to explain; only the reason printed next to it changes.
 - All source paths are read-only, repository miralabs-ui at commit `289fa607`, read on 2026-09-18.
 - Related: [ADR-0009](0009-hidden-candidates.md) for the visibility rules the scan explains, and
   [ADR-0008](0008-shadow-dom.md) for what the scan cannot see at all.

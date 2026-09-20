@@ -71,17 +71,20 @@ Three rules complete the decision.
 - Third-party markup is navigable with no application code. A page adds a setup of
   four lines — three imports and one `createInputSystem` call with the two plugins —
   and nothing else (the equivalent setup in the source repository is
-  `apps/docs/content/foundations/gamepad.md:27-35`, read 2026-09-18).
+  `miralabs-ui: apps/docs/content/foundations/gamepad.md:27-35`, read 2026-09-18).
 - Attribute names become a public contract. Renaming one is a breaking change, so
   the names are **frozen at v1** and documented as API, not as internals. The
   rename from the source prefix `data-mira-nav-*` to `data-snav-*` is the last
   free one, and it is a coordinated breaking change on the miralabs-ui side.
 - The engine reads the DOM on every move rather than keeping a cache, which is what
   makes mutated and virtualised trees work without invalidation. That cost is paid
-  on every move and is not measured yet for the full path (`collectNavNodes`,
-  `getBoundingClientRect`, `querySelectorAll`): the inherited benchmark
-  `packages/core/src/input/spatial/geometry.bench.ts` exercises `findBestCandidate`
-  alone (read 2026-09-18).
+  on every move and is **not measured** for the full path (`collectNavNodes`,
+  `getBoundingClientRect`, `querySelectorAll`). The inherited benchmark, miralabs-ui
+  `packages/core/src/input/spatial/geometry.bench.ts`, exercised `findBestCandidate`
+  alone (read 2026-09-18) and was not ported: `vitest` 5 exports no `bench` function,
+  so this repository has no benchmark at all and the only timing gate is the
+  median-of-51 guard in `src/spatial/geometry.test.ts:156-177`, which has the same
+  blind spot ([ADR-0018](0018-testing-strategy.md), decision 7).
 - A vanilla auto-mount helper — one call that reads the attributes already on the
   page and starts the system — is a v1 item. Today that setup is written by hand.
 - Framework adapters do not invent a second way to declare things. A React
@@ -94,8 +97,15 @@ Three rules complete the decision.
   configured root. A plugin mounted on a sub-tree can therefore send focus outside
   that sub-tree through an attribute, and two mounted roots can steal from each
   other. Options: resolve within `root`, keep document scope and document it, or
-  make it an option. Not resolved today, which is why this ADR is Accepted on the
-  principle and this paragraph is flagged as pending.
+  make it an option. Still not resolved: the behaviour is unchanged at HEAD
+  (`src/spatial/spatial.ts:414-418`, read 2026-09-20, and `spatial.focus(target)`
+  resolves a selector the same way at `:554`). That is why this ADR is Accepted on
+  the principle and this paragraph is flagged as pending.
+- The attribute constants themselves stay private to the package: they are read
+  from the markup, so the contract is the attribute names of
+  [ADR-0001](0001-name-scope-and-attribute-prefix.md) rather than nine exported
+  strings a consumer could import and a rename would have to keep working
+  ([ADR-0011](0011-package-layout-and-adapters.md)).
 
 ## Alternatives considered
 
@@ -134,11 +144,20 @@ than an invention. See the [competitor comparison](../research/competitors.md).
   sidebar, theme and density controls — is emitted by `@standardoc/kit`, a different
   repository, "as plain anchors and plain buttons with no island and no
   `data-mira-*` attribute of any kind", and a d-pad walks it anyway:
-  `apps/docs/content/foundations/gamepad.md:14-35` (read 2026-09-18). The same page
+  `miralabs-ui: apps/docs/content/foundations/gamepad.md:14-35` (read 2026-09-18). The same page
   documents the attribute table at lines 57-76.
+- The same facts in this repository, read 2026-09-20: `src/spatial/containers.ts`, the attribute
+  constants and the pure parsers, `entryStrategy` still falling back to `last` on any unknown
+  value; `src/spatial/spatial.ts:89-96`, the imperative surface, still exactly five members —
+  `move`, `focus`, `focusFirst`, `onWillMove`, `onBoundsHit`; `:148-151`, `containerOf` returning
+  the root when no declared container encloses the element; `:265-269`, `rootOf()` returning
+  `options.root ?? document.body`, which is rule 1 above; `:414-417`, redirection selectors
+  resolved on `root.ownerDocument`. Covered by `src/spatial/containers.test.ts` and the seventeen
+  `describe` blocks of `src/spatial/spatial.browser.test.ts`
+  (`grep -c "^describe(" src/spatial/spatial.browser.test.ts` → 17, 2026-09-20).
 - Design intent of 2026-08-27, in translation: declarative first, everything is
   driven by data attributes and JavaScript is required only for initialisation and
-  advanced cases — miralabs-ui `docs/research/input.md:142`, a French document
+  advanced cases — `miralabs-ui: docs/research/input.md:142`, a French document
   deleted by commit `289fa607` and readable with
   `git show 289fa607^:docs/research/input.md`; and, at `:212`, third-party
   HTML becomes navigable without a line of JavaScript because registration is

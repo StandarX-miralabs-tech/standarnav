@@ -49,13 +49,21 @@ Rules that go with that skeleton:
 - `## Evidence` is where the proof lives — a source path with its line numbers, a
   command with the date it was run, a fetched URL with the date. A claim with
   none of those is written as "not measured yet" or "to be verified".
-- Source code is cited as `packages/core/src/input/spatial/spatial.ts:198` for
-  the source repository miralabs-ui, and as `src/spatial/spatial.ts` for this
-  repository.
+- Source code from the source repository is cited **with its repository named**,
+  as `miralabs-ui: packages/core/src/input/spatial/spatial.ts:198`. Code in this
+  repository is cited bare, as `src/spatial/spatial.ts:248`. Since `src/` exists
+  here, a bare `packages/...` path is ambiguous to a reader who does not already
+  know the layout of both repositories: where a record predates that and cites
+  many source paths in one table, the table says which repository it is reading.
+  A line number without a read date is not a citation.
 - Related records are linked by file name, relative to this directory:
   `[ADR-0003](0003-extraction-scope.md)`.
-- Length: 60 to 150 lines is the target. The nineteen records below run between
-  117 and 150 lines (`wc -l docs/adr/0*.md`, 2026-09-18).
+- Length: 60 to 150 lines is the target **for a new record**. The nineteen below
+  ran between 117 and 150 lines when they were written (`wc -l docs/adr/0*.md`,
+  2026-09-18); on 2026-09-20 the same command gives 132 to 262, because an
+  accepted record grows by amendment and the extraction pull request gave most of
+  them one. The target governs the first draft; an amendment is judged on whether
+  it says something the record did not, not on the line count it adds.
 
 ## Adding one
 
@@ -76,8 +84,11 @@ gains a line pointing at it rather than being deleted.
 
 ## Index
 
-Status as of 2026-09-18. "Accepted, one rider Proposed" means the decision holds
-and one named detail inside it still waits on the owner.
+Status as of 2026-09-20. "Accepted, one rider Proposed" means the decision holds
+and one named detail inside it still waits on the owner. Two rows changed on
+2026-09-20: ADR-0009 moved from Proposed to Accepted when its two behaviour
+changes were settled in opposite directions, and ADR-0012's rider closed on
+release-please. Both records carry a dated amendment saying so.
 
 | ADR | Title | Status | What it decides |
 |---|---|---|---|
@@ -88,15 +99,15 @@ and one named detail inside it still waits on the owner.
 | [0005](0005-real-dom-focus.md) | Real DOM focus, never a virtual cursor | Accepted | The engine moves `element.focus()` and reads `document.activeElement`; no focus key, no registry, and a gate that keeps it true. |
 | [0006](0006-declarative-first.md) | Declarative first | Accepted | Containers and their behaviour are data attributes on the markup; the imperative API is the escape hatch, and `body` is the default container. |
 | [0007](0007-navigation-modes.md) | Two navigation modes, composite and app | Accepted | `composite` is the default and leaves arrow keys to the page; `app` gives them spatial movement; the gamepad crosses the page in both. |
-| [0008](0008-shadow-dom.md) | Light DOM only in v0 (shadow DOM is a non-goal) | Accepted | No shadow traversal in v0; the escape hatch is an explicit root, and the evolution path ships as a skipped fixture. |
-| [0009](0009-hidden-candidates.md) | Which candidates count as visible | Proposed | Which elements are dropped from a move; two behaviour changes, zero-size (C1) and `opacity: 0` (C2), wait on the owner and on fixtures. |
+| [0008](0008-shadow-dom.md) | Light DOM only in v0 (shadow DOM is a non-goal) | Accepted | No shadow traversal in v0; the escape hatch is an explicit root. `getFocusables` and `contains` deliberately disagree about a shadow boundary, and the evolution path ships as the suite's one skipped fixture. |
+| [0009](0009-hidden-candidates.md) | Which candidates count as visible | Accepted | Which elements are dropped from a move. The zero-size change (C1) is accepted for v0 and shipped in this pull request, pinned by three fixtures; `opacity: 0` (C2) is refused for v0 and deferred to v1. |
 | [0010](0010-dev-mode-diagnostics.md) | Development-mode diagnostics | Accepted, one rider Proposed | A `@standarx/nav/debug` subpath with a reachability scan, depth and redirection warnings, and `explainMove` calling the engine's own winner rule. Open: (O1) the `cursor: pointer` heuristic default. |
-| [0011](0011-package-layout-and-adapters.md) | One package, subpath exports, adapters as subpaths | Accepted, one rider Proposed | One published package with a subpath per module, adapters as optional peers, React first. Open: the subpath name of the vanilla auto-mount helper. |
-| [0012](0012-versioning-and-release.md) | Versioning and release | Accepted, one rider Proposed | Semver from 0.x with breaking minors, publication from CI with provenance, `next` dist-tag for device trials. Open: changesets or release-please for the changelog. |
+| [0011](0011-package-layout-and-adapters.md) | One package, subpath exports, adapters as subpaths | Accepted, one rider Proposed | One published package with six subpaths built today, adapters as optional peers, React shipped and passing the parity suite, zero runtime dependencies enforced by `check:package`. Open: the subpath name of the vanilla auto-mount helper. |
+| [0012](0012-versioning-and-release.md) | Versioning and release | Accepted | Semver from 0.x with breaking minors, publication from CI with provenance, `next` dist-tag for device trials, and release-please deriving the version and the CHANGELOG from the commit history. Nothing of the release tooling is wired yet. |
 | [0013](0013-browser-baseline-and-fallbacks.md) | Browser baseline: most recent first, fallbacks for older runtimes | Accepted, one rider Proposed | Build target es2020, a fallback for every newer API, and three support tiers. Open: the decision date for a separate legacy build. |
 | [0014](0014-device-and-browser-matrix.md) | Device and browser test matrix | Accepted, one rider Proposed | Three engines in CI, no device claim without a dated device report, a matrix in three columns of which two are empty today. Open: which devices are bought and which are borrowed. |
 | [0015](0015-language-policy.md) | Language policy | Accepted, one rider Proposed | Every committed file is English; user documentation is `docs/en` canonical with a strict `docs/fr` mirror. Open: the CI mechanism enforcing that mirror. |
 | [0016](0016-scoring-constants-provenance.md) | Scoring constants and their provenance | Accepted | Where `0.3`, `30`, `2` and the alignment bonus come from, what the score formula is, and that it is not Blink's. |
-| [0017](0017-size-budgets.md) | Size budgets: measure before capping | Accepted | Two measured lines per subpath, caps written only after a first measurement here, and a line without a cap fails the run. |
-| [0018](0018-testing-strategy.md) | Testing strategy | Accepted | Two Vitest projects, inline-style fixtures, tests through the real input system, one adapter parity suite, and the gaps to fill after the port. |
+| [0017](0017-size-budgets.md) | Size budgets: measure before capping | Accepted | Two measured lines per subpath, caps written only after a first measurement here, and a line without a cap fails the run. Seven lines are measured and capped as of 2026-09-20. |
+| [0018](0018-testing-strategy.md) | Testing strategy | Accepted | Two Vitest projects, inline-style fixtures, tests through the real input system, one adapter parity suite, and no benchmark until a runner is chosen. The eight gaps it listed after the port are closed, by the amendment of 2026-09-20. |
 | [0019](0019-gamepad-engine-design.md) | Gamepad engine design, inherited and recorded | Accepted | The polling loop, the two dead-zone regimes, the repeat ladder, the standard mapping and the escape hatches, with their open items. |

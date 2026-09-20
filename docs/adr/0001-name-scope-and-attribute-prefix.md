@@ -51,11 +51,26 @@ Attributes read from the markup: `data-snav="container"`, `data-snav-enter`,
 | `data-snav-active` | every container on the active path | `data-nav-active` |
 | `data-snav-input` | `<html>`, modality: keyboard, pointer, touch, gamepad | `data-mira-input` |
 | `data-snav-focus-ring` | the focus ring overlay | `data-mira-focus-ring` |
-| `--snav-focus-ring-*` | five CSS custom properties: `offset`, `duration` and `easing`, read by the overlay, plus `color` and `width`, substituted into its inline `box-shadow` | `--mira-focus-ring-*` |
+| `--snav-focus-ring-*` | six CSS custom properties: `offset`, `duration` and `easing`, read by the overlay, plus `color`, `width` and `z-index`, substituted into its inline style | `--mira-focus-ring-*` |
 
 Two of them change category, not just prefix: `data-focused` and `data-nav-active`
-are unprefixed in the source
-(`packages/core/src/input/spatial/containers.ts:17-18`).
+are unprefixed in the source (miralabs-ui:
+`packages/core/src/input/spatial/containers.ts:17-18`).
+
+**Amended 2026-09-20: the custom-property contract is six names, not five.** The row above read
+five until the focus ring was reviewed before merge. The sixth is `--snav-focus-ring-z-index`,
+fallback `1700`, and it exists because the overlay is `position: fixed`, which opens no stacking
+context: without a `z-index` of its own the ring paints at the root level in DOM order and goes
+behind the first dialog it meets. `1700` is the rung the source stylesheet gave the ring, above its
+modal, popover, toast and tooltip, so the value is inherited rather than invented — but the
+stylesheet stays in miralabs-ui ([ADR-0004](0004-relationship-with-miralabs-ui.md)), which is why
+the plugin now carries it inline. The same review moved the `width` fallback from `2px` to `3px`,
+which changes no name and so does not change the contract.
+
+Six names is the frozen number for v0, and each is a public contract on the same terms as the
+attributes: adding one is a minor change, renaming or removing one is breaking. Read at
+`src/focus-ring/focus-ring.ts:51-52` (`z-index`, `width`, `color`), `:104-106` (`offset`) and
+`:134-137` (`duration`, `easing`), 2026-09-20.
 
 ## Consequences
 

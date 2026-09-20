@@ -122,7 +122,12 @@ untracked and no reader ever sees them.
   2026-09-18, published in [docs/research/competitors.md](../research/competitors.md).
 - Rejection of bilingual ADRs: the owner's decision of 2026-09-18, recorded in
   this ADR.
-- `docs/en` and `docs/fr` do not exist in this repository on 2026-09-18; rule 5
-  and its gate are forward-looking.
+- `docs/en` and `docs/fr` do not exist in this repository on 2026-09-18, and
+  still do not on 2026-09-20 (`ls docs/` → `adr/`, `journal/`, `research/`,
+  `specification.md`); rule 5 and its gate stay forward-looking, and the rider
+  above stays open because there is nothing yet for a CI job to check.
+- Rules 2 and 3 are satisfied by the code that arrived in the meantime: every
+  file under `src/` is English, comments included (read 2026-09-20). The
+  committed Markdown of `docs/adr/` is English throughout.
 - Related: [ADR-0003](0003-extraction-scope.md) (what is being extracted) and
   [ADR-0016](0016-scoring-constants-provenance.md) (the comments rule 3 keeps).

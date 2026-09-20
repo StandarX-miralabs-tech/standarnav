@@ -1,11 +1,16 @@
 # ADR-0009: Which candidates count as visible
 
-Status: Proposed
+Status: Accepted
 Date: 2026-09-18
 Deciders: Wesley Cormier
 
-Two behaviour changes, marked (C1) and (C2) below, need the owner's confirmation; every other rule
-describes what the source already does and is inherited as is.
+The owner settled the two behaviour changes on 2026-09-20, and they were settled the opposite way
+from each other. **(C1)**, dropping a candidate with any zero dimension, is **accepted for v0** and
+is the one change this record announces; it is written and shipped in this pull request, with three
+fixtures holding it in place. **(C2)**, dropping `opacity: 0`, is **refused for v0 and deferred to
+v1**. They do not ship together — which is what this ADR originally assumed — and the amendment at
+the foot of the record says why. Every other rule below describes what the code already does and is
+inherited as is.
 
 ## Context
 
@@ -13,9 +18,12 @@ A move is only as good as its candidate list. Every element the engine keeps is 
 land, and every element it drops is a place the user cannot reach. The rule has to be one rule, in one
 place, or the d-pad and the Tab key disagree.
 
-The inherited rules, read in the source on 2026-09-18:
+The inherited rules, read in the source on 2026-09-18. Every path in this table is a path in
+miralabs-ui, not in this repository; the equivalents here are `src/tabbable.ts` and
+`src/spatial/spatial.ts`, and they carry the same rules unchanged except the last row, which (C1)
+below has since changed here (read 2026-09-20).
 
-| Rule | Where | What it does |
+| Rule | Where (miralabs-ui) | What it does |
 |---|---|---|
 | `FOCUSABLE_SELECTOR` | `packages/core/src/focus/tabbable.ts:16-31` | The shape of a candidate: form controls without `disabled`, `a[href]`, `area[href]`, `iframe`, `object`, `embed`, `audio/video[controls]`, `summary`, `[contenteditable]`, `[tabindex]`. |
 | `isHidden` | `tabbable.ts:40-46` | `checkVisibility({ contentVisibilityAuto: true, visibilityProperty: true })` where the browser has it; otherwise `offsetParent === null && getClientRects().length === 0`. |
@@ -56,20 +64,39 @@ behaviour and passes on the new one. The fixture set lives in `src/spatial/spati
 and `src/tabbable.browser.test.ts`, one case per line of the gap table above, including the two cases
 that are expected to keep their current behaviour.
 
+Both files exist at HEAD and part of that set is written (read 2026-09-20): the three zero-size
+cases at `src/spatial/spatial.browser.test.ts:583-631`, and `hidden`, `inert` and `aria-disabled` at
+`src/tabbable.browser.test.ts:36-51`. The rows still without a fixture are `visibility: hidden` on
+the fallback path, `opacity: 0`, `clip-path`, and the two clipping rows — each of them a row whose
+rule this decision leaves unchanged, except the first, which rule 5 changes and which therefore
+still owes its fixture.
+
 Then, in order:
 
-1. **(C1) Exclude a candidate whose rect has any zero dimension.** `rect.width === 0 || rect.height === 0`
-   replaces the `&&` at `spatial.ts:141`. A 0x40 element occupies no space on screen; scoring it gives
-   the focus a destination with no visible location. This is a behaviour change and needs the owner's
-   confirmation, because a 0-width cell is a plausible way to model a collapsed column that should
-   still be skipped over rather than entered.
-2. **(C2) Exclude `opacity: 0`.** Pass `opacityProperty: true` to `checkVisibility` where the browser
-   accepts it, and fall back to `getComputedStyle(node).opacity === "0"` on the element itself where it
-   does not. The fallback deliberately does not walk ancestors: a parent's opacity is inherited into
-   the rendering, not into the computed value of the child, and walking every ancestor on every
-   candidate is the kind of cost this engine refuses in the hot path. This is a behaviour change and
-   needs confirmation, because a fade-in animation starting at `opacity: 0` would make its own trigger
-   briefly unreachable.
+1. **(C1) Exclude a candidate whose rect has any zero dimension — accepted for v0.**
+   `rect.width === 0 || rect.height === 0` replaces the `&&` the extraction inherited. A 0x40
+   element occupies no space on screen; scoring it gives the focus a destination with no visible
+   location. The owner accepted it on 2026-09-20 over the objection that a 0-width cell is a
+   plausible way to model a collapsed column: a collapsed column should be skipped over rather than
+   entered, which is what the change does. It is **implemented at HEAD** (read 2026-09-20):
+   `src/spatial/spatial.ts:188` is `if (rect.width === 0 || rect.height === 0) continue;`, and the
+   comment above it (`:183-187`) names this rule and the ADR it comes from. Three fixtures hold it:
+   "drops an element with no size at all" (`src/spatial/spatial.browser.test.ts:598`), "drops one
+   that is flat on a single axis" (`:607`, the case that fails if the operator is put back) and
+   "keeps an element the width of a hairline" (`:621`, which bounds the rule at zero so a 1px
+   divider stays a target).
+2. **(C2) Exclude `opacity: 0` — refused for v0, deferred to v1.** The mechanism would be
+   `opacityProperty: true` passed to `checkVisibility` where the browser accepts it, with
+   `getComputedStyle(node).opacity === "0"` on the element itself where it does not. Refused on two
+   counts, both of which are about the fallback rather than the modern path. Opacity is only
+   readable from a computed style, so the fallback costs one `getComputedStyle` per candidate in the
+   hot loop — and the fallback is the live path across the whole supported tier, because
+   `checkVisibility` is Chrome 105 / Safari 17.4 / Firefox 106 while the tier starts at Chromium 85
+   ([ADR-0013](0013-browser-baseline-and-fallbacks.md)). And the test it buys is incomplete anyway:
+   opacity inherited from an ancestor does not reach the child's computed value, so a candidate
+   inside a transparent parent still passes. Paying a per-candidate style read for a test that
+   misses the common case is the wrong trade for v0. It is a v1 item, and v1 is where the ancestor
+   question is answered rather than skipped.
 3. **Keep overflow-clipped candidates reachable.** They are not excluded. They are reached through
    scroll-and-rescan, which is how virtualised lists work. If a fixture later shows a case where that
    produces a move to nowhere, the answer is a better rescan, not a filter.
@@ -89,18 +116,52 @@ Then, in order:
 - The visibility rule stays in one module (`src/tabbable.ts`), used by the tab order, the focus trap
   and the spatial engine alike. A divergence between the Tab key and the d-pad becomes a test failure,
   not a support ticket.
-- Two new `getComputedStyle` calls appear on the fallback path only, and only for candidates that
-  already passed the selector test. The modern path stays one `checkVisibility` call per candidate.
-  Neither is measured yet: the existing bench covers `findBestCandidate` alone and explicitly not
-  `getBoundingClientRect`, `querySelectorAll` or `checkVisibility` (`geometry.bench.ts`, and the same
-  blind spot in `geometry.test.ts:156-177`). Measuring the full scan is a separate task.
-- (C1) and (C2) are breaking for anyone relying on the current tolerance. They land together, in the
-  same version, with a line in CHANGELOG naming the escape hatch (`data-snav-ignore` to remove a
-  candidate, a non-zero size or a non-zero opacity to keep one).
+- One new `getComputedStyle` call appears on the fallback path, for rule 5 and only for candidates
+  that already passed the selector test; the modern path stays one `checkVisibility` call per
+  candidate. With (C2) refused, that is one style read per candidate and not two, which is the
+  measurable part of refusing it. Neither is measured: this repository has no benchmark at all, and
+  the timing guard it does have (`src/spatial/geometry.test.ts:156-177`, median of 51 samples under
+  1 ms for 200 candidates) calls `findBestCandidate` alone — never `collectNavNodes`,
+  `getBoundingClientRect`, `querySelectorAll` or `checkVisibility`. Measuring the full scan is a
+  separate task; see [ADR-0018](0018-testing-strategy.md), decision 7, for why there is no bench.
+- (C1) is breaking for anyone relying on the inherited tolerance, and it is the only breaking change
+  this record announces. It ships on its own, with a line in CHANGELOG naming the escape hatch:
+  `data-snav-ignore` to remove a candidate, a non-zero size on both axes to keep one. (C2) carries
+  no announcement because it does not ship; when it reaches v1 it gets its own line, and an element
+  kept only by its transparency is a candidate until then.
 - The documentation gains a short "why can my element not be reached" list, which is the same list the
   development-mode scan of [ADR-0010](0010-dev-mode-diagnostics.md) reports.
-- Until the fixtures exist, none of this is in the code. The status of this ADR stays Proposed and the
-  README claims nothing about opacity, clipping or zero-size elements.
+- The fixtures for the zero-size rule exist (`src/spatial/spatial.browser.test.ts:583-631`, three
+  cases) and they pin the decided rule, which is what made (C1) land as a visible inversion rather
+  than as a silent edit: the case at `:607` fails the moment the operator goes back to `&&`, and the
+  case at `:621` fails the moment the rule creeps from zero to small. The README claims nothing
+  about opacity or clipping, and about size only what the filter now does: an element with a zero
+  dimension on either axis is not a candidate.
+
+## Amendment, 2026-09-20: the two changes are separated
+
+This record was written on the premise that (C1) and (C2) would land in one version, and every
+consequence above was costed for the pair. The owner settled them separately, so the premise is
+gone and the record is rewritten around the split rather than left reading as one decision.
+
+What separates them is the fallback path, not the rule. (C1) reads a rect the engine already takes
+— `getBoundingClientRect` is called for every candidate whatever else happens
+(`src/spatial/spatial.ts:182`, read 2026-09-20) — so changing `&&` to `||` costs nothing and asks
+for no new browser API. (C2) reads a property that exists only in a computed style. On the modern
+path that is an option flag on the `checkVisibility` call the engine already makes; on the fallback
+path, which is the live path across the supported tier, it is a fresh `getComputedStyle` for every
+candidate of every move. And the answer it returns is partial either way, because opacity
+inherited from an ancestor is not in the child's computed value: the fade-out overlay this ADR gave
+as the motivating case is usually the ancestor, not the candidate.
+
+So the two changes have different costs, different risks and different completeness, and bundling
+them would have made the cheap one wait for the expensive one. (C1) is v0 work and is done, behind
+the fixtures this record asked for first. (C2) is a v1 item and is recorded in
+[ROADMAP.md](../../ROADMAP.md) as one.
+
+The status line moves from Proposed to Accepted with this amendment. The decision the record now
+carries is a decision, not a question: rules 3 to 6 were never in doubt, rule 5 is a divergence
+removal rather than a behaviour change, and the two riders that held the status open are closed.
 
 ## Alternatives considered
 
@@ -131,14 +192,35 @@ so it stays rejected: `spatial.browser.test.ts:386-442`.
   scroll-and-rescan one frame later.
 - `packages/core/src/input/spatial/spatial.browser.test.ts:386-442` — the `aria-hidden` decision and
   its three cases (the block comment at `:386-407`, then the cases at `:409`, `:421` and `:434`).
-- `packages/core/src/input/spatial/geometry.bench.ts` and `geometry.test.ts:156-177` — the bench and
-  the guard, and what they do not measure.
-- Source repository miralabs-ui at commit `289fa607`, read on 2026-09-18, read-only.
+- miralabs-ui: `packages/core/src/input/spatial/geometry.bench.ts` and `geometry.test.ts:156-177` —
+  the bench and the guard, and what they do not measure. The bench was **not** ported: this
+  repository has no benchmark and no `bench` script ([ADR-0018](0018-testing-strategy.md),
+  decision 7). What was ported is the guard, `src/spatial/geometry.test.ts:156-177`.
+- Source repository miralabs-ui at commit `289fa607`, read on 2026-09-18, read-only. Every path in
+  this section prefixed `packages/` is a path in that repository, never in this one.
+- State at HEAD, read 2026-09-20 in this repository: the zero-size filter is
+  `rect.width === 0 || rect.height === 0` at `src/spatial/spatial.ts:188`, under a comment at
+  `:183-187` naming (C1) and this record — so (C1) is decided and written.
+  `src/tabbable.ts:41-50` carries `isHidden` with the
+  `checkVisibility({ contentVisibilityAuto: true, visibilityProperty: true })` call and the
+  `offsetParent === null && getClientRects().length === 0` fallback: `opacityProperty` is not
+  passed, and the fallback has no `visibility` test, so rule 5 is also still to be written.
+  `src/tabbable.ts:56-63` is `isFocusable`, with `aria-disabled` deliberately absent and the
+  comment saying so; nothing filters `aria-hidden` anywhere.
+- Fixtures in this repository, read 2026-09-20: `src/spatial/spatial.browser.test.ts:583-631`, the
+  candidate filter — "drops an element with no size at all" (`:598`), "drops one that is flat on a
+  single axis" (`:607`) and "keeps an element the width of a hairline" (`:621`), the last being the
+  bound that stops (C1) reaching a real target. A shared helper at `:591-596` resets padding, border
+  and `min-width`, because a Chromium UA button measures 16 x 6 at width 0 and would never reach the
+  filter at all. `src/spatial/spatial.browser.test.ts:408-442`, the three `aria-hidden` cases,
+  ported with the trap they pin. Suite state on the same day: `bun run test:unit` → 100 passed in
+  10 files; `bun run test:browser` → 169 passed and 1 skipped in 10 files, the skip being the
+  shadow-DOM fixture of [ADR-0008](0008-shadow-dom.md).
 - `checkVisibility` availability: Chrome 105, Safari 17.4, Firefox 106 (caniuse and MDN browser-compat
   data, fetched 2026-09-18; table with URLs in
   [docs/research/tv-runtime-compatibility.md](../research/tv-runtime-compatibility.md)). Supported
   tier of this project: Chromium 85, Safari 15, Firefox 79
   ([ADR-0013](0013-browser-baseline-and-fallbacks.md), decided 2026-09-18).
 - Behaviour of `visibility: hidden` and `opacity: 0` under the fallback is derived by reading the two
-  lines of `tabbable.ts:45`, not measured in a browser. The fixtures required by this decision are
+  lines of `src/tabbable.ts:46-49`, not measured in a browser. The fixtures required by this decision are
   what will turn that reading into a fact.

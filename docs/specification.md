@@ -1,13 +1,16 @@
 # Product specification
 
 Project: standarnav — the input and spatial navigation engine published as `@standarx/nav`.
-Status: draft, v0 in progress. Nothing is published to npm and nothing has been run on a television.
-Date: 2026-09-18. Owner: Wesley Cormier.
+Status: draft, v0 in progress. The engine is extracted and lives in `src/`; nothing is published to
+npm and nothing has been run on a television.
+Date: 2026-09-18, revised 2026-09-20 against the extracted tree. Owner: Wesley Cormier.
 
 This document states the problem, the boundaries, the user contract, the functional requirements and
-— for every claim the project intends to make in public — the gate that proves it. The engine exists
-as working code inside the repository miralabs-ui and is being extracted; paths of the form
-`packages/core/src/...` point to that repository at commit `289fa607`, read on 2026-09-18.
+— for every claim the project intends to make in public — the gate that proves it. The extraction has
+landed, so paths of the form `src/...` are files of **this** repository, read at HEAD on 2026-09-20,
+and every line number below was checked against them on that date. Where the source repository is
+cited it carries its own prefix — miralabs-ui: `packages/core/src/input/spatial/spatial.ts:198` — and
+those paths point at commit `289fa607`, read on 2026-09-18.
 
 ## 1. Problem
 
@@ -20,8 +23,9 @@ out of CSS (`https://github.com/w3c/csswg-drafts/issues/1948`), the WICG documen
 and no browser implemented it. The Chromium flag `--enable-spatial-navigation` is an internal
 vestige that a page cannot ask for. These findings were recorded on 2026-08-27 in the engine
 specification of miralabs-ui, §0 — a file deleted by commit `289fa607` and readable with
-`git show 289fa607^:docs/research/input.md`; the status of the Chromium flag today was not re-verified
-on 2026-09-18. The consequence: on the web, spatial navigation is userland code or it does not exist.
+miralabs-ui: `git show 289fa607^:docs/research/input.md`; the status of the Chromium flag today was
+not re-verified on 2026-09-18 and has not been re-verified since. The consequence: on the web,
+spatial navigation is userland code or it does not exist.
 
 ### 1.2 What breaks when a library uses virtual focus
 
@@ -60,10 +64,10 @@ These are refusals, not backlog items. Each will be reconsidered only through an
 
 | Non-goal | Reason |
 |---|---|
-| Shadow DOM traversal in v0 | Piercing open roots means walking every root on every move; the source module is light-DOM-only by explicit choice (`packages/core/src/focus/tabbable.ts:10-11`). Components that need it can pass their own root. See [ADR-0008](adr/0008-shadow-dom.md). |
+| Shadow DOM traversal in v0 | Piercing open roots means walking every root on every move; the module is light-DOM-only by explicit choice (`src/tabbable.ts:10-12`). So `getFocusables` stops at a shadow boundary while the `contains` of `src/dom/query.ts:24-39` walks `getRootNode()` and hosts and crosses one — an inconsistency this version keeps deliberately, pinned by the skipped fixture at `src/spatial/spatial.browser.test.ts:856`, with coherence a v1 goal. Components that need it can pass their own root. See [ADR-0008](adr/0008-shadow-dom.md). |
 | RTL mirroring of directions | `moveLeft` means left on the screen. An application that mirrors its layout decides what its left arrow means; the engine does not guess. |
 | A component library | No menu, no dialog, no grid. The engine navigates whatever markup it is given. miralabs-ui is the component library, and becomes a consumer of this package — the owner's decision of 2026-09-18, recorded in [ADR-0004](adr/0004-relationship-with-miralabs-ui.md). |
-| Styling beyond focus ring defaults | The package ships the focus ring overlay and the custom properties it reads. It ships no theme, no reset, no component CSS. |
+| Styling beyond focus ring defaults | The package ships the focus ring overlay and the six custom properties it reads (R33). No stylesheet ships at all — the overlay paints itself inline — and there is no theme, no reset, no component CSS. |
 | Native SDKs | No Tizen `.wgt` tooling, no webOS CLI wrapper, no Android TV leanback integration. The deliverable is a web package. |
 | React Native | The engine measures DOM rects and calls `element.focus()`. Neither exists in React Native. |
 
@@ -71,10 +75,10 @@ These are refusals, not backlog items. Each will be reconsidered only through an
 
 | Target | What it means here | Status |
 |---|---|---|
-| Smart TV web apps — Tizen, webOS | Remote keycodes mapped out of the box; d-pad and OK button drive focus | Keycodes present in `packages/core/src/input/keymap.ts:79-85`; never run on a real set |
+| Smart TV web apps — Tizen, webOS | Remote keycodes mapped out of the box; d-pad and OK button drive focus | Keycodes present in `src/keymap.ts:79-85` and covered by `src/keymap.test.ts`; never run on a real set |
 | Smart TV web apps — Vidaa, Vizio | Same intents, keycodes unknown | Untested, no public Chromium version for either runtime (checked 2026-09-18) |
 | Steam Deck and HTPC launchers | Gamepad-first browsing of an ordinary web UI | Steam client CEF 109.0.5414.120 in the Steam Deck beta client of 2024-01-18; no newer version disclosed (note below) |
-| HTML game UIs | Menus, inventories and settings screens driven by the same pad as the game | Supported by design; no example application yet |
+| HTML game UIs | Menus, inventories and settings screens driven by the same pad as the game | Supported by design; no example application. The nearest thing is the development playground (`bun run dev`, `playground/`), which mounts the three engines in `mode: "app"` against fixture markup and is not a sample to copy |
 | Kiosks | Arrow keys or a physical d-pad, `mode: "app"`, no mouse | Supported by design |
 | Keyboard-only accessibility | Real focus means the browser's own accessibility path is intact; Tab stays sequential and untouched | Enforced by the contract in §4 |
 
@@ -101,8 +105,8 @@ API is feature-detected.
 
 | Tier | Runtimes | Commitment |
 |---|---|---|
-| Supported and tested | Chromium ≥ 85, Safari ≥ 15, Firefox ≥ 79 | The browser suite runs one engine per local run, chosen by `SNAV_BROWSER`, and all three — chromium, firefox, webkit — as a CI matrix (`.github/workflows/ci.yml:61-83`) |
-| Best-effort | TV runtimes of 2020-2021: Tizen 5.5 and 6.0 (Chromium 69 and 76), webOS 5.x and 6.x (Chromium 68 and 79) | The es2020 output does not parse below Chromium 80. A separate legacy build is a roadmap question with a decision date, not a v0 promise |
+| Supported and tested | Chromium ≥ 85, Safari ≥ 15, Firefox ≥ 79 | The browser suite runs one engine per local run, chosen by `SNAV_BROWSER` and defaulting to chromium (`vitest.config.ts:9`), and all three — chromium, firefox, webkit — as a CI matrix (`.github/workflows/ci.yml:94-120`). The three matrix jobs passed on the last run of the extraction pull request (2026-09-20). A fourth browser run is declared and has not run yet: the same suite on chromium against react 18.3, because every other job installs the lockfile's react 19 and the bottom of the declared peer range was otherwise never exercised (`.github/workflows/ci.yml:66-92`) |
+| Best-effort | TV runtimes of 2020-2021: Tizen 5.5 and 6.0 (Chromium 69 and 76), webOS 5.x and 6.x (Chromium 68 and 79) | The es2020 output does not parse below Chromium 80. A separate legacy build is a roadmap question with a decision date — **2026-12-31**, and no device report by then means no build — not a v0 promise |
 | Out of scope | Anything older | — |
 
 Runtime-to-Chromium mapping from the Samsung "Web Engine Specifications" and LG "Web API and Web
@@ -116,14 +120,15 @@ Feature detection required by this tiering (browser support from caniuse and MDN
 
 | API | Available from | Fallback |
 |---|---|---|
-| `WeakRef` | Chrome 84, Safari 14.1, Firefox 79 | Strong reference validated with `isConnected` before use |
-| `checkVisibility` | Chrome 105, Safari 17.4, Firefox 106 | `offsetParent === null && getClientRects().length === 0` (already in `packages/core/src/focus/tabbable.ts:45`) |
-| `inert` | Chrome 102, Safari 15.5, Firefox 112 | `closest("[inert]")` reads the attribute everywhere |
-| `Array.prototype.at` | Chrome 92, Safari 15.4, Firefox 90, Samsung Internet 16.0 (`https://caniuse.com/mdn-javascript_builtins_array_at`) | Avoided outright. Unlike every other row, its floor is **above** the supported tier, so the source use at `packages/core/src/focus/tabbable.ts:85` throws on Chromium 85-91, Safari 15.0-15.3 and Firefox 79-89 — and `getTabbableEdges` is the entry point for `getFirstTabbable` and `getLastTabbable`. Rewriting it to index arithmetic is mandatory, and a `lib` bump would hide the break rather than fix it |
+| `WeakRef` | Chrome 84, Safari 14.1, Firefox 79 | Written. `elementHandle` returns a `WeakRef` where the constructor exists and a strong reference that drops itself on the first read finding the element detached — `isConnected` — where it does not (`src/spatial/spatial.ts:127-141`). The constructor is read per call rather than at module scope, so a test can delete the global and exercise the fallback |
+| `checkVisibility` | Chrome 105, Safari 17.4, Firefox 106 | `offsetParent === null && getClientRects().length === 0` (`src/tabbable.ts:49`) |
+| `inert` | Chrome 102, Safari 15.5, Firefox 112 | `closest("[inert]")` reads the attribute everywhere (`src/tabbable.ts:53`) |
+| `Array.prototype.at` | Chrome 92, Safari 15.4, Firefox 90, Samsung Internet 16.0 (`https://caniuse.com/mdn-javascript_builtins_array_at`) | Avoided outright, and the rewrite is done: `getTabbableEdges` indexes `tabbables[tabbables.length - 1]` (`src/tabbable.ts:89-92`). Unlike every other row its floor is **above** the supported tier, so the inherited use — miralabs-ui: `packages/core/src/focus/tabbable.ts:85` — threw on Chromium 85-91, Safari 15.0-15.3 and Firefox 79-89, and `getTabbableEdges` is the entry point for `getFirstTabbable` and `getLastTabbable`. A `lib` bump would have hidden the break rather than fixed it |
 
-`tsconfig.json` declares `target: "es2020"` and `lib: ["es2020", "dom", "dom.iterable"]`, so neither
-`WeakRef` nor `Array.prototype.at` type-checks by accident: `WeakRef` has to be declared locally
-behind its feature check, and a call to `at` is a compile error rather than a review catch.
+`tsconfig.json` declares `target: "es2020"` and `lib: ["es2020", "dom", "dom.iterable"]` (read
+2026-09-20), so neither `WeakRef` nor `Array.prototype.at` type-checks by accident: `WeakRef` is
+declared locally behind its feature check (`src/spatial/spatial.ts:109-111`), and a call to `at` is a
+compile error rather than a review catch. `bun run typecheck` is its own CI job.
 
 ## 4. User contract
 
@@ -132,7 +137,7 @@ will move to it. Nothing has to be registered, wrapped in a hook, or listed in a
 `useFocusable`, no `focusKey`, no `MutationObserver`: candidates are queried and measured at each
 move, so a virtualised or freshly mutated DOM needs no cache invalidation.
 
-"Focusable in the platform's sense" is the selector at `packages/core/src/focus/tabbable.ts:16-31`:
+"Focusable in the platform's sense" is the selector at `src/tabbable.ts:17-32`:
 `input` (also excluding `[type='hidden']`), `select`, `textarea` and `button`, each excluding
 `[disabled]`; then `a[href]`, `area[href]`, `iframe`, `object`, `embed`, `audio[controls]`,
 `video[controls]`, `summary`, `[contenteditable]` that is not `false`, and anything carrying
@@ -145,55 +150,60 @@ README because each surprises someone.
    The fix is `tabindex="-1"` or `tabindex="0"`, which is also the fix for keyboard users; the engine
    does not invent focusability the platform withholds.
 2. **`aria-hidden` elements stay reachable.** `isFocusable` does not filter `aria-hidden`
-   (`packages/core/src/focus/tabbable.ts:52-59`). Hiding a subtree from assistive technology while
-   leaving it focusable is already an authoring error; an element that should not be reached is
-   removed, made `inert`, or marked `data-snav-ignore`. See
-   [ADR-0009](adr/0009-hidden-candidates.md), whose status is Proposed, and open question 1 below.
+   (`src/tabbable.ts:56-63`). Hiding a subtree from assistive technology while leaving it focusable
+   is already an authoring error; an element that should not be reached is removed, made `inert`, or
+   marked `data-snav-ignore`. See [ADR-0009](adr/0009-hidden-candidates.md) and open question 1
+   below: the candidate filters of that ADR are settled (R31), `aria-hidden` itself is not.
 3. **`aria-disabled` stays focusable.** The APG wants disabled menu items and toolbar buttons
-   reachable, unlike natively disabled form controls (comment at
-   `packages/core/src/focus/tabbable.ts:56-57`).
+   reachable, unlike natively disabled form controls (comment at `src/tabbable.ts:60-61`).
 4. **Light DOM only.** Elements inside a shadow root are not collected; a component that needs it
    passes its own root (§2).
 
 ## 5. Functional requirements
 
-Behaviour below is verified in the source on 2026-09-18 unless marked otherwise, and every constant
-carries the file and line it comes from. Where a file length is quoted, it is `wc -l` on the
-miralabs-ui working tree, run 2026-09-18.
+Behaviour below is verified in `src/` at HEAD on 2026-09-20 unless marked otherwise, and every
+constant carries the file and line it comes from. Where a file length is quoted, it is `wc -l` on
+this working tree, run 2026-09-20.
 
 ### 5.1 Intent layer
 
 - **R1.** One intent vocabulary: `moveUp`, `moveDown`, `moveLeft`, `moveRight`, `select`,
   `secondary`, `back`, `contextMenu`, `tabNext`, `tabPrev`, `pageUp`, `pageDown`, `home`, `end`,
-  `scrollX`, `scrollY` (`packages/core/src/types.ts:11-27`). The last two carry a `value` in -1..1.
+  `scrollX`, `scrollY` (`src/types.ts:11-27`). The last two carry a `value` in -1..1.
 - **R2.** An `IntentEvent` carries `intent`, `source` (`keyboard` | `gamepad` | `remote`), `repeat`,
-  optional `value`, `originalEvent`, `defaultPrevented` and `preventDefault()`
-  (`packages/core/src/types.ts:9`, `:29`).
+  optional `value`, `originalEvent`, `defaultPrevented` and `preventDefault()` — all seven present
+  and in that order at `src/types.ts:29-40`, with `IntentSource` at `:9`. `defaultPrevented` is a
+  readonly field of the event, not a method: a scope reads what an earlier scope did to the native
+  event without being able to undo it.
 - **R3. Founding invariant.** Arrow keys and d-pad produce the same `IntentEvent`. Nothing downstream
-  can tell them apart except by reading `source`, and nothing in the engine branches on it other than
-  the two documented mode rules of §5.4.
-- **R4.** Dispatch is a LIFO scope stack (`packages/core/src/input/intent-bus.ts`);
+  can tell them apart except by reading `source`, and the engine branches on it in exactly two
+  places, both documented: the unclaimed `select` that a keyboard must not double-fire
+  (R6, `src/input-system.ts:126`) and the composite-mode arrow rule (R29,
+  `src/spatial/spatial.ts:489`). `grep -rn "source ===" src` on 2026-09-20 returns five hits: those
+  two, one assertion in `src/input-system.browser.test.ts`, and two in `src/react/react.tsx` (`:90`,
+  `:99`) that are an unrelated local of the same name in the adapter's value-or-thunk helper.
+- **R4.** Dispatch is a LIFO scope stack (`src/intent-bus.ts`);
   returning `true` ends the walk. A `trapped` scope swallows everything except `back`, `tabNext` and
   `tabPrev`. Scopes marked `base` are still asked past a trap — the only user is the spatial plugin,
   so a d-pad still moves inside a modal.
 - **R5.** `createInputSystem({ doc, plugins, keymap, allowVerticalInText })` is an instance, never a
-  global singleton (`packages/core/src/input/input-system.ts`): two coexist in one page,
+  global singleton (`InputSystemOptions`, `src/input-system.ts:50-56`): two coexist in one page,
   and no `document` or `window` access happens outside initialisation, so hydration is safe.
 - **R6.** An unclaimed `select` from a non-keyboard source clicks the focused element, so a pad
-  activates an ordinary `<button>` with no wiring. `preventDefault()` reaches the native event only
-  when a scope consumed the intent; arrow-key scrolling stays intact otherwise.
+  activates an ordinary `<button>` with no wiring (`src/input-system.ts:118-132`, which also skips a
+  repeat and a text-entry target). `preventDefault()` reaches the native event only when a scope
+  consumed the intent; arrow-key scrolling stays intact otherwise.
 - **R7.** Engage mode: `select` on a value control pushes a scope where directions adjust the value,
-  `select` commits and `back` restores (`packages/core/src/input/engage.ts`). A shared mechanic, not
-  a component.
+  `select` commits and `back` restores (`src/engage.ts`). A shared mechanic, not a component.
 
 ### 5.2 Keyboard and TV remote keymap
 
-- **R8.** `resolveKeyIntent` is pure (`packages/core/src/input/keymap.ts`). Defaults: arrows to
+- **R8.** `resolveKeyIntent` is pure (`src/keymap.ts`). Defaults: arrows to
   `move*`; `Enter` and `Space` to `select`; `Escape` to `back`; `Tab` and `Shift+Tab` to `tabNext`
   and `tabPrev`; `PageUp`, `PageDown`, `Home`, `End` direct; `ContextMenu` to `contextMenu`.
 - **R9.** Remote keys resolve with `source: "remote"` — by name (`GoBack`, `BrowserBack`, `Exit` to
   `back`; `ChannelUp`, `ChannelDown` to `pageUp`, `pageDown`) and by keycode
-  (`packages/core/src/input/keymap.ts:79-85`): 461 webOS Back, 10009 Tizen Return, 10182 Tizen Exit,
+  (`REMOTE_KEY_CODES`, `src/keymap.ts:79-85`): 461 webOS Back, 10009 Tizen Return, 10182 Tizen Exit,
   427 Channel Up, 428 Channel Down. Nothing exists for Vidaa, Vizio, Roku, Fire TV or Android TV, and
   the documentation says so rather than implying coverage.
 - **R10.** Overrides by `key` and by `keyCode`, `null` disabling a key outright — the supported way
@@ -202,9 +212,9 @@ miralabs-ui working tree, run 2026-09-18.
   `contenteditable`, except vertical moves when `allowVerticalInText` says so. Keydown is captured,
   IME composition is respected, `select` never auto-repeats.
 - **R12.** Modality is written on `<html>` as `data-snav-input="keyboard|pointer|touch|gamepad"`,
-  synchronously, before focus moves (`packages/core/src/interaction/modality.ts`, 180 lines). A
+  synchronously, before focus moves (`src/modality.ts`, 179 lines). A
   pointer only takes over on `pointerdown` or after 300 ms of continuous movement
-  (`POINTER_INTENT_MS`, `.../modality.ts:27`, applied at `:54`), so brushing a
+  (`POINTER_INTENT_MS`, `src/modality.ts:26`, applied at `:53`), so brushing a
   mouse mid-session does not kill the ring. `:focus-visible` is a complement, never the source of
   truth.
 
@@ -218,15 +228,14 @@ miralabs-ui working tree, run 2026-09-18.
 - **R14.** The `requestAnimationFrame` loop runs only while a pad is connected, the document is
   visible and the plugin is mounted; on return to visibility state is re-read silently, so a button
   pressed while the tab was hidden never fires a synthetic `select`. Zero allocation per frame,
-  through reused typed arrays (`packages/core/src/input/gamepad/gamepad.ts:129-131`).
+  through reused typed arrays (`src/gamepad/gamepad.ts:143-149`).
 - **R15.** Dead zones, two treatments. Continuous analog (`scrollX`, `scrollY`): radial dead zone
-  `0.15` with magnitude renormalisation (`packages/core/src/input/gamepad/dead-zone.ts:28`). Discrete
+  `0.15` with magnitude renormalisation (`src/gamepad/dead-zone.ts:28`). Discrete
   navigation: four 90° sectors with double hysteresis — enter at `0.5`, release at `0.3`, `12°` of
   margin to change sector (`.../dead-zone.ts:55-57`). One flick of the stick is exactly one move.
 - **R16.** Repeat: `400 ms` delay, then `130 ms`, then `60 ms` after the sixth repeat
-  (`packages/core/src/input/gamepad/repeat.ts:20-23`). On a stick the interval is modulated by
-  magnitude, `250 ms` at half deflection down to `60 ms` at full (`.../repeat.ts:26-27,41`). `select`
-  never repeats.
+  (`src/gamepad/repeat.ts:20-23`). On a stick the interval is modulated by magnitude, `250 ms` at
+  half deflection down to `60 ms` at full (`.../repeat.ts:26-27,41-42`). `select` never repeats.
 - **R17.** Standard mapping: A `select`, B `back`, X `secondary`, Y `contextMenu`, LB/RB
   `tabPrev`/`tabNext`, LT/RT `pageUp`/`pageDown`, right stick `scrollX`/`scrollY`. This is what the
   mapping **produces**; four of those intents have no consumer in the package — see R29a.
@@ -237,21 +246,24 @@ miralabs-ui working tree, run 2026-09-18.
   `assign(padIndex, route)` sends one pad's intents to a handler for local multiplayer. Haptics are
   progressive enhancement through `vibrationActuator.playEffect`, never automatic.
 - **R20.** A `GamepadRuntime` seam lets tests drive the engine without hardware — CI has no pads.
-  `MAX_BUTTONS = 20` (`packages/core/src/input/gamepad/gamepad.ts:44`) against the 16 standard
-  entries of `packages/core/src/input/gamepad/mapping.ts:18-34`, to absorb pads that report more.
+  `MAX_BUTTONS = 20` (`src/gamepad/gamepad.ts:58`) against the 16 standard entries of
+  `src/gamepad/mapping.ts:19-34`, to absorb pads that report more.
 
 ### 5.4 Spatial engine
 
 - **R21.** Live geometry, no precomputed graph: candidates are queried and measured with
   `getBoundingClientRect` at each move, reads only. Focus is real —
-  `element.focus({ preventScroll: true })` (`packages/core/src/input/spatial/spatial.ts`, 508
-  lines). **The source does not verify that the focus landed.** `commit()` calls `focusElement`
-  and returns `true` unconditionally (`.../spatial.ts:258-281`); every `document.activeElement`
-  read in that file supplies the `from` argument *before* the move. So a focus the browser refuses
-  is reported as a successful move, `data-snav-focused` is written on an unfocused element and the
-  container memory records it. Verifying the landing is therefore a **requirement of this
-  extraction**, not a description of inherited behaviour, and the corresponding row of §6 is a test
-  obligation rather than a gate that already passes.
+  `element.focus({ preventScroll: true })` (`src/spatial/spatial.ts`, 569 lines). **The landing is
+  still not verified, at HEAD on 2026-09-20.** `commit()` calls `focusElement`, writes the
+  attributes and returns `true` unconditionally (`.../spatial.ts:308-333`); `activeElement()`
+  (`.../spatial.ts:271-274`) is never read after the focus call — the three move-path reads
+  (`:409`, `:455`, `:556`) all supply the `from` argument before it, and the fourth (`:473`) locates
+  the scroller for right-stick scrolling. So a focus the browser refuses is reported as a successful
+  move, `data-snav-focused` is written on an
+  unfocused element and the container memory records it. Verifying the landing stays a **requirement
+  of this extraction** rather than a description of shipped behaviour: the browser fixtures assert
+  the real `document.activeElement` after a move, which catches it in test, and the engine itself
+  still does not.
 - **R22.** Declarative containers, attributes renamed to this project's prefix — the owner's decision
   of 2026-09-18, recorded in [ADR-0001](adr/0001-name-scope-and-attribute-prefix.md). Read:
   `data-snav="container"`, `data-snav-enter`, `data-snav-wrap`, `data-snav-block`, `data-snav-trap`,
@@ -260,12 +272,22 @@ miralabs-ui working tree, run 2026-09-18.
   Four attributes are styling hooks: the two above, plus `data-snav-input` on `<html>` (R12) and
   `data-snav-focus-ring` on the overlay (R32). The package writes a fifth name that is not a hook —
   `aria-hidden="true"`, set on the focus-ring overlay the plugin creates
-  (`packages/core/src/input/focus-ring/focus-ring.ts:198`) — so "four attributes" is the count a
-  consumer styles against, not the count the package writes. All five land on elements the package
-  owns; none is ever written on the consumer's markup.
+  (`src/focus-ring/focus-ring.ts:239-241`) — so "four attributes" is the count a consumer styles
+  against, not the count the package writes. Two of the five do land on the consumer's own elements,
+  because that is what a styling hook is for: `data-snav-focused` and `data-snav-active`
+  (`.../spatial.ts:276-292`). The other three land on `<html>` and on the overlay the package
+  created, and `aria-hidden` is the only ARIA attribute the package writes anywhere — never on
+  markup it did not create (`grep -rn "aria-" src` on 2026-09-20: twelve hits, of which two are
+  outside the tests — the write at `src/focus-ring/focus-ring.ts:241` and the `aria-disabled`
+  comment at `src/tabbable.ts:60` — and the other ten are fixtures). The attribute **names** are
+  the public contract; the constants that hold them are module-internal and no entry point
+  publishes them (`src/spatial/containers.ts:10-18`, reachable from no path in the exports map).
+  `./spatial` publishes `containerOf` and
+  `collectNavNodes` and no attribute constant, so a consumer writes the string or reads it from its
+  own markup.
 - **R23.** Directional filter with an overlap tolerance of `0.3`
-  (`packages/core/src/input/spatial/geometry.ts:41`), the value lrud-spatial uses.
-- **R24.** Scoring weights `30` horizontal and `2` vertical (`.../geometry.ts:42-43`), from Blink's
+  (`src/spatial/geometry.ts:40`), the value lrud-spatial uses.
+- **R24.** Scoring weights `30` horizontal and `2` vertical (`.../geometry.ts:41-42`), from Blink's
   `kOrthogonalWeightForLeftRight` and `kOrthogonalWeightForUpDown`, declared at lines 673 and 674 of
   `third_party/blink/renderer/core/page/spatial_navigation.cc` on `main` (read 2026-09-18). **The
   score formula itself is not Blink's** and is never described as such.
@@ -273,65 +295,122 @@ miralabs-ui working tree, run 2026-09-18.
   `aligned ?? any` — semantically the tvOS two-pass rule, not literally two passes, and the
   documentation says so. Ties go to DOM order. The provenance of R23 to R25 is recorded in
   [ADR-0016](adr/0016-scoring-constants-provenance.md).
-- **R26.** Entry strategies `last | first | nearest`, default `last`
-  (`packages/core/src/input/spatial/containers.ts`), with per-container focus memory in a
-  `WeakMap<HTMLElement, WeakRef<HTMLElement>>` (`.../spatial.ts:198,235`) that must gain the
-  `WeakRef` fallback of §3.1.
+- **R26.** Entry strategies `last | first | nearest`, default `last` (`src/spatial/containers.ts`),
+  with per-container focus memory in a `WeakMap<HTMLElement, ElementHandle>`
+  (`.../spatial.ts:248,286`, read back at `:344`). The handle is the indirection the `WeakRef`
+  fallback of §3.1 needed, and it is written: the map is also dropped whole on teardown
+  (`.../spatial.ts:542`), which is what releases the elements the fallback path holds strongly.
 - **R27.** With no candidate, in order: wrap if the container wraps on that axis; else scroll one
-  step and rescan; else bubble to the parent container; else no-op and emit `onBoundsHit`. An
-  `onWillMove` veto fires before the real `focus()` call, so a component can refuse a move.
+  step and rescan; else bubble to the parent container, unless it traps or blocks that direction;
+  else no-op and emit `onBoundsHit` (`src/spatial/spatial.ts:423-445`). The rescan waits exactly one
+  frame, because a virtualised list mounts its next rows on the scroll (`.../spatial.ts:378-403`).
+  An `onWillMove` veto fires before the real `focus()` call, so a component can refuse a move
+  (`.../spatial.ts:312-327`).
 - **R28.** Explicit redirections `data-snav-up|down|left|right` take CSS selectors resolved against
-  the whole document — documented as the last resort for pathological layouts.
+  the whole document, read off the focused element and answered *before* anything is scored
+  (`src/spatial/spatial.ts:414-418`) — documented as the last resort for pathological layouts.
 - **R29.** Two modes. `composite` (default): arrows are spatial only inside composites, as the APG
   requires, and only the gamepad crosses composite boundaries, so an ordinary site becomes
-  pad-drivable without losing its keyboard conventions. `app` (TV, kiosk, game): arrows drive global
-  spatial navigation too. In both, `Tab` is untouched — sequential tabbing stays the browser's.
-  Recorded as [ADR-0007](adr/0007-navigation-modes.md).
+  pad-drivable without losing its keyboard conventions. In this package the rule is one line —
+  `mode === "composite" && event.source === "keyboard"` returns `false` (`src/spatial/spatial.ts:489`)
+  — so the engine declines every keyboard arrow in that mode and the composite's own arrow handling
+  belongs to whoever pushed a scope above it. In miralabs-ui that was the component machines; here
+  there are none, so under `composite` a keyboard arrow moves focus only if the application acts on
+  it (R29a). `app` (TV, kiosk, game): arrows drive global spatial navigation too. In both, `Tab` is
+  untouched — sequential
+  tabbing stays the browser's. Recorded as [ADR-0007](adr/0007-navigation-modes.md).
 - **R29a.** Four of the sixteen intents of R1 are **emitted and not consumed** by this package:
   `tabNext`, `tabPrev`, `secondary` and `contextMenu`. The keymap and the pad mapping produce them
   (R8, R17), and `tabNext`/`tabPrev` are even allowed past a trap (R4), but no module in the
   extraction perimeter acts on any of them: the spatial engine handles the four moves and the two
-  scrolls and returns `false` for everything else
-  (`packages/core/src/input/spatial/spatial.ts:428-439`), the input system acts on `select` alone
-  (`.../input-system.ts:98-112`), and engage mode consumes `select`, `back` and its eight adjust
-  intents (`.../engage.ts:18-26`). `pageUp`, `pageDown`, `home` and `end` likewise do nothing
+  scrolls and returns `false` for everything else (`src/spatial/spatial.ts:480-491`), the input
+  system acts on `select` alone (`src/input-system.ts:118-132`), and engage mode consumes `select`,
+  `back` and its eight adjust intents (`src/engage.ts:18-26`, read at `:61-72`). `pageUp`,
+  `pageDown`, `home` and `end` likewise do nothing
   outside engage mode. In miralabs-ui these were consumed by four component machines — calendar,
   dialog, pagination, tabs — none of which is extracted, so the gap is created by the extraction
   and is not an omission in the source. Pressing RB on a pad therefore moves no focus today: the
   intent reaches the application through `onIntent`, which is the documented way to act on it. A
   built-in tab-order handler is a v1 item, not a port, because it has to decide whether the engine
   or the application owns sequential focus.
-- **R30.** `pointerFollowsFocus`, default on in `app` mode, so mouse and pad do not fight over two
-  cursors. No test covers it today.
+- **R30.** `pointerFollowsFocus`, default on in `app` mode and off in `composite`
+  (`src/spatial/spatial.ts:239`), so mouse and pad do not fight over two cursors. Covered by the
+  browser fixtures at `src/spatial/spatial.browser.test.ts:512` — it is no longer the untested
+  option it was in the source.
 - **R31.** Visible limits, documented because a user meets them: container nesting is bounded at
-  `MAX_CONTAINER_DEPTH = 16` (`packages/core/src/input/spatial/spatial.ts:55`), and the zero-size
-  filter is `width === 0 && height === 0` (`.../spatial.ts:141`), so a 0×40 element stays a
-  candidate.
+  `MAX_CONTAINER_DEPTH = 16` (`src/spatial/spatial.ts:60`), and the zero-size filter is
+  `width === 0 || height === 0` (`.../spatial.ts:183-188`) — **either** dimension, so a 0×40 element
+  is not a candidate. That is [ADR-0009](adr/0009-hidden-candidates.md) filter **C1, accepted for v0
+  and implemented**, against the source's `&&` (miralabs-ui:
+  `packages/core/src/input/spatial/spatial.ts:141`), which let such an element through: a rect with
+  a zero dimension paints nothing and its projection onto the cross axis is empty, so the alignment
+  pass can never call it aligned and it is scored on the distance to a centre that is really an
+  edge. Three fixtures pin it, including the one that says the rule is zero and not small — a
+  one-pixel hairline stays a candidate (`src/spatial/spatial.browser.test.ts:598-630`).
+  Filter **C2 is refused for v0** and deferred to v1: dropping `opacity: 0` candidates costs a
+  `getComputedStyle` per candidate in the hot loop, and an opacity inherited from an ancestor
+  escapes the test anyway. The two do not ship together, which is the premise the ADR was written
+  on.
 
 ### 5.5 Focus ring
 
-- **R32.** One optional overlay module, zero bytes when not imported, listening to `focusin`
-  (`packages/core/src/input/focus-ring/focus-ring.ts`), animated with the Web Animations
-  API, hidden under `pointer` and `touch` modality, crossfading under `prefers-reduced-motion`. The
-  overlay element carries `data-snav-focus-ring`, the fourth attribute the package writes.
-- **R33.** If the ring ships in v0, it ships with its default values inlined. In the source, colour,
-  width, radius and z-index come from `packages/styles/scss/components/_focus-ring.scss`, which stays
-  in miralabs-ui: publishing without defaults produces an invisible ring. Custom properties are
-  renamed `--snav-focus-ring-*`. Whether the overlay is in v0 at all, and in which of the three
-  shapes, is the open question recorded in [ADR-0004](adr/0004-relationship-with-miralabs-ui.md) and
-  restated as open question 3 below.
+- **R32.** One optional overlay module, zero bytes when not imported, listening to `focusin` and not
+  to the spatial engine, so it rings a Tab, a pad move and a programmatic `focus()` alike
+  (`src/focus-ring/focus-ring.ts`). Animated with the Web Animations API; hidden under `pointer` and
+  `touch` modality (`.../focus-ring.ts:215-229`); travelling from its own live rect rather than from
+  the element it left, so a burst of presses retargets from where the ring visually is (`:175`);
+  crossfading instead of travelling under `prefers-reduced-motion` (`:188-191`); appearing and
+  disappearing over a 150 ms WAAPI fade, which is itself skipped under reduced motion
+  (`:147-154`). The overlay element carries `data-snav-focus-ring`, the fourth attribute the package
+  writes.
+- **R33.** **Settled: the ring ships in v0 and paints itself.** No stylesheet ships with the package
+  — the overlay is created with its paint in a `cssText` string (`src/focus-ring/focus-ring.ts:51-52`,
+  applied at `:242`), so importing the subpath is the whole installation. The source values came from
+  miralabs-ui: `packages/styles/scss/components/_focus-ring.scss`, which stays there. The contract is
+  six custom properties, read off the overlay's own computed style:
+
+  | Custom property | Fallback | Read at |
+  |---|---|---|
+  | `--snav-focus-ring-offset` | `2` px | `src/focus-ring/focus-ring.ts:104-106` |
+  | `--snav-focus-ring-duration` | 260 ms, 150 ms under reduced motion | `.../focus-ring.ts:131-136` |
+  | `--snav-focus-ring-easing` | `cubic-bezier(0.22, 1, 0.36, 1)` | `.../focus-ring.ts:137-138` |
+  | `--snav-focus-ring-color` | `#1a73e8` | `.../focus-ring.ts:52` |
+  | `--snav-focus-ring-width` | `3px` | `.../focus-ring.ts:52` |
+  | `--snav-focus-ring-z-index` | `1700` | `.../focus-ring.ts:52` |
+
+  One of those fallbacks was computed here and two were restored from the source. `#1a73e8` was
+  measured here — 4.51:1 on white and 4.36:1 on `#0b0b0f`, both above the 3:1 that WCAG SC 1.4.11
+  asks of a non-text indicator (commit `71dc53c`). `3px` and `1700` are the values the source
+  stylesheet shipped, put back after the extraction's first pass wrote `2px` and no z-index at all:
+  `2px` is a width the source never shipped and `3px` is the one it did (miralabs-ui:
+  `packages/styles/css/base.css:39`, cited in commit `92a5f89`), and `1700` is the rung that
+  stylesheet gave the ring — above its modal, popover, toast and tooltip. The rung is load-bearing:
+  `position: fixed` opens no stacking context, so without it the overlay paints in DOM order and
+  goes behind the first dialog it meets. The radius is not a property at all: it is read off the
+  target, so the ring wears the shape of whatever it surrounds (`:114-116`).
+
+  Two limits travel with an inline style. A custom property of the wrong type still substitutes,
+  which makes the declaration invalid at computed-value time with no earlier declaration to fall
+  back to — one typo computes the ring to nothing, silently. And `forced-colors: active` suppresses
+  `box-shadow`, so the ring disappears in a forced-colours theme; an inline style cannot carry the
+  media query the stylesheet used for that. The fix is a v1 roadmap item, not a v0 one.
 
 ### 5.6 Adapters
 
 - **R34.** Delivery order, the owner's decision of 2026-09-18, recorded in
-  [ADR-0011](adr/0011-package-layout-and-adapters.md): React first — the only adapter in the source
-  (`packages/react/src/input.tsx`, 209 lines) — then vanilla helpers that auto-mount from attributes,
-  then Vue, Svelte, Angular.
+  [ADR-0011](adr/0011-package-layout-and-adapters.md): React first — extracted from miralabs-ui:
+  `packages/react/src/input.tsx` (209 lines, read 2026-09-18) and now `src/react/react.tsx`
+  (304 lines, `wc -l` here 2026-09-20) — then vanilla helpers that auto-mount from attributes, then
+  Vue, Svelte, Angular. React is the only adapter that exists; the others are not written.
 - **R35.** Every adapter is a subpath export (`@standarx/nav/react`, `/vue`, `/svelte`, `/angular`)
   with an optional peer dependency, and stays a thin binding — provider, scope host, modality hook.
-  It never imports the engines; the consumer passes `gamepadPlugin()` or `spatialPlugin()`.
-  `vanilla` is the core itself.
-- **R36.** No adapter ships until it passes the same browser suite as React (parity gate, §6).
+  Only `./react` is published today (`package.json` exports, read 2026-09-20), with `react` and
+  `react-dom` as optional peers. It never imports the engines — `src/react/react.tsx` imports the
+  input system, the bus types, the keymap types and the modality tracker, and nothing from
+  `gamepad/`, `spatial/` or `focus-ring/` (`.../react.tsx:12-28`) — so the consumer passes
+  `gamepadPlugin()` or `spatialPlugin()` in. `vanilla` is the core itself.
+- **R36.** No adapter ships until it passes the shared suite of `src/adapter-parity.ts`, the same one
+  React passes (parity gate, §6).
 
 ## 6. Measurable claims and their gates
 
@@ -339,88 +418,109 @@ A claim without a gate does not go in the README.
 
 | Claim | Gate | State today |
 |---|---|---|
-| Zero runtime dependencies | `package.json` has no `dependencies` field, checked by `bun run check:package` on the packed tarball, wired at `.github/workflows/ci.yml:46-47` | The field is absent from `package.json` (read 2026-09-18). `scripts/check-package.ts` exists: it refuses a `private` manifest, packs with `bun pm pack` into a temporary directory, then runs `publint` and `attw --profile esm-only` on the tarball — the only artifact npm ever receives. It has nothing to lint until `src/` and a build exist |
-| Blocking size budgets | `scripts/size-budget.ts` run by `bun run check:size` (`.github/workflows/ci.yml:48-49`); a measured line without a cap fails the run | The script exists, with six lines: core (`index.js`), gamepad engine, spatial engine and focus ring (each measured with the siblings `../*` and `../../*` external, so each number is the marginal cost next to the core), debug (`./*` external), and the whole package (the four runtime entries bundled once through a synthetic re-export module, nothing external). Sizes are minified with `Bun.build` and gzipped at Bun's default level, which reads heavier than `gzip -9`. Every cap is `null` today, so the run prints each measurement and fails by design until the caps are written from those numbers, per [ADR-0017](adr/0017-size-budgets.md). It also fails with a clear message while `dist/` is missing, which it is until `src/` exists. Inherited reference figures below |
-| Never virtual focus | A browser test asserting `document.activeElement` after every move, plus a check that no id-keyed focus map exists in the source | Not written |
-| Geometry fixtures do not depend on CSS classes | Geometry fixtures positioned with inline styles only, so a fixture failure means the algorithm changed, never the stylesheet | Not written |
-| Adapter parity | The same browser suite runs against every adapter | Coverage in the source is React only: `packages/react/src/primitives.browser.test.tsx` holds 16 cases, of which the provider and modality ones exercise the adapter, and `packages/react/src/components/gamepad.browser.test.tsx` holds 8 that drive it through the input system (`it(` occurrences counted against miralabs-ui on 2026-09-18). The shared suite does not exist yet |
-| Scoring performance | A bench of `findBestCandidate` **and** an end-to-end move measurement | Neither is written here |
+| Zero runtime dependencies | `package.json` declares no `dependencies`, and `scripts/check-package.ts:34-40` exits 1 naming them if it ever does; run by `bun run check:package` on the packed tarball, wired at `.github/workflows/ci.yml:46-47` | **Green.** The field is absent and the claim now has its gate rather than a reading: the dependency check runs before the pack, so the build fails on the manifest itself. The script then refuses a `private` manifest, refuses a missing `dist/`, packs with `bun pm pack` into a temporary directory and runs `publint --strict` and `attw --profile esm-only` on the tarball — the only artifact npm ever receives. `react` and `react-dom` stay optional peers, which a consumer already has or does not want. `bun run build && bun run check:package` here on 2026-09-20: passed for `@standarx/nav@0.0.0`, publint clean and `attw` green on both resolutions it is asked about |
+| Blocking size budgets | `scripts/size-budget.ts` run by `bun run check:size` (`.github/workflows/ci.yml:48-49`); a line over its cap fails the run, and so does a line with no cap at all | **Green, seven lines, every one capped.** Measured here, not inherited: `bun run build && bun run check:size` on this package on 2026-09-20, min+gzip at Bun's default gzip level (which reads heavier than `gzip -9`): core 3.13 / 3.25 · gamepad engine 2.48 / 2.50 · spatial engine 3.04 / 3.25 · focus ring 1.51 / 1.75 · debug 0.40 / 0.50 · react adapter 1.30 / 1.50 · whole package 8.77 / 9.00 kB. Each subpath is measured with the layers it imports and a consumer already pays for named external **file by file**: a glob is forbidden, because `*` does not cross a path separator and would silently stop measuring (`scripts/size-budget.ts:65-76`). So every subpath figure is the marginal cost of adding it next to what it already needs — the core for the three engines and the React adapter, and the spatial engine for `debug`, whose externals are `./spatial/spatial.js` and `./spatial/geometry.js` (`scripts/size-budget.ts:105-111`) — and the last line bundles the four runtime entries once with nothing external. Caps and the defects the first runs exposed are in [ADR-0017](adr/0017-size-budgets.md) |
+| Never virtual focus | A browser test asserting `document.activeElement` after every move, plus a check that no id-keyed focus map exists in the source | **Half green.** The browser half is written: the spatial scene helper's `active()` reads `document.activeElement` and nothing else (`src/spatial/spatial.browser.test.ts:57`), and the fixtures of that file — 48 running cases and the one skipped shadow-DOM fixture, counted 2026-09-20 — check where the focus went through it alone, so a move that did not move real focus fails. The second half is still a reading rather than a check — the public surface carries no focus key, moves are addressed by direction and answered with a boolean, the elements they carry are real `HTMLElement`s on `WillMoveEvent.from`/`.to` (`src/spatial/spatial.ts:64-71`), and `plugin.focus` takes an element or a selector, so there is no id and no key anywhere on the surface — and R21's landing verification is unwritten |
+| Geometry fixtures do not depend on CSS classes | Geometry fixtures positioned with inline styles only, so a fixture failure means the algorithm changed, never the stylesheet | **Green.** The unit fixtures score plain `Rect` literals with no DOM at all (`src/spatial/geometry.test.ts:10-12`), and every browser fixture is positioned by an inline `style` attribute (`src/spatial/spatial.browser.test.ts:12-14`). The package ships no stylesheet, so there is none for a fixture to depend on |
+| Adapter parity | The shared suite `src/adapter-parity.ts` runs against every adapter; one that does not pass does not ship (R36) | **Written, and React passes it.** It is a callable runner, not a file to copy: an adapter supplies `mount`, `update`, `unmount`, `settle` and `act` over a tree of two nested scopes (`ParityAdapter` and `ParityTree`, `src/adapter-parity.ts:48-76`) and inherits 11 cases — one system per provider and never during the first render, delivery to the scopes, LIFO order, a scope released when only its own subtree unmounts, a trap stopping the walk, a `base` scope asked through that trap, a scope re-registered when its `base` changes on a rerender, every scope released on unmount, the reported modality, nothing listening after unmount, and a scope disposed after the provider was destroyed. React runs it at `src/react/react.browser.test.tsx:340`, over the adapter built at `:260`, alongside 9 adapter-specific cases. It is a one-adapter gate today because React is the only adapter that exists |
+| Scoring performance | A bench of `findBestCandidate` **and** an end-to-end move measurement | **Neither exists, and one of them cannot yet.** There is no bench script and no benchmark: `vitest` 5.0.1 exports no `bench`. What is ported is the guard — the median of 51 samples scoring 200 candidates, asserted under 1 ms (`src/spatial/geometry.test.ts:156-177`) |
 
-Inherited size figures for reference only — `bun run check:size` in miralabs-ui on 2026-09-18 (dist
-built the same day, min+gzip, externals `../*` and `../../*`): input system with engage 1.93 kB of a
-2.00 kB cap, gamepad engine 2.35 kB of 3.00 kB, spatial engine 2.81 kB of 3.00 kB, modality tracker
-0.74 kB of 1.00 kB. They describe the source, not this package. Two warnings travel with them. The
-same spatial engine measured **without** externals came to 3303 B, above the 3 kB cap — a single
-measurement of 2026-09-18 that has not been reproduced, which is why perimeters precede caps.
-And the figures of the 2026-08-27 release notes (2.48 kB gamepad, 2.89 kB spatial, 1.34 kB focus
-ring, 4.3 µs for 200 candidates) are historical and are labelled as such wherever they appear.
+The guard carries the blind spot the inherited bench had: it measures `findBestCandidate` alone, and
+not `collectNavNodes`, `getBoundingClientRect`, `querySelectorAll` or `checkVisibility`. A move is
+not the arithmetic, and no end-to-end move is measured anywhere in this package. The bench that did
+exist — miralabs-ui: `packages/core/src/input/spatial/geometry.bench.ts`, 200 and 2000 candidates —
+is not ported, for want of a `bench` export. See [ADR-0018](adr/0018-testing-strategy.md).
 
-The performance gate needs the same care. The inherited bench
-`packages/core/src/input/spatial/geometry.bench.ts` measures `findBestCandidate` alone on 200 and
-2000 candidates, and the guard at `packages/core/src/input/spatial/geometry.test.ts:156-177`
-(median of 51 samples under 1 ms) has the same blind spot: neither measures `collectNavNodes`,
-`getBoundingClientRect`, `querySelectorAll` or `checkVisibility`. A move is not the arithmetic.
-Of the two, only the guard is ported — `vitest` 5.0.1 exports no `bench` — so v0 ships that blind
-spot with no benchmark beside it. See [ADR-0018](adr/0018-testing-strategy.md).
+Historical figures, kept because they are quoted elsewhere and must not be mistaken for these.
+Inherited: `bun run check:size` in miralabs-ui on 2026-09-18 (min+gzip, externals `../*` and
+`../../*`) gave input system with engage 1.93 kB of a 2.00 kB cap, gamepad engine 2.35 of 3.00,
+spatial engine 2.81 of 3.00, modality tracker 0.74 of 1.00 — a different package, different
+perimeters, and superseded for this one by the seven lines above. Older still, the 2026-08-27
+release notes of miralabs-ui (2.48 kB gamepad, 2.89 kB spatial, 1.34 kB focus ring, 4.3 µs for 200
+candidates); they are labelled historical wherever they appear.
 
-## 7. Success criteria and decision date (proposed)
+## 7. Success criteria and decision date
 
-Everything here is a **proposal** for the owner to accept, amend or reject; none of the numbers is
-measured yet. Proposed review date: **2027-03-31**, on which the project continues as is, narrows its
-scope, or is archived — written as an ADR rather than left implicit. Proposed criteria:
+Settled by the owner on 2026-09-20. Review date: **2027-03-31**, on which the project continues as
+is, narrows its scope, or is archived — written as an ADR rather than left implicit. Two criteria,
+deliberately: one about whether anybody outside found it, one about whether it was still being
+worked on. Both are checked by looking, not by remembering.
 
-1. **Adoption.** At least five identifiable external users: a public repository depending on
-   `@standarx/nav`, a third-party issue that is not from the owner, or a written report of use. Five
-   is a proposed threshold, not a measurement; it separates "someone found it" from "nobody did".
-2. **Downloads, recorded rather than remembered.** Once published, record npm weekly downloads every
-   Monday with `curl -s https://api.npmjs.org/downloads/point/last-week/@standarx/nav` and append the
-   dated result to a log in the repository. The criterion is the log's existence and a non-decreasing
-   trend over the last eight weeks, not a threshold: a threshold set before the first week of data
-   would be invented.
-3. **Hardware truth.** At least one real television (Tizen or webOS) and at least one physical
-   gamepad verified against a published test page, each recorded in a device report issue
-   (`.github/ISSUE_TEMPLATE/device_report.yml`). Until then, no document claims TV support.
-4. **The gates of §6 are green.** All six rows implemented and passing in CI, with the size caps set
-   from measurements taken after the extraction.
+1. **One identifiable external user.** One, not five. The evidence accepted is unchanged: a public
+   repository depending on `@standarx/nav`, a third-party issue that is not from the owner, or a
+   written report of use. One separates "someone found it" from "nobody did", and every number above
+   one would have been invented before the first week of data existed.
+2. **The journal exists, with eight dated entries.** `docs/journal/` holds exactly one dated entry
+   today — `docs/journal/2026-09-18.md`, beside the directory's own `README.md`; `ls docs/journal/`
+   run 2026-09-20 — so eight is a target and not a
+   claim, and saying so is the point of writing the criterion down. Eight dated entries by
+   2027-03-31 is roughly one a month across the project's first two quarters: enough to show the
+   work continued, few enough that it does not become a chore performed for the metric.
 
-Proposed failure condition, stated so it can actually fire: if on 2027-03-31 criterion 3 is unmet and
-criterion 1 stands at zero, the honest move is to archive the standalone package and keep the engine
-inside miralabs-ui, where it already has a consumer.
+Failure condition, stated so it can actually fire: if on 2027-03-31 there is no identifiable external
+user **and** the journal has not reached eight dated entries, the honest move is to archive the
+standalone package and keep the engine inside miralabs-ui, where it already has a consumer. One of
+the two met is a reason to look again, not to archive.
+
+Two obligations survive outside the criteria, because they gate what the documents may claim rather
+than whether the project continues: no document claims TV support until a real television and a
+physical gamepad are recorded in a device report issue
+(`.github/ISSUE_TEMPLATE/device_report.yml`), and the gates of §6 stay green in CI.
 
 ## 8. Open questions
 
 1. **`aria-hidden`.** The engine specification of 2026-08-27 lists "not inside an `aria-hidden`
-   subtree" among the candidate filters (§3.2, step 1;
+   subtree" among the candidate filters (§3.2, step 1; miralabs-ui:
    `git show 289fa607^:docs/research/input.md`), but the shipped code does not filter it. §4 of this
-   document follows the code. Which one is the contract?
-2. **Legacy build.** Is a second build targeting Chromium 68-79 (TV 2020-2021) worth its cost, and by
-   what date is that decided?
-3. **Focus ring in v0.** Inline default tokens in the plugin, a small optional stylesheet, or out of
-   v0 entirely? Open since the initialisation of 2026-09-18, recorded as an open question in
-   [ADR-0004](adr/0004-relationship-with-miralabs-ui.md); no ADR decides it yet.
+   document follows the code. Which one is the contract? Still open: ADR-0009's other filters are
+   settled (R31), this one is not.
+2. ~~**Legacy build.**~~ **Answered on the date, not yet on the substance.** Whether a second build
+   targeting Chromium 68-79 (TV 2020-2021) is worth its cost is decided by **2026-12-31**, and the
+   default is no: with no device report from such a runtime by that date, the legacy build is not
+   built. The question that remains is only what a device report would have to show.
+3. ~~**Focus ring in v0.**~~ **Settled 2026-09-20.** The first of the three shapes: the overlay ships
+   in v0 with its defaults inline and no stylesheet at all. The contract is the six custom properties
+   of R33.
 4. **Dependency direction with miralabs-ui.** Its core imports `pushEngageScope` and
    `isTextEntryTarget` by value. After extraction, does miralabs-ui depend on `@standarx/nav` for
    those two, or do they stay in miralabs-ui?
-5. ~~**Budget perimeters.**~~ **Settled 2026-09-19.** The six perimeters stand, and each number is
-   the marginal cost of adding that subpath next to the core. Two consequences are worth stating
-   before the caps become a gate nobody revisits: the core line carries `tabbable.js` and
-   `dom/query.js`, because the root entry re-exports six tabbable symbols so that `isFocusable` is
-   reachable without an engine; and `dom/raf.js` and `dom/platform.js` are charged to the engines
+5. ~~**Budget perimeters.**~~ **Settled 2026-09-19, amended 2026-09-20.** The perimeters stand, and
+   each number is the marginal cost of adding that subpath next to the core. Two consequences are
+   worth stating before the caps become a gate nobody revisits: the core line carries `tabbable.js`
+   and `dom/query.js`, because the root entry re-exports six tabbable symbols so that `isFocusable`
+   is reachable without an engine; and `dom/raf.js` and `dom/platform.js` are charged to the engines
    that are their only importers rather than to the core, which is what a marginal cost means. The
-   measurements, the caps and the three script defects the first run exposed are recorded in the
-   2026-09-19 amendment to [ADR-0017](adr/0017-size-budgets.md).
-6. **Untested behaviours inherited from the source.** `scrollAndRescan`, `pointerFollowsFocus`,
-   `data-snav-scroll="center"`, the whole of `debug.ts` (whose winner rule is a re-implementation,
-   not a shared one) and right-stick horizontal scroll have no tests. Specify and test, or drop?
+   amendment is a seventh line: the React adapter, which externalises `react`, `react/jsx-runtime`
+   and the two core entries it imports, and is charged `internal/env.js` and `internal/equality.js`
+   as adapter-only helpers (`scripts/size-budget.ts:112-118`). All seven carry caps; the
+   measurements, the caps and the script defects the first runs exposed are recorded in
+   [ADR-0017](adr/0017-size-budgets.md).
+6. ~~**Untested behaviours inherited from the source.**~~ **Answered 2026-09-20: specified and
+   tested, none dropped.** `scrollAndRescan` (`src/spatial/spatial.browser.test.ts:713`),
+   `pointerFollowsFocus` (`.../spatial.browser.test.ts:512`), `data-snav-scroll="center"`
+   (`.../spatial.browser.test.ts:550`), the debug entry (`src/debug.browser.test.ts`, 6 cases) and
+   right-stick horizontal scroll (`src/gamepad/gamepad.browser.test.ts:203,210`) all have fixtures.
+   The parenthesis in the old wording is obsolete too: `explainMove` no longer re-implements the
+   winner rule, it calls the engine's own `findBestCandidate` (`src/debug.ts:63-68`), so a
+   diagnostic that disagrees with the engine is now a structural impossibility rather than a promise.
 7. **Remote coverage.** Do Vidaa, Vizio, Roku, Fire TV and Android TV keycodes enter the default
    keymap, and how are they verified without the hardware?
-8. **CI billing.** `gh run list -R miralabs-tech/miralabs-ui --limit 8` on 2026-09-18 returned 8
-   failures out of 8, annotated "The job was not started because recent account payments have failed
-   or your spending limit needs to be increased." The same must be checked for
-   `StandarX-miralabs-tech` before any claim depends on green CI.
+8. ~~**CI billing.**~~ **Answered 2026-09-20.** `gh run list -R miralabs-tech/miralabs-ui --limit 8`
+   on 2026-09-18 returned 8 failures out of 8, annotated "The job was not started because recent
+   account payments have failed or your spending limit needs to be increased." That did not follow
+   the code. The last run on the extraction pull request in `StandarX-miralabs-tech` — run
+   35508188840, `gh run view 35508188840 --json jobs`, read 2026-09-20 — started and passed all
+   seven checks it carried: lint, typecheck, build, test, and browser on chromium, firefox and
+   webkit. The workflow has since gained a sixth job and an eighth check, the react 18.3 peer floor
+   (`.github/workflows/ci.yml:66-92`), which has not run yet. Claims in this document may therefore
+   lean on CI, and do.
 9. **Name risk.** A third-party GitHub organisation `standarx` has existed since 2024-12-24 with a
    live site at standarx.com, predating `StandarX-miralabs-tech`, created 2026-09-18 (`gh api
    users/standarx`, run 2026-09-18). No INPI, EUIPO or USPTO search has been run. This is a
    family-level risk, not specific to this project.
-10. **Shadow DOM after v0.** If it comes back, does it come back as an opt-in root list or as real
-    traversal, and what does that cost per move?
+10. **Shadow DOM after v0.** Half answered. v0's position is settled and deliberate: no traversal in
+    `getFocusables`, a shadow-aware `contains` beside it, the inconsistency documented, and the
+    skipped fixture at `src/spatial/spatial.browser.test.ts:856` kept as the acceptance test of any
+    future attempt ([ADR-0008](adr/0008-shadow-dom.md)). Coherence between the two is a v1 goal.
+    What stays open is the shape — an opt-in root list or real traversal — and what it costs per
+    move.

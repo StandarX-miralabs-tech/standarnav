@@ -35,8 +35,8 @@ runs on Chromium. It says nothing about a Tizen set that happens to embed Chromi
 reads the engine from `SNAV_BROWSER` and defaults to `chromium`, `vitest.config.ts:23-36` declares
 the browser project with the Playwright provider and `headless: true`, and
 `.github/workflows/ci.yml:61-83` fans the job out over `matrix.browser: [chromium, firefox, webkit]`
-with `fail-fast: false` (`:63-66`). The dependencies are pinned at `package.json:56`
-(`@vitest/browser-playwright` `^5.0.1`) and `package.json:58` (`playwright` `^1.63.0`), with the
+with `fail-fast: false` (`:63-66`). The dependencies are pinned at `package.json:77`
+(`@vitest/browser-playwright` `^5.0.1`) and `package.json:79` (`playwright` `^1.63.0`), with the
 `test:browser` script at `package.json:48`.
 
 These engines are the versions the pinned Playwright release ships, which are current engines. They
@@ -105,6 +105,35 @@ simulator that runs on the host's own browser engine is not evidence about a tel
   `gamepad.browser.test.ts:43`, read 2026-09-18) so the polling loop can be driven by a fake, which
   tests the logic and not the hardware. Stick dead zones, hysteresis and repeat curves are judged on
   a real pad or not at all.
+
+## Amendment, 2026-09-20: the matrix is unchanged, the evidence moved
+
+Nothing in the decision changes. Every device row is still "designed for" and the other two
+columns are still empty, because no emulator run and no device report exists. What changed is
+where the facts this record cites now live, and the citations below are stale by line number even
+where they are true by content.
+
+The three-engine CI matrix of decision 1 runs and is green: `.github/workflows/ci.yml:94-120`,
+`fail-fast: false` over `[chromium, firefox, webkit]`, `SNAV_BROWSER` set per entry, and
+`bun run test:browser` reporting 169 passed and 1 skipped in 10 files on each (2026-09-20). The
+matrix job moved down the file since this record was written: the lines it used to occupy now
+hold `react-floor` (`:66-92`), which runs the same browser project on chromium alone against the
+declared React peer floor. That is a fourth browser run, not a fourth engine, and it changes
+nothing about this decision. The
+`package.json` line numbers this record gives for `test:browser`, `@vitest/browser-playwright` and
+`playwright` are from the 2026-09-18 file and no longer resolve; the current ones are `:66`, `:77`
+and `:79`. `vitest.config.ts:9` and the browser project are still where this record says, modulo
+the same drift — `:30-36` now.
+
+The keymap is no longer only readable in miralabs-ui: `src/keymap.ts` is here, and the remote
+codes decision 4 lists as what a Tizen or webOS set would exercise are in it. The `GamepadRuntime`
+seam consequence is likewise local now — `src/gamepad/gamepad.ts`, driven by
+`src/gamepad/gamepad.browser.test.ts` — and the sentence it supports is unchanged: that seam tests
+the logic and not the hardware, and stick dead zones, hysteresis and repeat curves are judged on a
+real pad or not at all.
+
+Which is the point worth restating on the day this package is about to be published: 269 passing
+tests are evidence about three desktop browser engines, and about nothing else.
 
 ## Alternatives considered
 

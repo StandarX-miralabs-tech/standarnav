@@ -40,17 +40,21 @@ so that it survives refactors.
 The engine moves the real DOM focus, and only the real DOM focus.
 
 - Moving focus is `element.focus({ preventScroll: true })`, through a single
-  helper (`src/tabbable.ts`, `focusElement`).
+  helper (`src/tabbable.ts:113-120`, `focusElement`, which defaults
+  `preventScroll` to `true`; read 2026-09-20).
 - Reading focus is `document.activeElement`, narrowed to `HTMLElement`. The engine
-  keeps no authoritative copy. The one element reference it holds (`spatial.ts:208`)
-  only strips the styling attribute from the element that had focus before.
+  keeps no authoritative copy. The one element reference it holds only strips the
+  styling attribute from the element that had focus before.
 - `preventScroll: true` is part of the contract: the engine scrolls the element
   into view itself, after the focus call, so that a container can ask for
   `center` instead of the browser's `nearest`.
-- Per-container memory stores a `WeakRef` to a previously focused **element**, not
-  an id or a key. It is a hint for re-entry, never a source of truth: the engine
-  re-checks that the remembered element is still contained and still focusable
-  before landing on it.
+- Per-container memory stores a reference to a previously focused **element**, not
+  an id or a key — a `WeakRef` where the runtime has one and a self-releasing
+  strong reference where it does not ([ADR-0013](0013-browser-baseline-and-fallbacks.md);
+  `src/spatial/spatial.ts:113-141`). It is a hint for re-entry, never a source of
+  truth: the engine re-checks that the remembered element is still contained and
+  still focusable before landing on it (`src/spatial/spatial.ts:345`, read
+  2026-09-20).
 - The attributes the engine writes (`data-snav-focused` on the focused element,
   `data-snav-active` on every container on the path) are styling hooks that
   mirror the real focus. They are never read back as state.
@@ -79,7 +83,9 @@ Consequence for the public surface: the library has no `getFocusedKey()` and no
 - Focus moves are observable from outside, so tests assert a browser fact.
 - Cost: every move queries and measures live DOM, and a focus call can trigger
   scrolling, focus events and framework effects the library does not control. The
-  `onWillMove` veto exists for that (`spatial.ts:261-276`).
+  `onWillMove` veto exists for that, and it runs before the focus call
+  (`src/spatial/spatial.ts:312-327`, read 2026-09-20 — the focus call is `:329`,
+  after it).
 - Cost: the engine cannot move focus into a closed shadow root or a cross-origin
   iframe, because `focus()` cannot either — see [ADR-0008](0008-shadow-dom.md).
 
@@ -89,9 +95,23 @@ Two checks keep this ADR true, and both must exist before v1. First, a browser t
 that asserts `document.activeElement === expectedElement` after every simulated
 move; asserting a class name, an attribute or a library getter does not satisfy the
 gate. Second, a source-level check that no id-keyed focus store — a
-`Map<string, HTMLElement>` or equivalent — exists in `src/`. Neither is written yet:
-Vitest is configured (a unit project and a browser project) but the repository has
-no `src/` and no test on 2026-09-18. Both are v0 work items, listed with the rest in
+`Map<string, HTMLElement>` or equivalent — exists in `src/`.
+
+**Status, 2026-09-20.** The first is written and running. The spatial browser suite
+reads `document.activeElement` through its scene helper on every move assertion
+(`src/spatial/spatial.browser.test.ts`), as does the composition suite
+(`src/composition.browser.test.ts`), and nothing in either asserts a class, an
+attribute or a getter in place of it. `bun run test:browser` on 2026-09-20 → 169
+passed and 1 skipped in 10 files; the skip is the shadow-DOM fixture of
+[ADR-0008](0008-shadow-dom.md) and is unrelated to this gate.
+
+The second is **not** written. There is no automated check for an id-keyed focus
+store; what exists is a reading, done 2026-09-20: `grep -rn "Map<string" src/`
+returns one hit, `src/gamepad/gamepad.ts:153`, which is
+`new Map<string, ButtonOverrides>()` — the per-pad remap table of `setMapping`,
+keyed by `Gamepad.id`, holding button overrides and no element. No focus store
+exists. A reading is not a gate, and turning it into one before v1 is still the
+work item this section describes; it is listed with the rest in
 [ADR-0018](0018-testing-strategy.md).
 
 ## Alternatives considered
@@ -140,11 +160,21 @@ modes), not this decision alone.
   specification of 2026-08-27 states, in translation: real DOM focus with roving
   tabindex, not virtual focus by key, because screen reader accessibility and native
   interoperability with `:focus`, forms and extensions come free that way —
-  miralabs-ui `docs/research/input.md:141`, a French document deleted by commit
+  `miralabs-ui: docs/research/input.md:141`, a French document deleted by commit
   `289fa607` and readable with `git show 289fa607^:docs/research/input.md`.
   Decision D9 of the miralabs-ui cahier des charges, 2026-08-27: the gamepad drives
-  real DOM focus, never virtual focus — miralabs-ui
-  `docs/cahier-des-charges.md:43`, deleted by the same commit.
+  real DOM focus, never virtual focus — `miralabs-ui: docs/cahier-des-charges.md:43`,
+  deleted by the same commit.
 - Competitor focus models: the focus-model column of the 20 fact sheets, each
   verified by reading the competitor's source on 2026-09-18. The committed table is
   [competitor comparison](../research/competitors.md).
+- The same facts in this repository's own code, read 2026-09-20: `focusElement` and
+  its `preventScroll` default at `src/tabbable.ts:113-120`; `isFocusable` with its
+  `checkVisibility` and `inert` tests at `:41-63`, and the `aria-disabled` comment
+  at `:60-61`; `commit()` as veto, then focus, then remember, then scroll into
+  view at `src/spatial/spatial.ts:308-333` (the veto block `:312-327`, the focus
+  call `:329`); the container memory as a
+  `WeakMap<HTMLElement, ElementHandle>` of elements at `:248`, re-validated with
+  `contains` and `isFocusable` at `:345`. No focus registry:
+  `grep -rn "Map<string" src/` → one hit, the gamepad remap table at
+  `src/gamepad/gamepad.ts:153`.

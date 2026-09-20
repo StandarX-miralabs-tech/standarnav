@@ -61,11 +61,12 @@ Measured with `wc -l` on each file, same directory, 2026-09-18:
 | `dom/raf.ts` | 40 | `src/dom/raf.ts` | `raf`, used by the scroll-and-rescan path |
 | `dom/platform.ts` | 59 | `src/dom/platform.ts` | `prefersReducedMotion` |
 | `types.ts` (five input types) | 72 (whole file) | `src/types.ts` | `Rect`, `IntentEvent`, `NavigationIntent`, `IntentSource`, `InputModality` |
-| `utils/invariant.ts` | 11 | `src/invariant.ts` | assertion messages, prefix to be rewritten |
+| `utils/invariant.ts` | 11 | not extracted — see the amendment below | assertion messages, prefix to be rewritten |
 
 Only the five listed types move out of `types.ts`; the rest of that file is
 design-system typing and stays. `invariant` messages are prefixed `[miralabs]`
-in the source and must be renamed on arrival.
+in the source and must be renamed on arrival — which in the end meant dropping
+the module and inlining its one use, as the amendment below records.
 
 **3. What stays in miralabs-ui.** Focus trap, roving focus, proxy tab focus, all
 components and their state machines, all SCSS, and the React `environment`
@@ -88,6 +89,50 @@ src/  intent-bus.ts  input-system.ts  keymap.ts  engage.ts
 The planned subpath exports of `@standarx/nav` map onto this layout directly —
 see [ADR-0011](0011-package-layout-and-adapters.md).
 
+**Amended 2026-09-20: what was actually built.** The move happened and the layout
+above is right in every directory. Four differences, all in the loose files at
+the top:
+
+```
+src/  index.ts  intent-bus.ts  input-system.ts  keymap.ts  engage.ts
+      modality.ts  tabbable.ts  types.ts  debug.ts  adapter-parity.ts
+      internal/    env.ts  equality.ts
+      dom/         event.ts  query.ts  raf.ts  platform.ts
+      gamepad/     gamepad.ts  mapping.ts  dead-zone.ts  repeat.ts
+      spatial/     spatial.ts  geometry.ts  containers.ts
+      focus-ring/  focus-ring.ts
+      react/       react.tsx  react-harness.tsx  use-safe-layout-effect.ts
+```
+
+- **`index.ts` is a file the planned layout never named.** The plan listed the
+  modules and left the root unspoken; the build needs one. It is the first entry
+  of `tsdown.config.ts:8` and the target of the `.` export
+  (`package.json:33`), it is the module the `core` size-budget line measures
+  ([ADR-0017](0017-size-budgets.md)), and its header states why the three engines
+  are *not* re-exported from it: Node's ESM runtime does no tree-shaking, so a
+  root re-export would make every consumer of `createInputSystem` fetch and
+  execute the gamepad, spatial and focus-ring graphs (`src/index.ts:1-11`).
+- **`invariant.ts` does not exist.** Decision 2 brought it over to have its
+  `[miralabs]` prefix rewritten; instead the single assertion that needed it was
+  inlined at its one call site (`src/input-system.ts:94`) and the module was
+  dropped. The message is unprefixed and a test pins that it stays so
+  (`src/input-system.test.ts:5-12`, which asserts the thrown message and then
+  asserts it does not start with a bracket). Eleven lines of helper for one throw
+  is a module that exists to be imported once.
+- **`internal/` holds two helpers the source had nowhere.** `env.ts` is an
+  `isDev()` that declares `process` locally rather than pulling `@types/node`, so
+  the package stays usable in a browser with no bundler; `equality.ts` holds
+  `arrayEquals` and `recordEquals`. Both exist for the React adapter's effect
+  dependencies and are charged to its size-budget line, not to the core
+  ([ADR-0017](0017-size-budgets.md)).
+- **`react/` is not all `.tsx`.** `use-safe-layout-effect.ts` carries no JSX, and
+  `react-harness.tsx` is the adapter's test harness rather than published code —
+  only `react.tsx` is an entry (`tsdown.config.ts:13`).
+
+One file is new and belongs to no source module: `src/adapter-parity.ts`, the
+shared adapter suite each adapter must pass
+([ADR-0018](0018-testing-strategy.md), decision 5). All read 2026-09-20.
+
 **5. The boundary rule.** The engine never depends on a component, a state
 machine, a style sheet or a design-system context. Dependencies point one way:
 miralabs-ui depends on `@standarx/nav`; `@standarx/nav` imports nothing from
@@ -102,10 +147,12 @@ miralabs-ui. A pull request that adds such an import is rejected.
 - `modality.ts` arrives with its contract intact: a per-document ref-counted
   singleton. Two copies of it in one page would fight over the attribute on
   `<html>`, which is one more reason the engine must exist once, not twice.
-- `focus-ring` moves without its styling. Its colours, width, radius and
-  z-index come from `packages/styles/scss/components/_focus-ring.scss`, which
-  stays in miralabs-ui. Shipping the plugin with no default tokens produces an
-  invisible ring; the fix is an open question tracked in
+- `focus-ring` moved without its styling. Its colours, width, radius and
+  z-index came from `packages/styles/scss/components/_focus-ring.scss`, which
+  stays in miralabs-ui, and shipping the plugin with no default tokens would
+  have produced an invisible ring. Settled 2026-09-20: the plugin paints itself
+  inline, six `--snav-focus-ring-*` custom properties override every value, and
+  **no stylesheet ships** — the decision and its measured contrast figures are in
   [ADR-0004](0004-relationship-with-miralabs-ui.md).
 - Duplicated helper logic is now possible: miralabs-ui keeps its own
   `dom/query.ts` and `focus/tabbable.ts` for the components that still need
