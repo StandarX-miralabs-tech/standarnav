@@ -366,6 +366,61 @@ differently gets a different box, which is why the number travels with the page.
 **Rule 3 gives 3.00.** The measurement is 2.82 kB and the next quarter above it is 3.00. The
 line sits at 94% used.
 
+## Amendment, 2026-09-21: the whole-package line holds every runtime entry, and its cap goes to 12.50 kB
+
+`bun run build && bun run check:size`, run 2026-09-21, same toolchain as the amendments above.
+
+| Line | min | min+gzip | old cap | new cap |
+|---|---|---|---|---|
+| whole package | 32.84 kB | 12.40 kB | 9.00 kB | **12.50 kB** |
+| gamepad engine | 5.42 kB | 2.49 kB | 2.50 kB | 2.50 kB, unchanged |
+
+**The note was false, and it was the line that made it false.** `whole package` reads "every
+runtime entry bundled once, nothing external — the debug entry is excluded on purpose". It held
+four entries: `index`, `gamepad`, `spatial`, `focus-ring`. The package exports nine runtime
+subpaths. The keyboard, its three layouts and the React adapter were outside the one line whose
+whole purpose is to catch what the individual lines cannot — a shared module getting expensive for
+everyone while every line stays green. A gate that names nine and measures four is worse than one
+that names four: it reports green about a claim it never tested.
+
+**The stance of 2026-09-19 is reversed, nominally.** That amendment closes with "The whole-package
+line does not include the react entry, and that is deliberate: its contract is *every runtime entry
+bundled with nothing external*, and react is external by definition." The contract had two halves
+and they have come apart. "Every runtime entry" and "nothing external" cannot both hold once the
+package ships an adapter whose peer is somebody else's library. This record keeps the first half
+and gives up the second, for two specifiers and no more: `react` and `react/jsx-runtime`.
+
+**Why the peer has to be external rather than the entry absent.** Measured, same command and day:
+with the react entry on the line and no external list, `whole package` reads 21.06 kB min+gzip.
+That number is about React, not about this package — it is the size of a library every consumer of
+the adapter already has and which [ADR-0011](0011-package-layout-and-adapters.md) declares an
+optional peer, never a dependency. Bundling it would make the line grow when React grows, which is
+the opposite of what rule 1 asks a budget to measure. The react adapter's own line has declared
+those two specifiers external since it was written; this line now says the same thing.
+
+**What the 3.62 kB is made of.** From 8.78 kB: the keyboard plugin adds 2.21, its three layouts
+0.48 together, and the React adapter 0.93. None of it is new code — all of it was already shipped
+and already measured on a line of its own. What changed is that the sum now includes it.
+
+**One thing the line overstates, on purpose.** No consumer ships three keyboard layouts; the
+subpaths exist precisely so a French application ships no Cyrillic. The line is not a claim about
+what one consumer downloads — the per-subpath lines are that — it is the ceiling on everything the
+package ships as runtime code, so that no entry can grow unwatched. Reading it as a download size
+would overstate by roughly the two layouts nobody takes.
+
+**The gamepad engine moved, and this record says so a commit late.** The amendment of 2026-09-20
+ends "the next commit that grows it still needs an amendment here first". The commit that added
+the `navigator.getGamepads` guard ([ADR-0013](0013-browser-baseline-and-fallbacks.md), amendment of
+2026-09-21) grew the line from 2.48 to 2.49 kB and did not come here first. Rule 4 is written
+about raising a cap and no cap moved — 2.49 rounds up to the same 2.50 — so the run stayed green
+and the rule was not broken; the expectation that amendment set was, and this is the record of it
+rather than a silence. The line now sits at 100 % of its cap with about ten bytes to spare. The
+next commit that touches the gamepad engine does need a cap here first, and this time the sentence
+is load-bearing.
+
+**Rule 3 gives 12.50.** The measurement is 12.40 kB and the next quarter above it is 12.50. The
+line sits at 99 % used, which is rule 3 working as intended: headroom for noise, not for growth.
+
 ## Alternatives considered
 
 **A bundlephobia badge in the README.** Rejected: it is not blocking, it lags
