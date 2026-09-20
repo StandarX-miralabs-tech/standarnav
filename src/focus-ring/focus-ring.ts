@@ -27,13 +27,19 @@ export const RING_ATTRIBUTE = "data-snav-focus-ring";
 
 const DEFAULT_DURATION = 260;
 const REDUCED_DURATION = 150;
+const FADE_DURATION = 150;
 const FALLBACK_EASING = "cubic-bezier(0.22, 1, 0.36, 1)";
 
 /**
- * The paint, which the source took from a stylesheet this package does not carry.
- * `#1a73e8` is 4.51:1 on white and 4.36:1 on `#0b0b0f`, both above the 3:1 WCAG
- * SC 1.4.11 asks of a non-text indicator; an application overrides either half
- * through the custom properties.
+ * The paint and the stacking, which the source took from a stylesheet this package
+ * does not carry. `#1a73e8` is 4.51:1 on white and 4.36:1 on `#0b0b0f`, both above
+ * the 3:1 WCAG SC 1.4.11 asks of a non-text indicator, and `1700` is the rung the
+ * source gave the ring — above its modal, popover, toast and tooltip — so an
+ * ordinary stacking context cannot bury it. The overlay carries no z-index of its
+ * own otherwise: `position: fixed` opens no stacking context, so it would paint at
+ * the root level in DOM order and go behind the first dialog it meets.
+ *
+ * An application overrides any of the three through the custom properties.
  *
  * Two things this cannot do. A value of the wrong type still substitutes, which
  * makes the whole declaration invalid at computed-value time — and because it is
@@ -43,7 +49,7 @@ const FALLBACK_EASING = "cubic-bezier(0.22, 1, 0.36, 1)";
  * inline style cannot carry the media query the stylesheet used for that.
  */
 const RING_PAINT =
-  "box-shadow:0 0 0 var(--snav-focus-ring-width, 2px) var(--snav-focus-ring-color, #1a73e8)";
+  "z-index:var(--snav-focus-ring-z-index, 1700);box-shadow:0 0 0 var(--snav-focus-ring-width, 3px) var(--snav-focus-ring-color, #1a73e8)";
 
 export interface FocusRingOptions {
   /** How far outside the target the ring sits. Falls back to the CSS custom property. */
@@ -132,10 +138,26 @@ export function focusRingPlugin(options: FocusRingOptions = {}): FocusRingPlugin
     return { duration, easing: easing === "" ? FALLBACK_EASING : easing, reduced };
   }
 
+  /**
+   * The appearing and disappearing the source stylesheet carried as
+   * `transition: opacity`. Nothing transitions an inline style that is assigned in
+   * the same task, so without this the ring cuts in and out. The source zeroed its
+   * duration token under reduced motion, and so does this.
+   */
+  function fade(from: number, to: number): void {
+    if (ring === null) return;
+    if (win !== null && prefersReducedMotion(win)) return;
+    ring.animate([{ opacity: from }, { opacity: to }], {
+      duration: FADE_DURATION,
+      easing: FALLBACK_EASING,
+    });
+  }
+
   function hide(): void {
     if (ring === null || !visible) return;
     visible = false;
     ring.style.opacity = "0";
+    fade(1, 0);
   }
 
   function moveTo(element: HTMLElement, animate: boolean): void {
@@ -143,6 +165,10 @@ export function focusRingPlugin(options: FocusRingOptions = {}): FocusRingPlugin
     const next = measure(element);
     if (next === null) return;
 
+    // Coming back from hidden rather than travelling: the ring has to appear, and
+    // the move animation below only carries geometry. First placement is neither —
+    // it has nowhere to come from and nothing to fade.
+    const returning = placed && !visible;
     const { duration, easing, reduced } = motion();
     // The ring's own live rect, so a burst of d-pad presses retargets from wherever
     // it visually is rather than restarting from the element it left three moves ago.
@@ -151,6 +177,7 @@ export function focusRingPlugin(options: FocusRingOptions = {}): FocusRingPlugin
 
     apply(next);
     ring.style.opacity = "1";
+    if (returning) fade(0, 1);
 
     if (!animate || !placed || duration <= 0) {
       visible = true;

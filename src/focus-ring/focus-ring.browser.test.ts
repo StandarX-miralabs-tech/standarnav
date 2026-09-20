@@ -124,6 +124,76 @@ describe("focusRingPlugin", () => {
     expect(view.ring.style.opacity).toBe("1");
   });
 
+  it("paints itself, because no stylesheet ships with the package", () => {
+    const view = scene();
+    const painted = getComputedStyle(view.ring);
+
+    // The literal in RING_PAINT, resolved: 4.51:1 on white.
+    expect(painted.boxShadow).toContain("rgb(26, 115, 232)");
+    expect(painted.boxShadow).not.toBe("none");
+    // The rung the source stylesheet gave it, above its own modal and tooltip.
+    expect(Number(painted.zIndex)).toBe(1700);
+  });
+
+  it("lets the application repaint it through the custom properties", () => {
+    const view = scene();
+    const root = document.documentElement;
+    cleanups.push(() => {
+      root.style.removeProperty("--snav-focus-ring-color");
+      root.style.removeProperty("--snav-focus-ring-width");
+      root.style.removeProperty("--snav-focus-ring-z-index");
+    });
+
+    root.style.setProperty("--snav-focus-ring-color", "rgb(255, 0, 0)");
+    root.style.setProperty("--snav-focus-ring-width", "5px");
+    root.style.setProperty("--snav-focus-ring-z-index", "42");
+
+    const painted = getComputedStyle(view.ring);
+    expect(painted.boxShadow).toContain("rgb(255, 0, 0)");
+    expect(painted.boxShadow).toContain("5px");
+    expect(Number(painted.zIndex)).toBe(42);
+  });
+
+  it("stacks above ordinary application chrome", () => {
+    const view = scene();
+    const dialog = document.createElement("div");
+    dialog.style.cssText = "position:fixed;inset:0;z-index:1300";
+    document.body.append(dialog);
+    cleanups.push(() => dialog.remove());
+
+    setInputModality(document, "gamepad");
+    view.button("one").focus();
+
+    expect(Number(getComputedStyle(view.ring).zIndex)).toBeGreaterThan(
+      Number(getComputedStyle(dialog).zIndex),
+    );
+  });
+
+  it("fades away rather than cutting out", () => {
+    const view = scene();
+    setInputModality(document, "gamepad");
+    view.button("one").focus();
+    for (const animation of view.ring.getAnimations()) animation.cancel();
+
+    view.input.pause();
+
+    expect(view.ring.style.opacity).toBe("0");
+    expect(view.ring.getAnimations().length).toBeGreaterThan(0);
+  });
+
+  it("fades back in when it returns from hidden", () => {
+    const view = scene();
+    setInputModality(document, "gamepad");
+    view.button("one").focus();
+    view.input.pause();
+    for (const animation of view.ring.getAnimations()) animation.cancel();
+
+    view.input.resume();
+
+    expect(view.ring.style.opacity).toBe("1");
+    expect(view.ring.getAnimations().length).toBeGreaterThan(0);
+  });
+
   it("animates between targets rather than jumping", () => {
     const view = scene();
     setInputModality(document, "gamepad");
