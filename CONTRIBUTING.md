@@ -72,8 +72,8 @@ All of those were run here on 2026-09-20 and pass. Between them they reproduce
 five of the eight checks CI runs (six jobs, one of them a three-engine matrix);
 the firefox and webkit runs and the React 18.3 floor job only exist in CI, which
 reports them on the pull request. Measured on the same date: `bun run test:unit`
-is 100 tests in 10 files, `bun run test:browser` is 194 passed and 1 skipped in
-11 files — 294 passed and 1 skipped in total. The
+is 100 tests in 10 files, `bun run test:browser` is 218 passed and 1 skipped in
+12 files — 318 passed and 1 skipped in total. The
 one skip is a documented shadow-DOM fixture
 (`src/spatial/spatial.browser.test.ts:856`, [ADR-0008](docs/adr/0008-shadow-dom.md)),
 not a test someone silenced. A red CI is about your change; treat it that way.
@@ -174,9 +174,10 @@ fixes.
 
 The build job of CI runs `bun run check:size` after the build, the drift gate
 and `check:package` (`.github/workflows/ci.yml:50-58`). The script is
-`scripts/size-budget.ts`. It measures seven lines against the built `dist/`:
+`scripts/size-budget.ts`. It measures eleven lines against the built `dist/`:
 the core (`index.js`), the gamepad engine, the spatial engine, the focus ring,
-the debug entry and the React adapter — each bundled with the sibling entries it
+the debug entry, the React adapter, the on-screen keyboard and one line per keyboard
+layout — each bundled with the sibling entries it
 also imports left external, so the number is the marginal cost of adding that
 subpath next to what it already sits beside. That is usually the core, but not
 always: the debug line externalises `./spatial/spatial.js` and
@@ -213,6 +214,10 @@ spatial engine  3.04 / 3.25 kB
 focus ring      1.51 / 1.75 kB
 debug           0.49 / 0.50 kB
 react adapter   1.30 / 1.50 kB
+keyboard        1.55 / 1.75 kB
+layout qwerty   0.45 / 0.50 kB
+layout azerty   0.49 / 0.50 kB
+layout alphabetic  0.36 / 0.50 kB
 whole package   8.77 / 9.00 kB
 ```
 

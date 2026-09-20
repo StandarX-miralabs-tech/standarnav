@@ -16,6 +16,8 @@ import { explainMove, scanNativeSelects } from "../src/debug";
 import { focusRingPlugin } from "../src/focus-ring/focus-ring";
 import { type GamepadPlugin, gamepadPlugin } from "../src/gamepad/gamepad";
 import { createInputSystem, type InputSystem } from "../src/index";
+import { keyboardPlugin } from "../src/keyboard/keyboard";
+import { alphabetic } from "../src/keyboard/layouts/alphabetic";
 import { type MoveDirection, type SpatialPlugin, spatialPlugin } from "../src/spatial/spatial";
 import {
   attachListbox,
@@ -32,8 +34,16 @@ import {
 const spatial: SpatialPlugin = spatialPlugin({ mode: "app" });
 const gamepad: GamepadPlugin = gamepadPlugin();
 
+// `openOn: "focus"` rather than the `gamepad` default, so the keyboard is reachable from
+// a laptop with no pad — which is the only way most of this page gets driven. A real
+// television application wants the default.
 const input: InputSystem = createInputSystem({
-  plugins: [gamepad, spatial, focusRingPlugin()],
+  plugins: [
+    gamepad,
+    spatial,
+    focusRingPlugin(),
+    keyboardPlugin({ layout: alphabetic, openOn: "focus" }),
+  ],
 });
 
 const status = document.getElementById("status");

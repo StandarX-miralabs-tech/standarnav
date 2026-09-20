@@ -34,6 +34,10 @@
     "./debug": "./dist/debug.js",
     "./focus-ring": "./dist/focus-ring/focus-ring.js",
     "./gamepad": "./dist/gamepad/gamepad.js",
+    "./keyboard": "./dist/keyboard/keyboard.js",
+    "./keyboard/alphabetic": "./dist/keyboard/layouts/alphabetic.js",
+    "./keyboard/azerty": "./dist/keyboard/layouts/azerty.js",
+    "./keyboard/qwerty": "./dist/keyboard/layouts/qwerty.js",
     "./react": "./dist/react/react.js",
     "./spatial": "./dist/spatial/spatial.js",
     "./package.json": "./package.json"

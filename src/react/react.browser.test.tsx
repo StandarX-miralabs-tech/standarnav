@@ -1,6 +1,8 @@
 import { type ReactNode, useEffect, useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { type ParityProbe, type ParityTree, runAdapterParitySuite } from "../adapter-parity";
+import { keyboardPlugin } from "../keyboard/keyboard";
+import { alphabetic } from "../keyboard/layouts/alphabetic";
 import { spatialPlugin } from "../spatial/spatial";
 import type { InputModality } from "../types";
 import { NavProvider, useInputModality, useInputSystem, useIntent } from "./react";
@@ -338,3 +340,81 @@ const parity = (() => {
 })();
 
 runAdapterParitySuite(parity);
+
+/**
+ * The risk ADR-0022 decision 5 names, and the only place it can be settled: React keeps
+ * its own record of a field's value, so a programmatic mutation plus a synthetic `input`
+ * event may or may not reach `onChange`. Two paths have to be checked, not one, because
+ * the keyboard mutates two different ways — `setRangeText` where the field has a
+ * selection, and the `value` setter where it does not.
+ */
+describe("the on-screen keyboard against a controlled React input", () => {
+  function Controlled({
+    type,
+    onValue,
+  }: {
+    readonly type: string;
+    readonly onValue: (value: string) => void;
+  }): ReactNode {
+    const [value, setValue] = useState("");
+    useEffect(() => {
+      onValue(value);
+    }, [value, onValue]);
+    return (
+      <input
+        data-testid="controlled"
+        type={type}
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
+      />
+    );
+  }
+
+  async function typeOneKey(type: string): Promise<{
+    readonly domValue: string;
+    readonly stateValue: string | undefined;
+  }> {
+    const seen: string[] = [];
+    const keyboard = keyboardPlugin({ layout: alphabetic, openOn: "focus" });
+    const handle = mount(
+      <NavProvider plugins={[keyboard]}>
+        <Controlled type={type} onValue={(value) => seen.push(value)} />
+      </NavProvider>,
+    );
+    await settle();
+
+    const field = handle.container.querySelector("input") as HTMLInputElement;
+    fire(() => field.focus());
+    await settle();
+
+    const key = document.querySelector<HTMLButtonElement>("[data-snav-keyboard] button");
+    if (key === null) throw new Error("the keyboard did not open");
+    fire(() => key.click());
+    await settle();
+
+    return { domValue: field.value, stateValue: seen[seen.length - 1] };
+  }
+
+  it("reaches onChange through setRangeText, on a field with a selection", async () => {
+    const { domValue, stateValue } = await typeOneKey("text");
+
+    expect(domValue).toBe("a");
+    // `setRangeText` does not go through the `value` setter React instruments, so React's
+    // record still holds the old value when the synthetic `input` arrives and the change
+    // is seen. This is the path almost every field takes.
+    expect(stateValue).toBe("a");
+  });
+
+  it("reaches onChange on a field with no selection, where the value setter is used", async () => {
+    const { domValue, stateValue } = await typeOneKey("email");
+
+    expect(domValue).toBe("a");
+    // The riskier path, and it did fail: `email` exposes no selection, so the keyboard
+    // assigns `value` — the very property React instruments on the instance. React's
+    // record was updated before the event arrived, it concluded nothing had changed, and
+    // the next render put the empty value back, so the field visibly rejected the key.
+    // `assignValue` in the keyboard now goes through the prototype's setter, which leaves
+    // that record stale. This test is what found it and what keeps it fixed.
+    expect(stateValue).toBe("a");
+  });
+});

@@ -121,8 +121,16 @@ refuse a keystroke the same way it would refuse a physical one, and a keyboard t
 value first would have already lied to it.
 
 The mutation itself is `setRangeText` at the current selection, which keeps the caret where the user
-expects and makes backspace a deletion of one character rather than a truncation. For a
-`contenteditable`, the same three-step shape applies to the target range.
+expects and makes backspace a deletion of one character rather than a truncation.
+
+**`contenteditable` is a text entry the keyboard refuses to open on, in v0.** It is one by
+`isTextEntryTarget` (`src/keymap.ts:153`), so the keyboard sees it and must decide. Insertion into a
+range is straightforward; backward deletion of one character is not — it needs either
+`selection.modify`, which is not a standard, or a walk of text nodes to find the previous character
+across element boundaries. A keyboard that types but cannot reliably erase is worse than one that
+declines, because the user discovers the half only after committing to it. So the keyboard opens on
+`<input>` and `<textarea>` and leaves a `contenteditable` alone, and that refusal is a test rather
+than a comment.
 
 **This has a known risk and it is not verified here.** A framework that tracks a field's value
 outside the DOM may not notice a programmatic mutation followed by a synthetic `input` event; React
@@ -198,6 +206,44 @@ enough.
   ([ADR-0014](0014-device-and-browser-matrix.md)). The riskiest untested assumption is not the
   typing — it is that a platform's own on-screen keyboard does not also appear, which would put two
   keyboards on the field by no fault of this code.
+
+## Amendment, 2026-09-20: built, and three things the code corrected
+
+The module exists: `src/keyboard/keyboard.ts` with `@standarx/nav/keyboard`, plus
+`/keyboard/qwerty`, `/keyboard/azerty` and `/keyboard/alphabetic` as data entries, capped
+in [ADR-0017](0017-size-budgets.md). Every decision above survived being implemented.
+Three did not survive unchanged, and all three were found by a test rather than by review.
+
+**The React risk decision 5 named was real, and it was on the narrower of the two paths.**
+`setRangeText` never touches the `value` property, so React's instance-level tracker still
+held the old value when the synthetic `input` arrived and `onChange` fired — the ordinary
+case was never in danger. But a field with no selection is assigned `value` directly, and
+that is the very property React instruments: its record updated before the event, React
+concluded nothing had changed, and the next render put the empty value back, so the field
+*visibly rejected the keystroke*. The keyboard now assigns through
+`HTMLInputElement.prototype`'s own setter, which leaves the instance record stale. Both
+paths are pinned in `src/react/react.browser.test.tsx`, and the workaround is in the
+keyboard exactly as decision 5 said it would have to be.
+
+**A field with no selection was not anticipated at all.** `isTextEntryTarget` calls
+`type="email"` and `type="number"` text entries, correctly, and neither exposes
+`selectionStart`; `setRangeText` throws `InvalidStateError` on them. The first draft would
+have thrown on an email field. The keyboard now assigns the whole value on that path,
+which is right because such a field has no caret to respect.
+
+**The caret has to be placed on open, and in v0 it can never be moved.** A programmatic
+`focus()` leaves the caret at position 0, so the first space typed into a field with
+existing text went in front of it. The keyboard now puts the caret at the end — and the
+reason that is not merely a default is that the directions navigate the keys, so there is
+no gesture left to move a caret with. Caret movement is a v1 item in
+[ROADMAP.md](../../ROADMAP.md); until it exists, text can be appended and erased from the
+end and nothing else.
+
+One decision is worth restating because implementing it changed how it reads. Decision 3
+said a layout contains no function. Spelling twenty-six letters as objects would have been
+data too, and heavy, and paid again by every language — so a row may be a **string**, one
+key per character, expanded by the keyboard. That keeps the promise literally: `"abcdefg"`
+is data, the expansion is paid once, and the layout entries measure 0.36 to 0.49 kB.
 
 ## Alternatives considered
 

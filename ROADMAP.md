@@ -14,8 +14,8 @@ once the release tooling is wired.
 
 ## v0: what is left before the first publication
 
-The engine navigates between focusable elements. Two gaps stand between that and a package worth
-publishing, and they are the reason nothing is on npm yet.
+The engine navigates between focusable elements. One gap stands between that and a package worth
+publishing, and it is the reason nothing is on npm yet: nothing of the release tooling is wired.
 
 Controls that hold a value used to be the third. The grammar was always public —
 `pushEngageScope` takes hold of a control, the directional intents become adjustments, confirm
@@ -36,11 +36,11 @@ element for you: `select` cannot escape a trap, so the dispatch reports it consu
 
 ### Virtual keyboard
 
-A television has no keyboard. Every text input on one needs an on-screen one, and the package that
-moves focus is the package that has to place it. This is the last gap, and the only one with no code
-at all behind it.
+A television has no keyboard, and this one is built: `@standarx/nav/keyboard` with `/keyboard/qwerty`,
+`/keyboard/azerty` and `/keyboard/alphabetic` as data entries, capped in
+[ADR-0017](docs/adr/0017-size-budgets.md) and driven by `src/keyboard/keyboard.browser.test.ts`.
 
-The design is settled in [ADR-0022](docs/adr/0022-virtual-keyboard.md): the keys take real focus,
+The design is [ADR-0022](docs/adr/0022-virtual-keyboard.md): the keys take real focus,
 because the alternative is the virtual cursor [ADR-0005](docs/adr/0005-real-dom-focus.md) refuses; a
 layout is data in its own module and the consumer passes it in, because a self-registering layout is
 a side effect and a registry is how a French application ends up shipping Cyrillic; insertion is
@@ -50,20 +50,23 @@ and **keeps** what was typed — deliberately unlike engage mode, where B restor
 value is re-set with one press and thirty seconds of typing on a remote is not re-entered at all.
 The keyboard draws no caret; `data-snav-editing` is the hook and the application styles it.
 
-- [ ] `@standarx/nav/keyboard`: an overlay that opens on a focused text input, navigates with the
-      same intents as everything else, and commits into the field. Its own subpath — nobody who
-      never renders an input should pay for it
-- [ ] Layouts as data modules, one per layout: `@standarx/nav/keyboard/qwerty`, `/azerty`,
-      `/alphabetic` to begin with. Adding a language is a file, an entry in `tsdown.config.ts`, a row
-      in the [ADR-0011](docs/adr/0011-package-layout-and-adapters.md) table and a budget line — four
-      edits, none of them in the keyboard's code
-- [ ] Size budget lines for the keyboard entry and for each layout, capped by the rule of
-      [ADR-0017](docs/adr/0017-size-budgets.md) after the first measurement
-- [ ] Type through the keyboard into a **controlled React input** and assert the component's state
-      changed. A framework that tracks a field's value outside the DOM may not notice a
-      programmatic mutation and a synthetic `input` event; the module is not finished until that
-      test passes, and any workaround belongs in the keyboard rather than in every consumer
-      ([ADR-0022](docs/adr/0022-virtual-keyboard.md), decision 5)
+Writing it corrected three things the record had not foreseen, and the amendment to ADR-0022 carries
+them: a controlled React field rejected a keystroke on the one path that assigns `value` directly,
+because that is the property React instruments — fixed by going through the prototype's setter; a
+field with no selection at all, `type="email"` among them, would have thrown on `setRangeText`; and
+the caret had to be placed on open, because `focus()` leaves it at 0 and a space then lands in front
+of what is already there.
+
+- [ ] **Caret movement.** In v0 the caret cannot be moved at all: the directions navigate the keys,
+      so text is appended and erased from the end and nothing else. This is the keyboard's largest
+      remaining limitation and it needs a gesture that does not collide with navigating the grid —
+      a modifier key in the layout, or a held direction
+- [ ] A CJK layout, and the composition ADR it needs first. The package stands aside from IME today
+      (`src/input-system.ts:158-160`), and a layout that composes would have to own it
+- [ ] `contenteditable`. The keyboard declines it deliberately — inserting into a range is easy and
+      erasing one character backward across element boundaries is not — and the refusal is pinned by
+      a test. Closing it means choosing between `selection.modify`, which is not a standard, and a
+      text-node walk
 
 ### Release tooling
 

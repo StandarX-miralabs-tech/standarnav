@@ -11,6 +11,12 @@ const config: UserConfig = defineConfig({
     "src/focus-ring/focus-ring.ts",
     "src/debug.ts",
     "src/react/react.tsx",
+    "src/keyboard/keyboard.ts",
+    // One entry per layout, never one module holding them all: a French application must
+    // not ship Cyrillic (ADR-0022, decision 4).
+    "src/keyboard/layouts/qwerty.ts",
+    "src/keyboard/layouts/azerty.ts",
+    "src/keyboard/layouts/alphabetic.ts",
   ],
   format: ["esm"],
   platform: "neutral",
@@ -28,6 +34,12 @@ const config: UserConfig = defineConfig({
         "./spatial/spatial": "./spatial",
         "./focus-ring/focus-ring": "./focus-ring",
         "./react/react": "./react",
+        "./keyboard/keyboard": "./keyboard",
+        // `layouts/` is a directory, not a subpath: a consumer writes
+        // `@standarx/nav/keyboard/qwerty`.
+        "./keyboard/layouts/qwerty": "./keyboard/qwerty",
+        "./keyboard/layouts/azerty": "./keyboard/azerty",
+        "./keyboard/layouts/alphabetic": "./keyboard/alphabetic",
       };
       const renamed: Record<string, string> = {};
       for (const [subpath, target] of Object.entries(exports)) {

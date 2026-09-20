@@ -98,6 +98,38 @@
         outline: 2px dashed currentColor;
         outline-offset: 3px;
       }
+      /* The keyboard ships no stylesheet, so the playground supplies the grid the way an
+         application would have to. */
+      [data-snav-keyboard] {
+        position: fixed;
+        inset: auto 0 72px 0;
+        display: grid;
+        gap: 4px;
+        padding: 8px;
+        background: color-mix(in srgb, currentColor 10%, Canvas);
+        border-top: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+        z-index: 1400;
+      }
+      [data-snav-keyboard-row] {
+        display: flex;
+        gap: 4px;
+        justify-content: center;
+      }
+      [data-snav-keyboard] button {
+        font: inherit;
+        flex: 1 1 0;
+        min-width: 44px;
+        min-height: 44px;
+        border-radius: 6px;
+        border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+        background: color-mix(in srgb, currentColor 6%, transparent);
+      }
+      /* The field is not :focus while the keys hold it — ADR-0022 decision 9 says the
+         package draws no caret, so this is the application's job and here it is. */
+      [data-snav-editing] {
+        outline: 2px solid currentColor;
+        outline-offset: 2px;
+      }
       .options {
         display: grid;
         gap: 4px;

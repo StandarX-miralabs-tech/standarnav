@@ -50,9 +50,15 @@ Attributes read from the markup: `data-snav="container"`, `data-snav-enter`,
 | `data-snav-active` | every container on the active path |
 | `data-snav-input` | `<html>`, modality: keyboard, pointer, touch, gamepad |
 | `data-snav-focus-ring` | the focus ring overlay |
+| `data-snav-editing` | the field the on-screen keyboard is open on ([ADR-0022](0022-virtual-keyboard.md)) |
 | `--snav-focus-ring-*` | six CSS custom properties: `offset`, `duration` and `easing`, read by the overlay, plus `color`, `width` and `z-index`, substituted into its inline style |
 
-Every one of the five is a rename: the names these replace were inherited from the predecessor
+`data-snav-editing` is the one addition that is **not** a rename. It was added on 2026-09-20 with the
+keyboard, and it exists because the keys take the focus, so the field being typed into is not
+`:focus` and an application has nothing else to style the editing state against. It is frozen at v1
+with the rest.
+
+Every one of the other five is a rename: the names these replace were inherited from the predecessor
 implementation ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here. Two of
 them change category and not merely prefix — the focused and active markers carried no namespace
 at all before extraction, so the prefix is new surface rather than a substitution, and both are

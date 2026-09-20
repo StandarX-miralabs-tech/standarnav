@@ -120,6 +120,36 @@ const LINES: readonly Line[] = [
     note: "opt-in subpath next to the core; react itself is a peer and never bundled, and internal/{env,equality}.js are charged here as adapter-only helpers",
   },
   {
+    name: "keyboard",
+    entries: ["keyboard/keyboard.js"],
+    cap: 1.75 * KB,
+    // Every module it reaches for is one the core already ships — the keymap for
+    // `isTextEntryTarget`, tabbable for `focusElement` — so all four are external and
+    // the number is what a consumer who already has the core pays to add a keyboard.
+    external: ["../dom/event.js", "../dom/query.js", "../keymap.js", "../tabbable.js"],
+    note: "opt-in subpath next to the core; the on-screen keyboard plugin, no layout in it",
+  },
+  {
+    name: "keyboard layout qwerty",
+    entries: ["keyboard/layouts/qwerty.js"],
+    cap: 0.5 * KB,
+    // No externals because a layout imports nothing: its only import is the type, and a
+    // type erases. A layout line that is not tiny is behaviour that leaked into data.
+    note: "data only, one entry per layout so a French application ships no Cyrillic",
+  },
+  {
+    name: "keyboard layout azerty",
+    entries: ["keyboard/layouts/azerty.js"],
+    cap: 0.5 * KB,
+    note: "data only",
+  },
+  {
+    name: "keyboard layout alphabetic",
+    entries: ["keyboard/layouts/alphabetic.js"],
+    cap: 0.5 * KB,
+    note: "data only; the layout a television usually wants",
+  },
+  {
     name: "whole package",
     entries: ["index.js", "gamepad/gamepad.js", "spatial/spatial.js", "focus-ring/focus-ring.js"],
     cap: 9.0 * KB,
