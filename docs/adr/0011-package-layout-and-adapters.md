@@ -52,12 +52,15 @@ imports is never bundled.
 | `@standarx/nav/vue` | composables (planned) | `src/vue/*.ts` | `vue adapter` |
 | `@standarx/nav/svelte` | actions (planned) | `src/svelte/*.ts` | `svelte adapter` |
 | `@standarx/nav/angular` | directives (planned) | `src/angular/*.ts` | `angular adapter` |
+| `@standarx/nav/keyboard` | on-screen keyboard plugin (planned, [ADR-0022](0022-virtual-keyboard.md)) | `src/keyboard/keyboard.ts` | `keyboard` |
+| `@standarx/nav/keyboard/<id>` | one layout, data only (planned) — `qwerty`, `azerty`, `alphabetic` to begin with | `src/keyboard/layouts/<id>.ts` | one line per layout |
 
-Six of the nine are built and published today: `tsdown.config.ts:7-14` lists `src/index.ts`,
+Six of the rows are built and published today: `tsdown.config.ts:7-14` lists `src/index.ts`,
 `src/gamepad/gamepad.ts`, `src/spatial/spatial.ts`, `src/focus-ring/focus-ring.ts`, `src/debug.ts`
 and `src/react/react.tsx`, and the generated map at `package.json:32-40` carries the matching six
-subpaths plus `./package.json`. The last three rows are planned and have no entry, no file and no
-budget line.
+subpaths plus `./package.json`. The last five rows are planned and have no entry, no file and no
+budget line — the three adapters, the keyboard, and one row standing for however many layouts it
+ends up with.
 
 **A subpath re-exports the types its own signatures name.** A consumer importing `spatialPlugin`
 from `@standarx/nav/spatial` must be able to name what it returns and what it takes without

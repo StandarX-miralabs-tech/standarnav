@@ -37,20 +37,31 @@ element for you: `select` cannot escape a trap, so the dispatch reports it consu
 ### Virtual keyboard
 
 A television has no keyboard. Every text input on one needs an on-screen one, and the package that
-moves focus is the package that has to place it.
+moves focus is the package that has to place it. This is the last gap, and the only one with no code
+at all behind it.
+
+The design is settled in [ADR-0022](docs/adr/0022-virtual-keyboard.md): the keys take real focus,
+because the alternative is the virtual cursor [ADR-0005](docs/adr/0005-real-dom-focus.md) refuses; a
+layout is data in its own module and the consumer passes it in, because a self-registering layout is
+a side effect and a registry is how a French application ends up shipping Cyrillic; insertion is
+`beforeinput`, then the mutation, then `input`, so a mask or a length limit can refuse a keystroke;
+and composition is deferred, so a CJK layout needs its own record first. Two riders are the owner's:
+whether `back` keeps or reverts what was typed, and whether the field keeps a visible caret.
 
 - [ ] `@standarx/nav/keyboard`: an overlay that opens on a focused text input, navigates with the
       same intents as everything else, and commits into the field. Its own subpath — nobody who
       never renders an input should pay for it
-- [ ] Layouts are **data, in their own importable modules**, one per layout:
-      `@standarx/nav/keyboard/qwerty`, `/azerty`, `/alphabetic`, and so on. A contributor adds a
-      language by adding a module and a line to an index, with no engine change and no lookup
-      through the source. A French application must not ship Cyrillic, which is why the layouts are
-      separate entries and not one table
+- [ ] Layouts as data modules, one per layout: `@standarx/nav/keyboard/qwerty`, `/azerty`,
+      `/alphabetic` to begin with. Adding a language is a file, an entry in `tsdown.config.ts`, a row
+      in the [ADR-0011](docs/adr/0011-package-layout-and-adapters.md) table and a budget line — four
+      edits, none of them in the keyboard's code
 - [ ] Size budget lines for the keyboard entry and for each layout, capped by the rule of
       [ADR-0017](docs/adr/0017-size-budgets.md) after the first measurement
-- [ ] An ADR for the keyboard: the layout data shape, how a layout is registered, what commits and
-      what cancels, and how IME and `beforeinput` are handled
+- [ ] Type through the keyboard into a **controlled React input** and assert the component's state
+      changed. A framework that tracks a field's value outside the DOM may not notice a
+      programmatic mutation and a synthetic `input` event; the module is not finished until that
+      test passes, and any workaround belongs in the keyboard rather than in every consumer
+      ([ADR-0022](docs/adr/0022-virtual-keyboard.md), decision 5)
 
 ### Release tooling
 
