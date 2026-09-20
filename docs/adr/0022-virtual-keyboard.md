@@ -1,13 +1,13 @@
 # ADR-0022: The virtual keyboard — layout data, insertion, and what closes it
 
-Status: Proposed, two riders for the owner
+Status: Accepted
 Date: 2026-09-20
 Deciders: Wesley Cormier
 
-Two points are left for the owner and marked **(O1)** and **(O2)** below: what `back` does to text
-already typed, and whether the field keeps a visible caret while the keys hold the focus. Everything
-else here is decided. Nothing is built yet — this is the record the module is to be written against,
-which is the order [ROADMAP.md](../../ROADMAP.md) asks for.
+Nothing is built yet. This is the record the module is to be written against, which is the order
+[ROADMAP.md](../../ROADMAP.md) asks for. Two points stood as riders when this was first written —
+what `back` does to typed text, and whether the field keeps a visible caret — and the owner settled
+both the same day; they are decisions 8 and 9.
 
 ## Context
 
@@ -148,30 +148,33 @@ and prints the number, and the cap is written from that measurement in an amendm
 is data and should be small; a layout line that is not small is the signal that behaviour leaked
 into it.
 
-### (O1) What `back` does to text already typed
+**8. `back` closes the keyboard and keeps what was typed.** It must close — it is the only "get me
+out" button a remote has, and it already escapes a trap by design (`src/intent-bus.ts:90-94`).
+Reverting is an application's own Cancel button, and the keyboard carries a `close` action key for
+"done".
 
-`back` must close the keyboard — it is the only "get me out" button a remote has, and it already
-escapes a trap by design (`src/intent-bus.ts:90-94`). What it does to the text is the open question,
-and the two answers are both defensible:
+This is a **deliberate inconsistency with engage mode**, which is the other thing in this package
+that holds a value and where B puts the value back (`src/engage.ts:41-42`, `:69-72`). Someone who
+learns B-restores on a slider will expect it here and will be wrong. The inconsistency is accepted
+because a text field is not a scalar: a slider's value is re-set with one more press of a direction,
+and thirty seconds of typing on a remote is not re-entered at all. An accidental B losing it is a
+worse outcome than a grammar with one documented exception. So the exception is documented here, in
+the ROADMAP, and in whatever user documentation the keyboard ships with — an inconsistency nobody
+writes down is just a bug with a rationale.
 
-- **Close and keep.** The text is in the field and the user can see it; reverting what is visibly
-  typed is the more surprising of the two. Reverting is then an application's own Cancel button.
-- **Close and revert**, recording the entry value on open, the way `pushEngageScope` does for a
-  slider (`src/engage.ts:41-42`, `:69-72`). Consistent with the other control that holds a value,
-  and a user who learns B-restores on a slider would expect it here.
+**9. The keyboard draws no caret, and the field's absence of one is documented.** Decision 1 moves
+real focus to the keys, so the field stops being `:focus` and in most engines stops drawing its
+caret. `data-snav-editing` is the styling hook and an application draws its own editing state.
 
-They cannot both be right and the difference is visible to anyone who uses both. The recommendation
-is **close and keep**, with an explicit `close` action key for "done" and reverting left to the
-application — a text field is not a scalar, and an accidental B after thirty seconds of typing on a
-remote is a worse outcome than an inconsistency with the slider.
-
-### (O2) Whether the field keeps a visible caret
-
-Decision 1 moves real focus to the keys, so the field's caret stops blinking and, in most engines,
-stops being drawn. The options are to leave it — the `data-snav-editing` attribute is the styling
-hook and an application can draw its own — or to have the keyboard maintain a rendered caret from
-`selectionStart`, which is more work and a second thing that can disagree with the field. The
-recommendation is to leave it and document it.
+The alternative was a caret rendered from `selectionStart`, and it was refused for the reason
+decision 1 exists: it is a second source of truth for where the insertion point is, able to disagree
+with the field it describes. That is the failure mode of virtual focus, reintroduced for display
+instead of for navigation. The honest cost of this choice is that an application which styles
+nothing gives the user a field that looks inert while they type into it — a bad default, and one only
+visible in use. The mitigation is documentation, not a default style: this package ships no
+stylesheet, and [ADR-0020](0020-focus-ring-defaults.md) paid for its one inline-painted default with
+a failure mode where an invalid custom property erases the indicator silently. One of those is
+enough.
 
 ## Consequences
 

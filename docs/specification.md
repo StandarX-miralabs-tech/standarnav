@@ -482,7 +482,7 @@ physical gamepad are recorded in a device report issue
 7. **Virtual keyboard: designed, not built.** [ADR-0022](adr/0022-virtual-keyboard.md) settles the
    layout data shape, that a layout is passed in rather than registered, the
    `beforeinput`-mutate-`input` insertion order, and that composition is deferred to its own record.
-   Two riders are the owner's: whether `back` keeps or reverts what was typed, and whether the field
-   keeps a visible caret while the keys hold the focus. What stays open beyond those is everything
-   the code will teach — nothing of the module exists, and the one risk the record names as unverified
-   is whether a controlled React input notices a programmatic mutation.
+   `back` closes and keeps what was typed, deliberately unlike engage mode, and the keyboard draws no
+   caret. What stays open is everything the code will teach — nothing of the module exists, and the
+   one risk the record names as unverified is whether a controlled React input notices a programmatic
+   mutation.

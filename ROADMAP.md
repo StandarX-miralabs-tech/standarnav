@@ -45,8 +45,10 @@ because the alternative is the virtual cursor [ADR-0005](docs/adr/0005-real-dom-
 layout is data in its own module and the consumer passes it in, because a self-registering layout is
 a side effect and a registry is how a French application ends up shipping Cyrillic; insertion is
 `beforeinput`, then the mutation, then `input`, so a mask or a length limit can refuse a keystroke;
-and composition is deferred, so a CJK layout needs its own record first. Two riders are the owner's:
-whether `back` keeps or reverts what was typed, and whether the field keeps a visible caret.
+and composition is deferred, so a CJK layout needs its own record first. `back` closes the keyboard
+and **keeps** what was typed — deliberately unlike engage mode, where B restores, because a slider's
+value is re-set with one press and thirty seconds of typing on a remote is not re-entered at all.
+The keyboard draws no caret; `data-snav-editing` is the hook and the application styles it.
 
 - [ ] `@standarx/nav/keyboard`: an overlay that opens on a focused text input, navigates with the
       same intents as everything else, and commits into the field. Its own subpath — nobody who
