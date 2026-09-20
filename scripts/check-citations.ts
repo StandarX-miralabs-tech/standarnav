@@ -9,7 +9,11 @@
 // be inside it, and the line must not be blank — a citation landing on whitespace is
 // the signature of a block that shifted. What this cannot check is a citation that
 // drifted onto some *other* real line; for that, quote the symbol in the prose and a
-// reader can see the mismatch.
+// reader can see the mismatch. That blind spot is not theoretical: pinning the CI
+// runner moved every job in `ci.yml` down nine lines, and thirteen anchors across four
+// documents went on resolving to a real line inside the wrong job. So run this after
+// any commit that shifts lines in a cited file, not only when editing a document, and
+// reread what the prose claims the line says.
 //
 // It also refuses the two things that must never reach a committed file: an absolute
 // filesystem path, and a reference to the gitignored `.local/` scratch directory.
@@ -23,8 +27,11 @@ const rootDir = path.resolve(import.meta.dirname, "..");
 /** `src/spatial/spatial.ts:188` or `docs/adr/0009-hidden-candidates.md:80-97`. */
 const CITATION =
   /`([A-Za-z0-9_@./-]+\.(?:ts|tsx|js|jsx|json|ya?ml|md|css|scss|html)):(\d+)(?:-(\d+))?`/g;
-/** A path in the source repository, which the house rule says must be prefixed. */
-const SOURCE_PREFIXES = ["packages/"];
+// The licence record cites the predecessor implementation by design: establishing the MIT
+// origin and the copyright holder is what that document is for, and the paths it cites are
+// the evidence. It is the only document in this tree allowed to cite a path that resolves
+// nowhere here; everywhere else, such a path is the house-rule break reported below.
+const PROVENANCE_RECORD = "docs/adr/0002-license-and-copyright.md";
 /** This repository's own top-level directories — what makes a path unambiguously ours. */
 const OWN_ROOTS = ["src/", "scripts/", "playground/", ".github/", "docs/adr/"];
 // A drive letter, but not the tail of a URL scheme: the `s` of `https://` is a
@@ -67,7 +74,7 @@ function linesOf(relative: string): string[] | null {
 const problems: Problem[] = [];
 const unprefixed: Problem[] = [];
 let checked = 0;
-let sourceCitations = 0;
+let provenance = 0;
 let shorthand = 0;
 let links = 0;
 
@@ -112,11 +119,6 @@ for (const document of tracked()) {
       const [, cited, startText, endText] = match;
       if (cited === undefined || startText === undefined) continue;
 
-      if (SOURCE_PREFIXES.some((prefix) => cited.startsWith(prefix))) {
-        sourceCitations += 1;
-        continue;
-      }
-
       // `spatial.ts:198` and `.../spatial.ts:60` are the shorthand these documents
       // use once the surrounding prose has named the directory. There is nothing to
       // resolve them against, so they are counted and left alone — the anchors worth
@@ -127,13 +129,17 @@ for (const document of tracked()) {
       }
 
       // Only a path rooted in one of this repository's own top-level directories is
-      // unambiguously about this repository. Anything else — `focus/tabbable.ts`,
-      // `apps/docs/...` — is the source repository written without its prefix, which
-      // is a house-rule break rather than a broken anchor: reported, not fatal,
-      // because the fix is prose and the reader is not being sent anywhere wrong.
+      // unambiguously about this repository. Anything else that resolves to no file —
+      // `focus/tabbable.ts`, `../../README.md` — is a path the reader cannot follow:
+      // reported, not fatal, because the fix is prose and nobody is being sent
+      // anywhere wrong. The licence record is the one document exempt from this.
       if (!OWN_ROOTS.some((root) => cited.startsWith(root))) {
         const lines = linesOf(cited);
         if (lines === null) {
+          if (document === PROVENANCE_RECORD) {
+            provenance += 1;
+            continue;
+          }
           unprefixed.push({ file: document, line: at, what: cited });
           continue;
         }
@@ -182,8 +188,9 @@ for (const document of tracked()) {
 if (unprefixed.length > 0) {
   console.log("");
   console.log(
-    `${unprefixed.length} citation${unprefixed.length === 1 ? " resolves" : "s resolve"} nowhere here and read as a path in this repository.` +
-      ` The house rule is to prefix a source-repository path, e.g. \`miralabs-ui: packages/core/src/...\`:`,
+    `${unprefixed.length} cited path${unprefixed.length === 1 ? " resolves" : "s resolve"} nowhere in this repository.` +
+      ` Every cited path is a path in this repository, written from the repository root, at a real` +
+      ` line you have opened; a claim with no such line carries the inherited marker and no path at all:`,
   );
   for (const one of unprefixed) console.log(`  ${one.file}:${one.line} — ${one.what}`);
 }
@@ -191,7 +198,7 @@ if (unprefixed.length > 0) {
 console.log("");
 console.log(
   `checked ${checked} citation${checked === 1 ? "" : "s"} and ${links} link${links === 1 ? "" : "s"} into this repository across ${tracked().length} documents` +
-    ` (${sourceCitations} citations into the source repository and ${shorthand} written in shorthand, neither resolvable here)`,
+    ` (${provenance} in the licence record and ${shorthand} written in shorthand, neither resolvable here)`,
 );
 
 if (problems.length > 0) {
