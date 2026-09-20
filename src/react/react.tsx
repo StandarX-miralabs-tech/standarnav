@@ -110,10 +110,17 @@ function useDocument(): () => Document {
 }
 
 /**
- * Plugins are usually built inline (`plugins={[gamepadPlugin()]}`), which is a new
- * array — and a new engine — on every render. Comparing the contents keeps the
- * identity stable so the effect below only tears the system down when the set of
- * plugins genuinely changed.
+ * A `plugins` prop is a fresh array literal on every render even when the plugins
+ * inside it are the same objects, and that array's identity is a dependency of the
+ * effect below. Comparing the contents element by element keeps the identity stable
+ * across those renders.
+ *
+ * What it does *not* do — and cannot — is absorb `plugins={[gamepadPlugin()]}`. That
+ * builds a new plugin object per render, so the contents genuinely did change and the
+ * system is rebuilt: a destroy, a rebuild, and the modality refcount going to zero
+ * and back on the way. The contract is therefore that the caller hoists or memoises
+ * the plugin instances; `NavProviderProps.plugins` says so, and
+ * `react.browser.test.tsx` pins both halves.
  */
 function useStableList<T>(list: readonly T[]): readonly T[] {
   const stored = useRef(list);
@@ -139,6 +146,11 @@ function useStableKeymap(keymap: KeymapOverrides | undefined): KeymapOverrides |
 }
 
 export interface NavProviderProps {
+  /**
+   * Hoist these or wrap them in `useMemo`. The array itself may be a fresh literal
+   * per render — that is compared away — but a plugin *built* in the JSX is a new
+   * object each time, which rebuilds the whole system on every render.
+   */
   readonly plugins?: readonly InputPlugin[] | undefined;
   readonly keymap?: KeymapOverrides | undefined;
   /** Lets ArrowUp/Down and PageUp/Down out of a text field. Off by default. */

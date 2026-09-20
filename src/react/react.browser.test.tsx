@@ -20,6 +20,70 @@ function Scope({ onIntent }: { readonly onIntent: (intent: string) => void }): R
   return <span data-testid="ready">{system === null ? "no" : "yes"}</span>;
 }
 
+describe("NavProvider — what does and does not rebuild the system", () => {
+  function systemsSeen(): {
+    readonly Probe: () => ReactNode;
+    readonly distinct: () => number;
+  } {
+    const seen: unknown[] = [];
+    return {
+      Probe: (): ReactNode => {
+        const system = useInputSystem();
+        if (system !== null) seen.push(system);
+        return null;
+      },
+      distinct: (): number => new Set(seen).size,
+    };
+  }
+
+  it("keeps the system across a re-render when the plugin instances are stable", async () => {
+    const plugins = [spatialPlugin()];
+    const { Probe, distinct } = systemsSeen();
+
+    // A fresh array literal every render, around the same plugin objects. This is
+    // what `useStableList` is for, and all it is for.
+    const handle = mount(
+      <NavProvider plugins={[...plugins]}>
+        <Probe />
+      </NavProvider>,
+    );
+    await settle();
+    handle.render(
+      <NavProvider plugins={[...plugins]}>
+        <Probe />
+      </NavProvider>,
+    );
+    await settle();
+
+    expect(distinct()).toBe(1);
+  });
+
+  it("rebuilds when the plugins themselves are built inline", async () => {
+    const { Probe, distinct } = systemsSeen();
+
+    // `plugins={[spatialPlugin()]}` constructs a NEW plugin object on every render,
+    // and the list is compared element by element with `Object.is` — so the contents
+    // genuinely did change and the system is torn down and rebuilt. The cost is real
+    // (a destroy, a rebuild, and the modality refcount going to zero and back), so
+    // the contract is that plugin instances are hoisted or memoised by the caller.
+    // This case exists to keep that cost visible rather than to bless it.
+    const handle = mount(
+      <NavProvider plugins={[spatialPlugin()]}>
+        <Probe />
+      </NavProvider>,
+    );
+    await settle();
+    handle.render(
+      <NavProvider plugins={[spatialPlugin()]}>
+        <Probe />
+      </NavProvider>,
+    );
+    await settle();
+
+    expect(distinct()).toBe(2);
+  });
+});
+
 describe("NavProvider", () => {
   it("builds one system in an effect and hands it down", async () => {
     const { container } = mount(
