@@ -54,9 +54,11 @@ on: a separate subpath export plus `sideEffects: false`.
 
 **Which of the five are in v0.** Only item 4. Items 1, 2, 3 and 5 are v1, and this is a scheduling
 decision rather than a change of mind: four of the five have no source file behind them.
-`src/debug.ts` is 71 lines exporting `SpatialExplanation`, `explainMove` and four type re-exports,
-and it writes no DOM at all — the overlay renderer such a scan would draw into is inherited from the
-predecessor implementation ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here.
+`src/debug.ts` is 91 lines exporting `SpatialExplanation`, `explainMove`, four type re-exports and
+`scanNativeSelects` — the native-select scan of [ADR-0021](0021-native-select-on-television.md),
+which is not one of the five items here — and it writes no DOM at all: the overlay renderer such a
+scan would draw into is inherited from the predecessor implementation
+([ADR-0002](0002-license-and-copyright.md)) and not re-derived here.
 Building them inside the extraction window would mean designing what "looks interactive" means, what
 the confidence levels are, what shape the output takes and whether the scan walks shadow roots, all
 as new code in a sequence whose value is that a bisect can tell a rename from a behaviour change.
@@ -140,11 +142,14 @@ did ([ADR-0017](0017-size-budgets.md), the amendment of that date).
   designed with point 4, not before.
 - Of the five items, only point 4 has shipped, which is what decision "which of the five are in v0"
   above says should happen. The scan (point 1), the depth warning (2), the redirection warning (3)
-  and the documentation note (5) are v1 and no code exists for any of them: `src/debug.ts` is 71
-  lines holding `SpatialExplanation`, `explainMove` and type re-exports, with no DOM written and no
-  scan. Point 4 is measured and covered: `src/debug.browser.test.ts` holds six
-  cases, three of which pin where the diagnostic is *meant* to differ from the engine
-  (`:113-180`) — the differences that remain once the winner rule is shared.
+  and the documentation note (5) are v1 and no code exists for any of them: `src/debug.ts` is 91
+  lines holding `SpatialExplanation`, `explainMove`, type re-exports and the native-select scan of
+  [ADR-0021](0021-native-select-on-television.md), with no DOM written and no *reachability* scan —
+  `scanNativeSelects` (`src/debug.ts:87`) answers a different question and is not point 1. Point 4
+  is measured and covered: `src/debug.browser.test.ts:56-180` holds six `explainMove` cases, three
+  of which pin where the diagnostic is *meant* to differ from the engine
+  (`:113-180`) — the differences that remain once the winner rule is shared. The file holds nine in
+  all; the other three are the scan's (`:182-222`).
 
 ## Amendment, 2026-09-20: a sixth diagnostic, and it ships
 
@@ -212,7 +217,8 @@ removed.
   `scoreCandidates` and the scoring types from `./spatial/geometry`; `:68-69` calls `scoreCandidates`
   for the table and `findBestCandidate` for the winner; the comment at `src/debug.ts:64-67` names
   this ADR's decision 4 as the reason. `src/debug.ts` is 91 lines. Cases:
-  `src/debug.browser.test.ts`, nine of them.
+  `src/debug.browser.test.ts`, six for `explainMove` (`:56-180`) and three more for the
+  native-select scan of [ADR-0021](0021-native-select-on-television.md) (`:182-222`).
 - Row 1 of the Context table survives in a different shape: the zero-size filter is
   `rect.width === 0 || rect.height === 0` (`src/spatial/spatial.ts:188`,
   [ADR-0009](0009-hidden-candidates.md) C1), so a 0 x 40 element is silently *dropped* rather than

@@ -420,7 +420,8 @@ the `navigator.getGamepads` guard ([ADR-0013](0013-browser-baseline-and-fallback
 2026-09-21) grew the line from 2.48 to 2.49 kB and did not come here first. Rule 4 is written
 about raising a cap and no cap moved — 2.49 rounds up to the same 2.50 — so the run stayed green
 and the rule was not broken; the expectation that amendment set was, and this is the record of it
-rather than a silence. The line now sits at 100 % of its cap with about ten bytes to spare. The
+rather than a silence. The line now sits at 100 % of its cap with **eleven bytes** to spare — 2 549
+of 2 560, the two numbers the rounding to 2.49 and 2.50 kB hides, read off the same run. The
 next commit that touches the gamepad engine does need a cap here first, and this time the sentence
 is load-bearing.
 

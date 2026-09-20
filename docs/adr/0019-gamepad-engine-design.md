@@ -164,7 +164,7 @@ Line references in this table, like everywhere else in this record, are this rep
   ([ADR-0011](0011-package-layout-and-adapters.md)).
 - Size, measured here rather than inherited: the gamepad engine is 2.49 kB min+gzip against a
   2.50 kB cap, `bun run build && bun run check:size` on 2026-09-21 — the one line at 100 % of its
-  cap, with about ten bytes left. It grew by the `navigator.getGamepads` guard
+  cap, with eleven bytes left: 2 549 of 2 560. It grew by the `navigator.getGamepads` guard
   ([ADR-0013](0013-browser-baseline-and-fallbacks.md), amendment of 2026-09-21), which is recorded
   in [ADR-0017](0017-size-budgets.md) after the fact rather than before it. The next commit that
   touches this engine needs a cap amendment there first.
