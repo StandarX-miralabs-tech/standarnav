@@ -151,9 +151,23 @@ const LINES: readonly Line[] = [
   },
   {
     name: "whole package",
-    entries: ["index.js", "gamepad/gamepad.js", "spatial/spatial.js", "focus-ring/focus-ring.js"],
-    cap: 9.0 * KB,
-    note: "every runtime entry bundled once, nothing external — the debug entry is excluded on purpose",
+    entries: [
+      "index.js",
+      "gamepad/gamepad.js",
+      "spatial/spatial.js",
+      "focus-ring/focus-ring.js",
+      "keyboard/keyboard.js",
+      "keyboard/layouts/qwerty.js",
+      "keyboard/layouts/azerty.js",
+      "keyboard/layouts/alphabetic.js",
+      "react/react.js",
+    ],
+    cap: 12.5 * KB,
+    // The one external on this line, and the only one it may ever carry: react is an
+    // optional peer every consumer of the adapter already has. Bundled instead, the
+    // line reads 21.06 kB and measures React rather than this package.
+    external: ["react", "react/jsx-runtime"],
+    note: "every runtime entry bundled once, only React's peer external — the debug entry is excluded on purpose",
   },
 ];
 

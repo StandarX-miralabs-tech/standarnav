@@ -120,9 +120,10 @@ it work on a 2021 Tizen set" is "no, and there is no work in progress".
   here: they are inherited from the predecessor implementation
   ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here. They have been replaced by
   measurements of this repository's own `es2020` output: `bun run build && bun run check:size`,
-  2026-09-20, min+gzip — core 3.13 kB of a 3.25 kB
-  cap, gamepad engine 2.48 of 2.50, spatial engine 3.04 of 3.25, focus ring 1.51 of 1.75, debug
-  0.40 of 0.50, react adapter 1.30 of 1.50, whole package 8.77 of 9.00, every line under its cap
+  2026-09-21, min+gzip — core 3.13 kB of a 3.25 kB
+  cap, gamepad engine 2.49 of 2.50, spatial engine 3.04 of 3.25, focus ring 1.51 of 1.75, debug
+  0.49 of 0.50, react adapter 1.30 of 1.50, keyboard 2.82 of 3.00, the three layouts 0.36 to 0.49
+  against 0.50 each, whole package 12.40 of 12.50, every line under its cap
   ([ADR-0017](0017-size-budgets.md)). Those inherited figures — spatial 2.81 kB of 3.00, input
   system 1.93 of 2.00 — remain context about a build measured elsewhere and are not comparable line
   for line, because the lines were drawn differently. Downlevelling did not blow a budget, which was
@@ -224,7 +225,7 @@ not been reproduced here, so it gets no guard and no claim, only this sentence.
   with no stack pointing at a feature. A floor set by an API at least produces a named error at the
   call site.
 - **Target `es2018` and cover 2018-2019 sets.** Rejected for v0. It costs output size on the lines
-  already nearest their caps — the gamepad engine at 2.48 kB of 2.50 (99 %) and the core at 3.13 of
+  already nearest their caps — the gamepad engine at 2.49 kB of 2.50 (100 %) and the core at 3.13 of
   3.25 (96 %), with the spatial engine at 3.04 of 3.25 (94 %), the figures recorded above
   ([ADR-0017](0017-size-budgets.md)) — for firmware whose engines (Chromium 53-63) lack far more
   than syntax. It stays available if the legacy build above is ever accepted.

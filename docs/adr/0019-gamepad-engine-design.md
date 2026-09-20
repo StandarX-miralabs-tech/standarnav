@@ -162,10 +162,12 @@ Line references in this table, like everywhere else in this record, are this rep
   own public types on the `./gamepad` subpath (`src/gamepad/gamepad.ts:48-56`), so a consumer can
   name what it passes and what it gets back without importing the core entry
   ([ADR-0011](0011-package-layout-and-adapters.md)).
-- Size, measured here rather than inherited: the gamepad engine is 2.48 kB min+gzip against a
-  2.50 kB cap, `bun run build && bun run check:size` on 2026-09-20 — the one line at 99 % of its
-  cap, and the next commit that grows it needs an amendment to
-  [ADR-0017](0017-size-budgets.md) first.
+- Size, measured here rather than inherited: the gamepad engine is 2.49 kB min+gzip against a
+  2.50 kB cap, `bun run build && bun run check:size` on 2026-09-21 — the one line at 100 % of its
+  cap, with about ten bytes left. It grew by the `navigator.getGamepads` guard
+  ([ADR-0013](0013-browser-baseline-and-fallbacks.md), amendment of 2026-09-21), which is recorded
+  in [ADR-0017](0017-size-budgets.md) after the fact rather than before it. The next commit that
+  touches this engine needs a cap amendment there first.
 - Competitor claim: [docs/research/competitors.md](../research/competitors.md), "No Gamepad API use
   in any of the eighteen" (2026-09-18).
 - Related: [ADR-0018](0018-testing-strategy.md), [ADR-0003](0003-package-boundaries.md).

@@ -209,7 +209,7 @@ on 2026-09-21, min+gzip against cap:
 
 ```
 core            3.13 / 3.25 kB
-gamepad engine  2.48 / 2.50 kB
+gamepad engine  2.49 / 2.50 kB
 spatial engine  3.04 / 3.25 kB
 focus ring      1.51 / 1.75 kB
 debug           0.49 / 0.50 kB
@@ -218,7 +218,7 @@ keyboard        2.82 / 3.00 kB
 layout qwerty   0.45 / 0.50 kB
 layout azerty   0.49 / 0.50 kB
 layout alphabetic  0.36 / 0.50 kB
-whole package   8.77 / 9.00 kB
+whole package   12.40 / 12.50 kB
 ```
 
 The run passes. A `null` cap is still a legal state in the script and still

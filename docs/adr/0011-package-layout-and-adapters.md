@@ -133,10 +133,11 @@ Each engine and each adapter carries its own size-budget line, and a line withou
 run. `scripts/size-budget.ts` now holds **seven** lines — core, gamepad engine, spatial engine,
 focus ring, debug, react adapter, whole package — and **no cap is `null`**: the react adapter line
 was added when the adapter existed, exactly as this ADR said it would be, and the first build here
-set every cap (`scripts/size-budget.ts:77-158`). `bun run build && bun run check:size`, this
-repository, min+gzip: core 3.13 of 3.25 kB, gamepad engine 2.48 of 2.50, spatial engine 3.04 of
-3.25, focus ring 1.51 of 1.75, debug 0.49 of 0.50, react adapter 1.30 of 1.50, whole package 8.77 of
-9.00 ([ADR-0017](0017-size-budgets.md), amendment of 2026-09-20). The predecessor's caps were
+set every cap (`scripts/size-budget.ts:77-172`). `bun run build && bun run check:size`, this
+repository on 2026-09-21, min+gzip: core 3.13 of 3.25 kB, gamepad engine 2.49 of 2.50, spatial
+engine 3.04 of 3.25, focus ring 1.51 of 1.75, debug 0.49 of 0.50, react adapter 1.30 of 1.50,
+keyboard 2.82 of 3.00, the three layouts 0.36 to 0.49 against 0.50 each, whole package 12.40 of
+12.50 ([ADR-0017](0017-size-budgets.md), amendment of 2026-09-21). The predecessor's caps were
 **not** copied over: they were measured against a workspace of several packages, so they answer a
 different question. Those figures are inherited from the predecessor implementation
 ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here; every cap in
@@ -199,10 +200,11 @@ drift gate turns a mismatch into a failed build instead of a broken published pa
   implementation ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here, and every cap
   in `scripts/size-budget.ts` was measured against this repository's built `dist/`.
 - Budget rule (a line without a cap fails the run): `scripts/size-budget.ts` in this repository —
-  `Line.cap` documented at `:58-59` and enforced at `:286-290`, where a `null` cap sets the status
-  to `UNCAPPED` and pushes a failure; `LINES` at `:77-158` holding eleven lines with a numeric cap on
+  `Line.cap` documented at `:58-59` and enforced at `:300-304`, where a `null` cap sets the status
+  to `UNCAPPED` and pushes a failure; `LINES` at `:77-172` holding eleven lines with a numeric cap on
   every one; and the rule at `:65-76` that externals are named file by file and never globbed.
-- Sizes measured here: `bun run build && bun run check:size` in this repository, min+gzip at Bun's
-  default gzip level — core 3.13/3.25 kB, gamepad engine 2.48/2.50, spatial engine 3.04/3.25,
-  focus ring 1.51/1.75, debug 0.49/0.50, react adapter 1.30/1.50, whole package 8.77/9.00. Full
+- Sizes measured here: `bun run build && bun run check:size` in this repository on 2026-09-21,
+  min+gzip at Bun's default gzip level — core 3.13/3.25 kB, gamepad engine 2.49/2.50, spatial
+  engine 3.04/3.25, focus ring 1.51/1.75, debug 0.49/0.50, react adapter 1.30/1.50, keyboard
+  2.82/3.00, the three layouts 0.36 to 0.49 against 0.50 each, whole package 12.40/12.50. Full
   table and the reasoning behind each cap: [ADR-0017](0017-size-budgets.md).
