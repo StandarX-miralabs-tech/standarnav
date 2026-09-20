@@ -51,21 +51,58 @@
         border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
         background: color-mix(in srgb, currentColor 6%, transparent);
       }
-      button:focus-visible,
+      /* No outline on [data-snav-focused]: the focus ring plugin paints the focus
+         here, and a second indicator would hide whether it is working. */
       [data-snav-focused] {
-        outline: 3px solid #4c8dff;
-        outline-offset: 2px;
+        background: color-mix(in srgb, currentColor 14%, transparent);
       }
       [data-snav-active] {
         border-style: solid;
+      }
+      .controls {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+      .controls button {
+        font: inherit;
+        padding: 4px 10px;
+      }
+      #readout {
+        font-size: 0.875rem;
+        opacity: 0.7;
+      }
+      /* Ordinary application chrome, stacked the way a real page stacks it. The ring
+         has to paint above this: it did not, until it carried its own z-index. */
+      .chrome {
+        position: fixed;
+        inset: auto 0 0 0;
+        z-index: 1300;
+        padding: 10px 24px;
+        font-size: 0.875rem;
+        background: color-mix(in srgb, currentColor 10%, Canvas);
+        border-top: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+      }
+      body {
+        padding-bottom: 72px;
       }
     </style>
   </head>
   <body>
     <header>
       <h1>standarnav playground</h1>
-      <span id="status">engine not wired yet</span>
+      <span id="status">starting…</span>
     </header>
+
+    <!-- data-snav-ignore: these drive the engine, they are not part of what it
+         navigates. Without it the arrows would be candidates for the arrows. -->
+    <div class="controls" data-snav-ignore>
+      <button type="button" data-move="up">↑</button>
+      <button type="button" data-move="down">↓</button>
+      <button type="button" data-move="left">←</button>
+      <button type="button" data-move="right">→</button>
+      <span id="readout">arrows, a d-pad or a remote drive it; moves are explained in the console</span>
+    </div>
 
     <section class="rail" data-snav="container" data-snav-enter="last" aria-label="Rail">
       <button type="button">Rail 1</button>
@@ -95,6 +132,11 @@
       <input type="text" placeholder="Text field" />
       <div>A div with a click handler and no tabindex: invisible to the engine on purpose.</div>
     </section>
+
+    <footer class="chrome">
+      Application chrome at <code>z-index: 1300</code>. Move the focus onto a control
+      underneath it — the ring must still be drawn on top.
+    </footer>
 
     <script type="module" src="./main.ts"></script>
   </body>
