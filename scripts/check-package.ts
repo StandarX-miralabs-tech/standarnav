@@ -18,11 +18,24 @@ interface Manifest {
   readonly name: string;
   readonly version: string;
   readonly private?: boolean;
+  readonly dependencies?: Readonly<Record<string, string>>;
 }
 
 const manifest = JSON.parse(readFileSync(path.join(rootDir, "package.json"), "utf8")) as Manifest;
 if (manifest.private === true) {
   console.error("package.json is private: there is no tarball to lint");
+  process.exit(1);
+}
+
+// Zero runtime dependencies is a claim the specification makes and nothing enforced.
+// `react` and `react-dom` are optional peers, which a consumer already has or does not
+// want; a `dependencies` entry is something every consumer installs whether they use
+// the subpath it serves or not.
+const runtimeDeps = Object.keys(manifest.dependencies ?? {});
+if (runtimeDeps.length > 0) {
+  console.error(
+    `package.json declares runtime dependencies, and this package ships none: ${runtimeDeps.join(", ")}`,
+  );
   process.exit(1);
 }
 
