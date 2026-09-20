@@ -180,11 +180,11 @@ export function collectNavNodes(container: HTMLElement, root: HTMLElement): NavN
     seen.add(target);
 
     const rect = target.getBoundingClientRect();
-    // Either dimension, not both — the source asked for both (miralabs-ui:
-    // packages/core/src/input/spatial/spatial.ts), which let a 0 x 40 element
-    // through. Such a rect paints nothing, and its projection onto the cross axis
-    // is empty, so the alignment pass can never call it aligned and it is left to
-    // be scored on the distance to a centre that is really an edge. ADR-0009, C1.
+    // Either dimension, not both — the implementation this was extracted from
+    // asked for both, which let a 0 x 40 element through. Such a rect paints
+    // nothing, and its projection onto the cross axis is empty, so the alignment
+    // pass can never call it aligned and it is left to be scored on the distance
+    // to a centre that is really an edge. ADR-0009, C1.
     if (rect.width === 0 || rect.height === 0) continue;
     nodes.push({ element: target, isContainer: target !== element, rect });
   }
