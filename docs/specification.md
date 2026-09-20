@@ -8,9 +8,7 @@ Date: 2026-09-18, revised 2026-09-20 against the extracted tree. Owner: Wesley C
 This document states the problem, the boundaries, the user contract, the functional requirements and
 — for every claim the project intends to make in public — the gate that proves it. The extraction has
 landed, so paths of the form `src/...` are files of **this** repository, read at HEAD on 2026-09-20,
-and every line number below was checked against them on that date. Where the source repository is
-cited it carries its own prefix — miralabs-ui: `packages/core/src/input/spatial/spatial.ts:198` — and
-those paths point at commit `289fa607`, read on 2026-09-18.
+and every line number below was checked against them on that date.
 
 ## 1. Problem
 
@@ -21,10 +19,8 @@ specified as CSS Spatial Navigation Level 1. It never shipped. The CSSWG resolve
 out of CSS (`https://github.com/w3c/csswg-drafts/issues/1948`), the WICG document
 (`https://wicg.github.io/spatial-navigation/`) dates from 2017 and was last updated in November 2019,
 and no browser implemented it. The Chromium flag `--enable-spatial-navigation` is an internal
-vestige that a page cannot ask for. These findings were recorded on 2026-08-27 in the engine
-specification of miralabs-ui, §0 — a file deleted by commit `289fa607` and readable with
-miralabs-ui: `git show 289fa607^:docs/research/input.md`; the status of the Chromium flag today was
-not re-verified on 2026-09-18 and has not been re-verified since. The consequence: on the web,
+vestige that a page cannot ask for; its status has not been re-verified since 2026-08-27. The
+consequence: on the web,
 spatial navigation is userland code or it does not exist.
 
 ### 1.2 What breaks when a library uses virtual focus
@@ -37,10 +33,9 @@ scroll anchoring included; `:focus`, `:focus-visible` and `:focus-within` in the
 stylesheets; extensions, developer tools and tests that read the active element; and interoperability
 with any other library that moves focus, because there are now two cursors.
 
-This is decision D9 of the miralabs-ui cahier des charges, 2026-08-27: the gamepad drives real DOM
-focus. This project starts from it — never a virtual focus, and arrow keys and the d-pad produce
-exactly the same intents (miralabs-ui, `git show 289fa607^:docs/cahier-des-charges.md`, §3). It is
-restated here as [ADR-0005](adr/0005-real-dom-focus.md).
+This project starts from the opposite position: the gamepad drives real DOM focus, never a virtual
+one, and arrow keys and the d-pad produce exactly the same intents. It is
+[ADR-0005](adr/0005-real-dom-focus.md).
 
 ### 1.3 What TV, kiosk and game developers do today
 
@@ -123,7 +118,7 @@ Feature detection required by this tiering (browser support from caniuse and MDN
 | `WeakRef` | Chrome 84, Safari 14.1, Firefox 79 | Written. `elementHandle` returns a `WeakRef` where the constructor exists and a strong reference that drops itself on the first read finding the element detached — `isConnected` — where it does not (`src/spatial/spatial.ts:127-141`). The constructor is read per call rather than at module scope, so a test can delete the global and exercise the fallback |
 | `checkVisibility` | Chrome 105, Safari 17.4, Firefox 106 | `offsetParent === null && getClientRects().length === 0` (`src/tabbable.ts:49`) |
 | `inert` | Chrome 102, Safari 15.5, Firefox 112 | `closest("[inert]")` reads the attribute everywhere (`src/tabbable.ts:53`) |
-| `Array.prototype.at` | Chrome 92, Safari 15.4, Firefox 90, Samsung Internet 16.0 (`https://caniuse.com/mdn-javascript_builtins_array_at`) | Avoided outright, and the rewrite is done: `getTabbableEdges` indexes `tabbables[tabbables.length - 1]` (`src/tabbable.ts:89-92`). Unlike every other row its floor is **above** the supported tier, so the inherited use — miralabs-ui: `packages/core/src/focus/tabbable.ts:85` — threw on Chromium 85-91, Safari 15.0-15.3 and Firefox 79-89, and `getTabbableEdges` is the entry point for `getFirstTabbable` and `getLastTabbable`. A `lib` bump would have hidden the break rather than fixed it |
+| `Array.prototype.at` | Chrome 92, Safari 15.4, Firefox 90, Samsung Internet 16.0 (`https://caniuse.com/mdn-javascript_builtins_array_at`) | Avoided outright, and the rewrite is done: `getTabbableEdges` indexes `tabbables[tabbables.length - 1]` (`src/tabbable.ts:89-92`). Unlike every other row its floor is **above** the supported tier, so the use it replaced threw on Chromium 85-91, Safari 15.0-15.3 and Firefox 79-89, and `getTabbableEdges` is the entry point for `getFirstTabbable` and `getLastTabbable`. A `lib` bump would have hidden the break rather than fixed it |
 
 `tsconfig.json` declares `target: "es2020"` and `lib: ["es2020", "dom", "dom.iterable"]` (read
 2026-09-20), so neither `WeakRef` nor `Array.prototype.at` type-checks by accident: `WeakRef` is
@@ -314,8 +309,8 @@ this working tree, run 2026-09-20.
   pad-drivable without losing its keyboard conventions. In this package the rule is one line —
   `mode === "composite" && event.source === "keyboard"` returns `false` (`src/spatial/spatial.ts:489`)
   — so the engine declines every keyboard arrow in that mode and the composite's own arrow handling
-  belongs to whoever pushed a scope above it. In miralabs-ui that was the component machines; here
-  there are none, so under `composite` a keyboard arrow moves focus only if the application acts on
+  belongs to whoever pushed a scope above it. This package ships no component layer, so under
+  `composite` a keyboard arrow moves focus only if the application acts on
   it (R29a). `app` (TV, kiosk, game): arrows drive global spatial navigation too. In both, `Tab` is
   untouched — sequential
   tabbing stays the browser's. Recorded as [ADR-0007](adr/0007-navigation-modes.md).
@@ -327,9 +322,8 @@ this working tree, run 2026-09-20.
   system acts on `select` alone (`src/input-system.ts:118-132`), and engage mode consumes `select`,
   `back` and its eight adjust intents (`src/engage.ts:18-26`, read at `:61-72`). `pageUp`,
   `pageDown`, `home` and `end` likewise do nothing
-  outside engage mode. In miralabs-ui these were consumed by four component machines — calendar,
-  dialog, pagination, tabs — none of which is extracted, so the gap is created by the extraction
-  and is not an omission in the source. Pressing RB on a pad therefore moves no focus today: the
+  outside engage mode. They are the application's to act on: the package produces the intent, and a
+  component decides what it means. Pressing RB on a pad therefore moves no focus today: the
   intent reaches the application through `onIntent`, which is the documented way to act on it. A
   built-in tab-order handler is a v1 item, not a port, because it has to decide whether the engine
   or the application owns sequential focus.
@@ -341,8 +335,7 @@ this working tree, run 2026-09-20.
   `MAX_CONTAINER_DEPTH = 16` (`src/spatial/spatial.ts:60`), and the zero-size filter is
   `width === 0 || height === 0` (`.../spatial.ts:183-188`) — **either** dimension, so a 0×40 element
   is not a candidate. That is [ADR-0009](adr/0009-hidden-candidates.md) filter **C1, accepted for v0
-  and implemented**, against the source's `&&` (miralabs-ui:
-  `packages/core/src/input/spatial/spatial.ts:141`), which let such an element through: a rect with
+  and implemented**, against the `&&` it replaced, which let such an element through: a rect with
   a zero dimension paints nothing and its projection onto the cross axis is empty, so the alignment
   pass can never call it aligned and it is scored on the distance to a centre that is really an
   edge. Three fixtures pin it, including the one that says the rule is zero and not small — a
@@ -365,8 +358,7 @@ this working tree, run 2026-09-20.
   writes.
 - **R33.** **Settled: the ring ships in v0 and paints itself.** No stylesheet ships with the package
   — the overlay is created with its paint in a `cssText` string (`src/focus-ring/focus-ring.ts:51-52`,
-  applied at `:242`), so importing the subpath is the whole installation. The source values came from
-  miralabs-ui: `packages/styles/scss/components/_focus-ring.scss`, which stays there. The contract is
+  applied at `:242`), so importing the subpath is the whole installation. The contract is
   six custom properties, read off the overlay's own computed style:
 
   | Custom property | Fallback | Read at |
@@ -382,8 +374,8 @@ this working tree, run 2026-09-20.
   measured here — 4.51:1 on white and 4.36:1 on `#0b0b0f`, both above the 3:1 that WCAG SC 1.4.11
   asks of a non-text indicator (commit `71dc53c`). `3px` and `1700` are the values the source
   stylesheet shipped, put back after the extraction's first pass wrote `2px` and no z-index at all:
-  `2px` is a width the source never shipped and `3px` is the one it did (miralabs-ui:
-  `packages/styles/css/base.css:39`, cited in commit `92a5f89`), and `1700` is the rung that
+  `2px` is a width the source never shipped and `3px` is the one it did (cited in commit
+  `92a5f89`), and `1700` is the rung that
   stylesheet gave the ring — above its modal, popover, toast and tooltip. The rung is load-bearing:
   `position: fixed` opens no stacking context, so without it the overlay paints in DOM order and
   goes behind the first dialog it meets. The radius is not a property at all: it is read off the
@@ -398,9 +390,8 @@ this working tree, run 2026-09-20.
 ### 5.6 Adapters
 
 - **R34.** Delivery order, the owner's decision of 2026-09-18, recorded in
-  [ADR-0011](adr/0011-package-layout-and-adapters.md): React first — extracted from miralabs-ui:
-  `packages/react/src/input.tsx` (209 lines, read 2026-09-18) and now `src/react/react.tsx`
-  (304 lines, `wc -l` here 2026-09-20) — then vanilla helpers that auto-mount from attributes, then
+  [ADR-0011](adr/0011-package-layout-and-adapters.md): React first (`src/react/react.tsx`), then
+  vanilla helpers that auto-mount from attributes, then
   Vue, Svelte, Angular. React is the only adapter that exists; the others are not written.
 - **R35.** Every adapter is a subpath export (`@standarx/nav/react`, `/vue`, `/svelte`, `/angular`)
   with an optional peer dependency, and stays a thin binding — provider, scope host, modality hook.
@@ -427,17 +418,9 @@ A claim without a gate does not go in the README.
 
 The guard carries the blind spot the inherited bench had: it measures `findBestCandidate` alone, and
 not `collectNavNodes`, `getBoundingClientRect`, `querySelectorAll` or `checkVisibility`. A move is
-not the arithmetic, and no end-to-end move is measured anywhere in this package. The bench that did
-exist — miralabs-ui: `packages/core/src/input/spatial/geometry.bench.ts`, 200 and 2000 candidates —
-is not ported, for want of a `bench` export. See [ADR-0018](adr/0018-testing-strategy.md).
-
-Historical figures, kept because they are quoted elsewhere and must not be mistaken for these.
-Inherited: `bun run check:size` in miralabs-ui on 2026-09-18 (min+gzip, externals `../*` and
-`../../*`) gave input system with engage 1.93 kB of a 2.00 kB cap, gamepad engine 2.35 of 3.00,
-spatial engine 2.81 of 3.00, modality tracker 0.74 of 1.00 — a different package, different
-perimeters, and superseded for this one by the seven lines above. Older still, the 2026-08-27
-release notes of miralabs-ui (2.48 kB gamepad, 2.89 kB spatial, 1.34 kB focus ring, 4.3 µs for 200
-candidates); they are labelled historical wherever they appear.
+not the arithmetic, and no end-to-end move is measured anywhere in this package. The benchmark that
+measured 200 and 2000 candidates is not ported, for want of a `bench` export. See
+[ADR-0018](adr/0018-testing-strategy.md).
 
 ## 7. Success criteria and decision date
 
@@ -469,58 +452,28 @@ physical gamepad are recorded in a device report issue
 
 ## 8. Open questions
 
-1. **`aria-hidden`.** The engine specification of 2026-08-27 lists "not inside an `aria-hidden`
-   subtree" among the candidate filters (§3.2, step 1; miralabs-ui:
-   `git show 289fa607^:docs/research/input.md`), but the shipped code does not filter it. §4 of this
-   document follows the code. Which one is the contract? Still open: ADR-0009's other filters are
-   settled (R31), this one is not.
-2. ~~**Legacy build.**~~ **Answered on the date, not yet on the substance.** Whether a second build
-   targeting Chromium 68-79 (TV 2020-2021) is worth its cost is decided by **2026-12-31**, and the
-   default is no: with no device report from such a runtime by that date, the legacy build is not
-   built. The question that remains is only what a device report would have to show.
-3. ~~**Focus ring in v0.**~~ **Settled 2026-09-20.** The first of the three shapes: the overlay ships
-   in v0 with its defaults inline and no stylesheet at all. The contract is the six custom properties
-   of R33.
-4. **Dependency direction with miralabs-ui.** Its core imports `pushEngageScope` and
-   `isTextEntryTarget` by value. After extraction, does miralabs-ui depend on `@standarx/nav` for
-   those two, or do they stay in miralabs-ui?
-5. ~~**Budget perimeters.**~~ **Settled 2026-09-19, amended 2026-09-20.** The perimeters stand, and
-   each number is the marginal cost of adding that subpath next to the core. Two consequences are
-   worth stating before the caps become a gate nobody revisits: the core line carries `tabbable.js`
-   and `dom/query.js`, because the root entry re-exports six tabbable symbols so that `isFocusable`
-   is reachable without an engine; and `dom/raf.js` and `dom/platform.js` are charged to the engines
-   that are their only importers rather than to the core, which is what a marginal cost means. The
-   amendment is a seventh line: the React adapter, which externalises `react`, `react/jsx-runtime`
-   and the two core entries it imports, and is charged `internal/env.js` and `internal/equality.js`
-   as adapter-only helpers (`scripts/size-budget.ts:112-118`). All seven carry caps; the
-   measurements, the caps and the script defects the first runs exposed are recorded in
-   [ADR-0017](adr/0017-size-budgets.md).
-6. ~~**Untested behaviours inherited from the source.**~~ **Answered 2026-09-20: specified and
-   tested, none dropped.** `scrollAndRescan` (`src/spatial/spatial.browser.test.ts:713`),
-   `pointerFollowsFocus` (`.../spatial.browser.test.ts:512`), `data-snav-scroll="center"`
-   (`.../spatial.browser.test.ts:550`), the debug entry (`src/debug.browser.test.ts`, 6 cases) and
-   right-stick horizontal scroll (`src/gamepad/gamepad.browser.test.ts:203,210`) all have fixtures.
-   The parenthesis in the old wording is obsolete too: `explainMove` no longer re-implements the
-   winner rule, it calls the engine's own `findBestCandidate` (`src/debug.ts:63-68`), so a
-   diagnostic that disagrees with the engine is now a structural impossibility rather than a promise.
-7. **Remote coverage.** Do Vidaa, Vizio, Roku, Fire TV and Android TV keycodes enter the default
+1. **`aria-hidden`.** The engine specification this package inherits lists "not inside an
+   `aria-hidden` subtree" among the candidate filters, but the shipped code does not filter it. §4 of
+   this document follows the code. Which one is the contract? ADR-0009's other filters are settled
+   (R31); this one is not.
+2. **What a legacy build would have to show.** Whether a second build targeting Chromium 68-79
+   (televisions of 2020-2021) is worth its cost is decided by **2026-12-31**, and the default is no:
+   with no device report from such a runtime by that date, it is not built
+   ([ADR-0013](adr/0013-browser-baseline-and-fallbacks.md)). What remains open is only what a device
+   report would have to show to change that.
+3. **Remote coverage.** Do Vidaa, Vizio, Roku, Fire TV and Android TV keycodes enter the default
    keymap, and how are they verified without the hardware?
-8. ~~**CI billing.**~~ **Answered 2026-09-20.** `gh run list -R miralabs-tech/miralabs-ui --limit 8`
-   on 2026-09-18 returned 8 failures out of 8, annotated "The job was not started because recent
-   account payments have failed or your spending limit needs to be increased." That did not follow
-   the code. The last run on the extraction pull request in `StandarX-miralabs-tech` — run
-   35508188840, `gh run view 35508188840 --json jobs`, read 2026-09-20 — started and passed all
-   seven checks it carried: lint, typecheck, build, test, and browser on chromium, firefox and
-   webkit. The workflow has since gained a sixth job and an eighth check, the react 18.3 peer floor
-   (`.github/workflows/ci.yml:66-92`), which has not run yet. Claims in this document may therefore
-   lean on CI, and do.
-9. **Name risk.** A third-party GitHub organisation `standarx` has existed since 2024-12-24 with a
-   live site at standarx.com, predating `StandarX-miralabs-tech`, created 2026-09-18 (`gh api
-   users/standarx`, run 2026-09-18). No INPI, EUIPO or USPTO search has been run. This is a
-   family-level risk, not specific to this project.
-10. **Shadow DOM after v0.** Half answered. v0's position is settled and deliberate: no traversal in
-    `getFocusables`, a shadow-aware `contains` beside it, the inconsistency documented, and the
-    skipped fixture at `src/spatial/spatial.browser.test.ts:856` kept as the acceptance test of any
-    future attempt ([ADR-0008](adr/0008-shadow-dom.md)). Coherence between the two is a v1 goal.
-    What stays open is the shape — an opt-in root list or real traversal — and what it costs per
-    move.
+4. **Name risk.** A third-party GitHub organisation `standarx` has existed since 2024-12-24 with a
+   live site at standarx.com. No INPI, EUIPO or USPTO search has been run. This is a family-level
+   risk, not specific to this project.
+5. **Shadow DOM after v0.** Half answered. v0's position is settled and deliberate: no traversal in
+   `getFocusables`, a shadow-aware `contains` beside it, the inconsistency documented, and the
+   skipped fixture at `src/spatial/spatial.browser.test.ts:856` kept as the acceptance test of any
+   future attempt ([ADR-0008](adr/0008-shadow-dom.md)). Coherence between the two is a v1 goal. What
+   stays open is the shape — an opt-in root list or real traversal — and what it costs per move.
+6. **Controls that hold a value.** `pushEngageScope` is public and tested, and nothing is built on
+   it. What the package owes a slider, a picker or a `<select>` — recipes only, or shipped
+   behaviour — is not decided. A native `<select>` on a television opens a platform popup the engine
+   cannot navigate, and what the package offers instead is part of the same question.
+7. **Virtual keyboard.** Its layout data shape, how a layout module registers itself, what commits
+   and what cancels, and how it behaves with IME and `beforeinput`. No ADR yet.
