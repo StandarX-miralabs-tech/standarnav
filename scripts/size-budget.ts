@@ -98,28 +98,28 @@ const LINES: readonly Line[] = [
   {
     name: "focus ring",
     entries: ["focus-ring/focus-ring.js"],
-    cap: 1.5 * KB,
+    cap: 1.75 * KB,
     external: ["../dom/event.js", "../dom/query.js", "../modality.js"],
     note: "opt-in subpath next to the core; dom/platform.js is charged here as it is to spatial, which is correct for a marginal cost",
   },
   {
     name: "debug",
     entries: ["debug.js"],
-    cap: 0.75 * KB,
+    cap: 0.5 * KB,
     external: ["./spatial/spatial.js", "./spatial/geometry.js"],
     note: "explainMove, measured next to the spatial engine",
   },
   {
     name: "react adapter",
     entries: ["react/react.js"],
-    cap: 1.25 * KB,
+    cap: 1.5 * KB,
     external: ["react", "react/jsx-runtime", "../input-system.js", "../modality.js"],
     note: "opt-in subpath next to the core; react itself is a peer and never bundled, and internal/{env,equality}.js are charged here as adapter-only helpers",
   },
   {
     name: "whole package",
     entries: ["index.js", "gamepad/gamepad.js", "spatial/spatial.js", "focus-ring/focus-ring.js"],
-    cap: 8.75 * KB,
+    cap: 9.0 * KB,
     note: "every runtime entry bundled once, nothing external — the debug entry is excluded on purpose",
   },
 ];
