@@ -189,6 +189,10 @@ stylesheet, and [ADR-0020](0020-focus-ring-defaults.md) paid for its one inline-
 a failure mode where an invalid custom property erases the indicator silently. One of those is
 enough.
 
+> **Amended 2026-09-21.** Reversed: the keyboard draws a caret, in a preview row at the bottom of
+> its own box and never in the field, and the directions move it from that row. The amendment at
+> the end of this record has the argument, and what "no caret" still means for the field.
+
 ## Consequences
 
 - The keyboard is the second surface in this repository to depend on the two trap mechanics
@@ -305,6 +309,151 @@ A focus that leaves the keyboard now closes it. And that close does **not** hand
 focus back to the field: doing so dragged the focus off whatever the user was reaching
 for and put it back in the field, so the button they had just moved to never answered
 either. `close(restoreFocus)` distinguishes the two, and both halves are pinned by tests.
+
+## Amendment, 2026-09-21: the preview row and the caret — decision 9 reversed, decision 8 kept
+
+The fix above was driven on the real page again, and the owner found it unusable in a minute:
+the box sat from 390 to 728 on a 1280 by 800 viewport over a field whose bottom was 716, so the
+keys covered the very field they were typing into, and nothing on screen showed what was being
+typed. The ask that came out of it was two things — a line in the keyboard that shows the text
+being entered, and a way to put the caret in the middle of it to correct a mistake — and both
+run into a decision this record took on purpose.
+
+**1. Decision 9 is reversed by name.** The keyboard draws a caret. It draws it in a preview row
+at the bottom of its own box: the field's value, one line whatever the value, with a bar where
+`selectionStart` says the next character goes. The sentence "the keyboard draws no caret" no
+longer holds as written.
+
+Decision 9 refused this on one ground that mattered — "a second source of truth for where the
+insertion point is, able to disagree with the field it describes" — and the answer is that the
+row is not a source of anything. It is repainted from `field.value` and `field.selectionStart`
+after every change and holds no position of its own, which is the relation `data-snav-focused`
+has to `document.activeElement` in [ADR-0005](0005-real-dom-focus.md): a hook that mirrors the
+real state and is never read back as state. Where the field could disagree with the row, each
+case is closed or named:
+
+- A controlled field that transforms what was typed. React re-assigns the transformed value to a
+  field that is not focused, and that assignment moves the caret to the end. The plugin repaints
+  from an `input` listener on the **document**, which runs after the framework's own listener has
+  re-rendered, so the row shows the field as it ends up — value and caret both. Pinned in
+  `src/react/react.browser.test.tsx` beside the two cases decision 5 asked for: "mirrors a field
+  that transforms what was typed, caret back at the end". No deferral is needed: React 19 has
+  flushed by the time the event reaches the document, on all three engines.
+- An `input` the keyboard did not produce. The same listener; pinned by "follows an input event
+  the keyboard did not produce".
+- A value assigned with no event at all. Not seen until the next keystroke or caret move. Named
+  here rather than papered over: watching `value` would need a poll, and a poll is not a mirror.
+
+What "no caret" still means for the field is unchanged. The field is not `:focus` while the keys
+hold the focus, the package injects nothing into it and overlays nothing on it, and it ships no
+field styling: `data-snav-editing` is still the only field-side hook, and the row is not a
+substitute for styling it. The caret in the row dies with the row — `close()` removes the box —
+and the field is left holding exactly the selection the user last set.
+
+Decision 9's second ground, that [ADR-0020](0020-focus-ring-defaults.md)'s one inline-painted
+default was "enough", was overtaken by the box paint of the amendment above. This amendment says
+so rather than stepping past it: the row is painted inline on the same terms, and carries the
+same accepted failure mode — an invalid custom property erases a declaration silently.
+
+**2. The caret moves without a mode, so decision 8 stands.** The row spans the whole box, so
+nothing is to its left or to its right. While the row has the focus, left and right therefore
+move the caret one character, `home` and `end` go to the ends of the line, `pageUp` and
+`pageDown` to the ends of the value, and up and down move a line in a textarea — on the first
+and last line they hand over to the engine, which is how the focus leaves the row. `select` on
+the row does nothing. `back` keeps the one meaning it has everywhere inside the keyboard: close
+and keep.
+
+The alternative was the engage grammar every value-holding control uses — A takes hold, the
+directions adjust, B lets go — and it was measured before being rejected: with an engage scope
+pushed above the keyboard's trapped scope, `back` released the hold and left the keyboard open,
+and it took a second `back` to leave (chromium, firefox and webkit, 2026-09-20). That is a
+second meaning for B inside one surface, which decision 8 exists to refuse; it would also have
+put `engage.js` into the keyboard's size-budget line, and a held state that a user reads from
+three metres away needs a paint of its own. A caret is a position, not a value: there is nothing
+for B to put back. The ROADMAP had named "a modifier key in the layout, or a held direction" as
+the gesture this needed; a row with nothing beside it needed neither.
+
+**3. Where the field exposes no selection, the plugin owns the caret.** `email` and `number`
+inputs report `selectionStart` as `null` and throw on `setSelectionRange`; the amendment above
+appended to them and erased from the end. Now the plugin keeps an index for such a field for as
+long as the keyboard is open, clamped to the value's length on every read, and splices insertions
+and deletions around it on the whole-value path that already existed. This is not the second
+source of truth decision 9 refused: the field has no position to mirror, so the row is the only
+one there is, and it is gone when the keyboard closes. When the field is focused again by a
+physical keyboard, its own caret is wherever the platform puts it.
+
+The branch is decided by `selectionStart === null` at runtime, per field, and never by the
+input's `type`: WebKit gives `<input type="date">` a working selection where Chromium and
+Firefox throw `InvalidStateError` (probed 2026-09-20 on the three engines). A date field on
+WebKit therefore gets the field's own caret and on the other two the plugin's, and that is a
+browser fact this package mirrors rather than hides.
+
+**4. The facts that make the mirror legal under decision 1.** `setSelectionRange` on a field
+that does not have the focus moves the caret, moves no focus and fires no focus event; the
+selection set on a blurred field survives its refocus. Both on chromium, firefox and webkit
+(2026-09-20). This matters because the plugin closes the keyboard on any `focusin` that leaves
+its box: a caret move that stole the focus back to the field would have closed the keyboard on
+every press. Pinned by "moves the field's own selection with left and right" — which asserts
+`document.activeElement` is still the row afterwards, in ADR-0005's own gate wording — and by
+"leaves the field with the caret the row set when the focus goes back".
+
+**5. What the row shows, and what it is.** A newline is drawn as one glyph, `↵`, so the row is
+one line high whatever the value and every index of the value is one character of the row. A
+password is drawn as bullets. The row is kept out of the box's `max-content` width
+(`width: 0; min-width: 100%`), so a long value scrolls inside it instead of widening the
+keyboard — the full-bleed defect the box paint was added to fix would otherwise come straight
+back — and the caret is scrolled into view after every paint. The row is a focusable `<div>`
+with no role: `role="textbox"` would make `isTextEntryTarget` call it a text entry and the input
+system would drop the directions before the keyboard's scope saw them. Its accessible name is
+its text, bullets for a password; the field, which is still the element holding the value, is
+where assistive technology reads it. The box gains a fifth custom property,
+`--snav-keyboard-color` (`#f4f4f5`): it declared a background and no colour, so on a light page
+it painted the page's near-black text onto its own near-black box — the keys were unreadable
+and a text-only row would have been invisible.
+
+**6. Two defects found on the way, on all three engines.** Neither is a consequence of this
+design; both were in the way of it.
+
+- Re-rendering the keys on shift or a layer switch was `replaceChildren` on the box. The focused
+  key was destroyed, the focus fell to `document.body`, and the next direction walked out of the
+  keyboard — onto an unrelated button on chromium and webkit, back onto the field on firefox.
+  Worse, with the focus outside the box the keyboard's own scope declined every `select` while
+  the trap still swallowed it, so the keyboard stopped answering A until the user escaped. The
+  keys now live in a host of their own, the row is built once and painted in place, and
+  `render()` puts the focus back on the key at the same row and column. Pinned by "keeps the
+  focus on the key at the same position through shift" and "keeps the preview row through a
+  layer switch".
+- The overlap itself was the playground's stylesheet, not the plugin's placement. A
+  `[data-snav-keyboard]` rule from before the box painted itself set `inset: auto 0 72px 0`; the
+  plugin wrote `top` and `left` inline and nothing else, so the stylesheet's `bottom: 72px` kept
+  applying and stretched the box from the plugin's `top` down to 72 px above the bottom — 390 to
+  728. The rule is gone (the playground styles keys, never the box) and the plugin now writes all
+  four insets, pinned by "owns all four insets, so a stylesheet cannot stretch it over the
+  field". The figure "492 by 338, 16% of the viewport" in the amendment above and in
+  [ADR-0017](0017-size-budgets.md) was measured *through* that rule — 338 is 800 − 390 − 72 —
+  and is corrected here: with the playground's 44 px keys the box measures 492 by 335 and sits
+  from 356 to 691, above a field at 695 to 716, no overlap (chromium, 1280 by 800, 2026-09-21;
+  firefox 355 to 690, webkit 358 to 690, same page). The size depends on how a page styles the
+  keys, which is why it is quoted with the page.
+
+**7. What is still missing, said out loud.** No clear-all: erasing a forty-character email is
+forty presses. No forward delete: the caret sits between characters and `⌫` removes the one
+before it. No selection: a range the application set is drawn as a caret at its start and the
+next key edits the range — the keyboard never creates one, since `open()` collapses the caret to
+the end, which was true before and is user-visible now. No feedback when an application cancels
+`beforeinput`: the row does not change and the user presses again. And up from the row lands on
+the key nearest the row's centre, not on the key the user came from. All five are ROADMAP items.
+
+**Names, size, tests.** The box, its rows, the preview row and the caret carry
+`data-snav-keyboard` (the layout id), `data-snav-keyboard-row`, `data-snav-keyboard-preview` and
+`data-snav-keyboard-caret`, declared as constants in `src/keyboard/keyboard.ts` and recorded in
+[ADR-0001](0001-name-scope-and-attribute-prefix.md) by an amendment of the same day, together
+with the five custom properties. The keyboard line measures 2.82 kB min+gzip against its 2.25 kB
+cap; the cap is raised to 3.00 kB by an [ADR-0017](0017-size-budgets.md) amendment in its own
+commit before the code, as rule 4 asks. Sixteen browser tests were added across
+`src/keyboard/keyboard.browser.test.ts` and `src/react/react.browser.test.tsx`, and the test
+"puts the caret at the end on open, because nothing can move it afterwards" is renamed, because
+something can.
 
 ## Alternatives considered
 

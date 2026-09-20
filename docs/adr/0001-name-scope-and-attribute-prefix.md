@@ -34,7 +34,7 @@ experience, risk — scored the shortlist out of 10.
 | GitHub repository | `StandarX-miralabs-tech/standarnav` |
 | npm package | `@standarx/nav` |
 | Attribute prefix | `data-snav-*` |
-| CSS custom properties | `--snav-focus-ring-*` |
+| CSS custom properties | `--snav-focus-ring-*`, `--snav-keyboard-*` |
 
 One package, subpath exports: `@standarx/nav` (core), `/gamepad`, `/spatial`,
 `/focus-ring`, `/debug`, and the adapters `/react`, `/vue`, `/svelte`, `/angular`.
@@ -51,7 +51,12 @@ Attributes read from the markup: `data-snav="container"`, `data-snav-enter`,
 | `data-snav-input` | `<html>`, modality: keyboard, pointer, touch, gamepad |
 | `data-snav-focus-ring` | the focus ring overlay |
 | `data-snav-editing` | the field the on-screen keyboard is open on ([ADR-0022](0022-virtual-keyboard.md)) |
+| `data-snav-keyboard` | the keyboard's box, carrying the layout's id as its value |
+| `data-snav-keyboard-row` | each row of keys; `[data-snav-keyboard-row] button` is a key and nothing else is |
+| `data-snav-keyboard-preview` | the preview row at the bottom of the box, the focusable mirror of the field |
+| `data-snav-keyboard-caret` | the caret drawn inside the preview row |
 | `--snav-focus-ring-*` | six CSS custom properties: `offset`, `duration` and `easing`, read by the overlay, plus `color`, `width` and `z-index`, substituted into its inline style |
+| `--snav-keyboard-*` | five CSS custom properties substituted into the box's inline style: `z-index`, `font-size`, `color`, `background` and `shadow` |
 
 `data-snav-editing` is the one addition that is **not** a rename. It was added on 2026-09-20 with the
 keyboard, and it exists because the keys take the focus, so the field being typed into is not
@@ -81,6 +86,23 @@ Six names is the frozen number for v0, and each is a public contract on the same
 attributes: adding one is a minor change, renaming or removing one is breaking. They appear at
 `src/focus-ring/focus-ring.ts:51-52` (`RING_PAINT`: `z-index`, `width`, `color`), `:104-106`
 (`offset`, in `measure`) and `:134-137` (`duration` and `easing`, in `motion`).
+
+**Amended 2026-09-21: the keyboard's names, which the table had not caught up with.** The
+on-screen keyboard writes attributes of its own on elements it creates, the way the focus ring
+writes `data-snav-focus-ring` on its overlay, and two of them had shipped without a row here:
+`data-snav-keyboard`, whose value is the layout's id, and `data-snav-keyboard-row`. Two more
+arrive with the preview row of [ADR-0022](0022-virtual-keyboard.md)'s amendment of the same
+day: `data-snav-keyboard-preview` and `data-snav-keyboard-caret`. All four are declared as
+constants next to `EDITING_ATTRIBUTE` in `src/keyboard/keyboard.ts`, as the evidence below
+requires of every name, rather than written through `dataset`. The engine therefore writes
+**nine** attribute names, not five, and `data-snav-editing` is no longer the one addition.
+
+The custom-property contract was never six names either, once the keyboard painted its own box:
+`--snav-keyboard-z-index`, `-font-size`, `-background` and `-shadow` arrived with that amendment,
+and `--snav-keyboard-color` with the preview row — the box declared a background and no colour,
+which on a light page painted the page's text colour onto it. That is **eleven** custom
+properties in two families, frozen at v1 on the same terms: adding one is a minor change,
+renaming or removing one is breaking. The Decision table names both families.
 
 ## Consequences
 

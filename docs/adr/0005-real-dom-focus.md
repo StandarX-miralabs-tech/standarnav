@@ -101,9 +101,29 @@ gate. Second, a source-level check that no id-keyed focus store — a
 reads `document.activeElement` through its scene helper on every move assertion
 (`src/spatial/spatial.browser.test.ts`), as does the composition suite
 (`src/composition.browser.test.ts`), and nothing in either asserts a class, an
-attribute or a getter in place of it. `bun run test:browser` on 2026-09-20 → 224
+attribute or a getter in place of it. `bun run test:browser` on 2026-09-21 → 240
 passed and 1 skipped in 12 files; the skip is the shadow-DOM fixture of
 [ADR-0008](0008-shadow-dom.md) and is unrelated to this gate.
+
+## Amendment, 2026-09-21: a text caret mirrored from the field is not a virtual cursor
+
+The on-screen keyboard now draws a caret, in a preview row at the bottom of its own box
+([ADR-0022](0022-virtual-keyboard.md), amendment of 2026-09-21). It is worth saying here
+why that is not the thing this record refuses. This record is about *focus*: a
+library-owned "focused" state that the DOM never learns, with everything the platform
+gives the real focused element lost as a result. The caret in the row has the opposite
+shape. Real DOM focus is on the row while the caret is moved — `document.activeElement`
+says so, and the tests assert it in this record's gate wording. The position is the
+field's own `selectionStart`, moved with `setSelectionRange` and read back from the field
+for every paint; the row stores nothing, which is exactly the relation `data-snav-focused`
+has to `document.activeElement` in the Decision above. Where a field exposes no selection
+at all (`email`, `number`), the plugin keeps an index for the life of the keyboard, and
+that is not a copy of anything: the field has no position to copy.
+
+The fact that makes it legal under this record, measured on chromium, firefox and webkit
+(2026-09-20): `setSelectionRange` on a field that does not have the focus moves no focus
+and fires no focus event, and the selection it set survives the field's later refocus.
+The gate is unchanged.
 
 The second is **not** written. There is no automated check for an id-keyed focus
 store; what exists is a reading of this repository: `grep -rn "Map<string" src/`
