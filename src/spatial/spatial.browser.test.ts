@@ -581,8 +581,22 @@ describe("spatialPlugin — scrolling the focus into view", () => {
 });
 
 describe("spatialPlugin — the candidate filter", () => {
+  /**
+   * A button cannot be collapsed by width and height alone: Chromium's UA sheet
+   * gives it padding, a 2px border and a minimum, so `box(id, x, y, 0, 0)` measures
+   * 16 x 6 and never reaches the size filter at all. Measured with Playwright on
+   * 2026-09-20. Resetting all three is what makes these fixtures test the thing
+   * they are named after.
+   */
+  function collapsible(id: string, x: number, width: number, height: number): string {
+    return (
+      `<button id="${id}" style="position:absolute;left:${x}px;top:0;` +
+      `width:${width}px;height:${height}px;padding:0;border:0;min-width:0"></button>`
+    );
+  }
+
   it("drops an element with no size at all", () => {
-    const view = scene(box("a", 0, 0) + box("empty", 120, 0, 0, 0) + box("b", 240, 0));
+    const view = scene(box("a", 0, 0) + collapsible("empty", 120, 0, 0) + box("b", 240, 0));
     view.plugin.focus("#a");
 
     view.move("right");
@@ -590,15 +604,29 @@ describe("spatialPlugin — the candidate filter", () => {
     expect(view.active()).toBe("b");
   });
 
-  it("keeps one that is flat on a single axis", () => {
-    // The filter is `width === 0 && height === 0`, not `||`: a 0 x 40 element is
-    // still a candidate, and ADR-0009 requires this fixture before that changes.
-    const view = scene(box("a", 0, 0) + box("thin", 120, 0, 0, 40) + box("b", 240, 0));
+  it("drops one that is flat on a single axis", () => {
+    // ADR-0009 C1, accepted for v0: the filter is `width === 0 || height === 0`.
+    // The source asked for both, which let a 0 x 40 element take the focus — it
+    // paints nothing, so nothing can be seen to have been focused. This is the
+    // fixture ADR-0009 required before the rule moved; it now pins the rule it
+    // moved to, and putting the operator back fails here.
+    const view = scene(box("a", 0, 0) + collapsible("thin", 120, 0, 40) + box("b", 240, 0));
     view.plugin.focus("#a");
 
     view.move("right");
 
-    expect(view.active()).toBe("thin");
+    expect(view.active()).toBe("b");
+  });
+
+  it("keeps an element the width of a hairline", () => {
+    // The rule is zero, not small. A 1px divider or a deliberately slim control is
+    // a real target and C1 must not reach it.
+    const view = scene(box("a", 0, 0) + collapsible("hair", 120, 1, 40) + box("b", 240, 0));
+    view.plugin.focus("#a");
+
+    view.move("right");
+
+    expect(view.active()).toBe("hair");
   });
 });
 
