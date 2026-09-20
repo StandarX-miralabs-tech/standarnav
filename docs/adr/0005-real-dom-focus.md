@@ -101,7 +101,7 @@ gate. Second, a source-level check that no id-keyed focus store — a
 reads `document.activeElement` through its scene helper on every move assertion
 (`src/spatial/spatial.browser.test.ts`), as does the composition suite
 (`src/composition.browser.test.ts`), and nothing in either asserts a class, an
-attribute or a getter in place of it. `bun run test:browser` on 2026-09-21 → 240
+attribute or a getter in place of it. `bun run test:browser` on 2026-09-21 → 243
 passed and 1 skipped in 12 files; the skip is the shadow-DOM fixture of
 [ADR-0008](0008-shadow-dom.md) and is unrelated to this gate.
 
@@ -127,7 +127,7 @@ The gate is unchanged.
 
 The second is **not** written. There is no automated check for an id-keyed focus
 store; what exists is a reading of this repository: `grep -rn "Map<string" src/`
-returns one hit, `src/gamepad/gamepad.ts:153`, which is
+returns one hit, `src/gamepad/gamepad.ts:161`, which is
 `new Map<string, ButtonOverrides>()` — the per-pad remap table of `setMapping`,
 keyed by `Gamepad.id`, holding button overrides and no element. No focus store
 exists. A reading is not a gate, and turning it into one before v1 is still the
@@ -186,7 +186,7 @@ modes), not this decision alone.
   (`:24-39`) is the shadow-aware containment seam [ADR-0008](0008-shadow-dom.md) reserves and
   nothing calls in v0. None of them holds focus state.
 - No focus registry: `grep -rn "Map<string" src/` returns one hit, the per-pad remap table at
-  `src/gamepad/gamepad.ts:153`, which holds button overrides and no element.
+  `src/gamepad/gamepad.ts:161`, which holds button overrides and no element.
 - The design intent predates this package: the principle that a gamepad drives real DOM focus
   with roving tabindex, never a virtual focus keyed by id, because screen reader accessibility
   and native interoperability with `:focus`, forms and extensions come free that way. That

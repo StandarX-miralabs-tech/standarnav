@@ -69,7 +69,7 @@ an empty column is information.
 | One webOS television, 2022 model year or later | webOS 22 embeds Chromium 87 (LG engine table, fetched 2026-09-18); exercises the webOS Back code 461, the first row of `REMOTE_KEY_CODES` at `src/keymap.ts:80` |
 | One Xbox-layout pad | The `mapping: "standard"` reference: A select, B back, LB/RB tabPrev/tabNext, LT pageUp, as `STANDARD` declares them at `src/gamepad/mapping.ts:19-25` |
 | One DualSense | Pad type detection and the button-glyph question |
-| One Switch Pro controller | The reason `swapNintendoConfirm` exists; it is off by default — the option is declared at `src/gamepad/gamepad.ts:103` and read as `options.swapNintendoConfirm === true` at `:141` — and has never been exercised against real hardware |
+| One Switch Pro controller | The reason `swapNintendoConfirm` exists; it is off by default — the option is declared at `src/gamepad/gamepad.ts:103` and read as `options.swapNintendoConfirm === true` at `:149` — and has never been exercised against real hardware |
 | One Steam Deck | Handheld with a built-in pad inside a CEF browser; the Steam client CEF was documented at Chromium 109 in early 2024 and no newer version has been found |
 
 Which of these are bought and which are borrowed, and on what date, is the Proposed rider above.
@@ -113,12 +113,12 @@ columns are still empty, because no emulator run and no device report exists.
 
 The three-engine CI matrix of decision 1 runs and is green: `fail-fast: false` over
 `[chromium, firefox, webkit]`, `SNAV_BROWSER` set per entry, and `bun run test:browser` reporting
-240 passed and 1 skipped in 12 files on each (2026-09-21). A fourth job, `react-floor`
+243 passed and 1 skipped in 12 files on each (2026-09-21). A fourth job, `react-floor`
 (`.github/workflows/ci.yml:75-101`), runs the same browser project on chromium alone against the
 declared React peer floor. That is a fourth browser run, not a fourth engine, and it changes
 nothing about this decision.
 
-Which is the point worth restating on the day this package is about to be published: 340 passing
+Which is the point worth restating on the day this package is about to be published: 343 passing
 tests are evidence about three desktop browser engines, and about nothing else.
 
 ## Alternatives considered

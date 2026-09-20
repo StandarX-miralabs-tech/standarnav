@@ -19,7 +19,7 @@ computed visibility are exactly where jsdom and the browsers disagree".
 The material to port was a known quantity: roughly 160 core cases and 8 React-adapter cases,
 inherited from the predecessor implementation ([ADR-0002](0002-license-and-copyright.md)) and not
 re-derived here. What the port produced is countable in this repository instead, and the amendment
-below records it: 340 passed and 1 skipped across 22 test files.
+below records it: 343 passed and 1 skipped across 22 test files.
 
 Those browser tests are not unit tests of a plugin in isolation:
 `src/spatial/spatial.browser.test.ts:2` and `src/gamepad/gamepad.browser.test.ts:2` both import
@@ -143,7 +143,7 @@ wrapping. Those differences are now the interesting thing to assert, because the
 shared and can no longer drift.
 
 **The adapter parity suite of decision 5 grew.** `src/adapter-parity.ts` is the shared suite and
-React passes it (`src/react/react.browser.test.tsx:340`). It now exposes a `ParityTree` shape and an
+React passes it (`src/react/react.browser.test.tsx:342`). It now exposes a `ParityTree` shape and an
 `update(tree)` capability on `ParityAdapter` (`src/adapter-parity.ts:48-55`, `:70`), which is what
 lets a case re-render the tree rather than only mount and unmount it. The behaviours it asserts
 beyond the original list: LIFO dispatch order, a scope released when only its own subtree unmounts
@@ -161,7 +161,7 @@ last, one `destroy()` unwinds all three, and a pause stops the focus moving unti
 this is that decision taken one level further up than a single plugin.
 
 **Suite state on the day of this amendment.** `bun run test:unit` → 100 passed in 10 files.
-`bun run test:browser` → 240 passed and 1 skipped in 12 files. 340 passed, 1 skipped in total,
+`bun run test:browser` → 243 passed and 1 skipped in 12 files. 343 passed, 1 skipped in total,
 across 22 test files. The single skip is the shadow-DOM fixture of
 [ADR-0008](0008-shadow-dom.md) (`src/spatial/spatial.browser.test.ts:855-877`), which ships skipped
 on purpose. Both commands run in this repository on 2026-09-21, vitest 5.0.1, the browser project
@@ -212,7 +212,7 @@ there was nothing to run and is a real gate now that there is.
   the chromium browser project against the declared peer floor (`:75-101`), so the range
   `package.json` advertises is a range something actually runs.
 - Suite counts, this repository, 2026-09-21: `bun run test:unit` → 100 passed in 10 files;
-  `bun run test:browser` → 240 passed, 1 skipped, in 12 files. The skip is
+  `bun run test:browser` → 243 passed, 1 skipped, in 12 files. The skip is
   `src/spatial/spatial.browser.test.ts:856` ([ADR-0008](0008-shadow-dom.md)).
 - Port budget: roughly 160 core cases and 8 React-adapter cases, inherited from the predecessor
   implementation ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here. The bullet

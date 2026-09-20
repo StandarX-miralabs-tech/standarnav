@@ -223,7 +223,7 @@ this working tree, run 2026-09-20.
 - **R14.** The `requestAnimationFrame` loop runs only while a pad is connected, the document is
   visible and the plugin is mounted; on return to visibility state is re-read silently, so a button
   pressed while the tab was hidden never fires a synthetic `select`. Zero allocation per frame,
-  through reused typed arrays (`src/gamepad/gamepad.ts:143-149`).
+  through reused typed arrays (`src/gamepad/gamepad.ts:151-157`).
 - **R15.** Dead zones, two treatments. Continuous analog (`scrollX`, `scrollY`): radial dead zone
   `0.15` with magnitude renormalisation (`src/gamepad/dead-zone.ts:28`). Discrete
   navigation: four 90° sectors with double hysteresis — enter at `0.5`, release at `0.3`, `12°` of

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { createInputSystem } from "../input-system";
+import { createInputSystem, type InputPlugin } from "../input-system";
 import type { IntentEvent } from "../types";
 import { type GamepadPluginOptions, type GamepadRuntime, gamepadPlugin } from "./gamepad";
 
@@ -576,5 +576,70 @@ describe("gamepadPlugin — the battery promise", () => {
     // button pressed in the background surfaces as a phantom activation the
     // instant the user returns.
     expect(names(scene.intents)).toEqual([]);
+  });
+});
+
+describe("gamepadPlugin — a runtime with no Gamepad API", () => {
+  /** The whole point is the default runtime, so this one passes no `runtime` option. */
+  function withoutTheApi() {
+    const doc = iframeDocument();
+    const win = doc.defaultView as Window;
+    // Deleting the inherited accessor is what a runtime without the API looks like;
+    // assigning `undefined` would leave a property that is present and not callable,
+    // which is a different bug and not the one on the television.
+    Object.defineProperty(win.navigator, "getGamepads", {
+      configurable: true,
+      value: undefined,
+    });
+    return doc;
+  }
+
+  it("leaves the input system standing instead of throwing out of setup", () => {
+    const doc = withoutTheApi();
+
+    // Before the guard this threw inside `createInputSystem`: the plugin read
+    // `navigator.getGamepads` during setup, and the page lost every plugin at once.
+    const input = createInputSystem({ doc, plugins: [gamepadPlugin()] });
+    const intents: IntentEvent[] = [];
+    const off = input.onIntent((event) => intents.push(event));
+    cleanups.push(() => {
+      off();
+      input.destroy();
+    });
+
+    input.emit({ intent: "moveUp", source: "keyboard", repeat: false });
+    expect(names(intents)).toEqual(["moveUp"]);
+  });
+
+  it("keeps the other plugins running, and the bus with them", () => {
+    const doc = withoutTheApi();
+    const seen: string[] = [];
+    const other: InputPlugin = {
+      name: "other",
+      setup(): VoidFunction {
+        seen.push("set up");
+        return () => seen.push("torn down");
+      },
+    };
+
+    // Registered after the gamepad plugin: an exception out of the one before it is
+    // exactly what used to stop this one from ever being set up.
+    const input = createInputSystem({ doc, plugins: [gamepadPlugin(), other] });
+
+    expect(seen).toEqual(["set up"]);
+
+    // And the inert plugin still tears down with the rest rather than throwing again.
+    input.destroy();
+    expect(seen).toEqual(["set up", "torn down"]);
+  });
+
+  it("does not stop a pad from working where the API is there", () => {
+    const scene = harness();
+
+    scene.set({ buttons: { 12: 1 } });
+    scene.frame(16);
+
+    // The guard is a capability check and nothing else: the normal path is untouched.
+    expect(names(scene.intents)).toEqual(["moveUp"]);
   });
 });

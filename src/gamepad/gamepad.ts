@@ -127,7 +127,15 @@ export interface GamepadPlugin extends InputPlugin {
   padType(index?: number | undefined): PadType;
 }
 
-function defaultRuntime(win: Window): GamepadRuntime {
+// A runtime with no Gamepad API is not a broken one — Playwright's WebKit has no
+// `navigator.getGamepads`, and a television runtime that ships without it is the same
+// shape. `getGamepads` is this plugin's only way in, and it is read during `setup`, so
+// an unguarded call throws inside `createInputSystem` and takes down keyboard, focus
+// ring and every other plugin with it: a page with no pad attached would go dark. The
+// answer is the one already written for a document with no window — no runtime, and a
+// plugin that registers nothing.
+function defaultRuntime(win: Window | null): GamepadRuntime | null {
+  if (win === null || typeof win.navigator.getGamepads !== "function") return null;
   return {
     getGamepads: (): readonly (Gamepad | null)[] => win.navigator.getGamepads(),
     requestFrame: (callback): number => win.requestAnimationFrame(callback),
@@ -363,7 +371,7 @@ export function gamepadPlugin(options: GamepadPluginOptions = {}): GamepadPlugin
     setup(pluginContext): VoidFunction {
       context = pluginContext;
       const win = pluginContext.doc.defaultView;
-      runtime = options.runtime ?? (win === null ? null : defaultRuntime(win));
+      runtime = options.runtime ?? defaultRuntime(win);
       if (runtime === null) return () => {};
 
       const teardowns = [
