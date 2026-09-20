@@ -58,6 +58,39 @@ jobs:
       - run: bun install --frozen-lockfile
       - run: bun run test:unit
 
+  # `package.json` declares `react` and `react-dom` as optional peers at `>=18.3.0`,
+  # while the lockfile pins 19 and every job above installs `--frozen-lockfile`. The
+  # floor of that range was therefore never built, typechecked or run anywhere: a
+  # promise the repository had no means of keeping. This job keeps it, or the range
+  # gets narrowed to what is tested.
+  react-floor:
+    name: react 18.3 (the declared peer floor)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+      - run: bun install --frozen-lockfile
+      - name: Install the declared floor
+        run: bun add --dev react@^18.3.1 react-dom@^18.3.1 @types/react@^18.3 @types/react-dom@^18.3
+      # The types are half the contract: 18 and 19 differ on `ReactNode` and on the
+      # JSX namespace, and the provider's props are exported `.d.ts` surface.
+      - run: bun run typecheck
+      - name: Resolve the playwright version
+        id: playwright
+        run: echo "version=$(bun pm ls | grep -oP '(?<![-\w])playwright@\K[0-9.]+' | head -1)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ steps.playwright.outputs.version }}-chromium
+      - run: bun x playwright install --with-deps chromium
+      # One engine is enough here: what is under test is the React version, and the
+      # browser matrix is covered by the job below.
+      - run: bun run test:browser
+        env:
+          SNAV_BROWSER: chromium
+
   browser:
     runs-on: ubuntu-latest
     strategy:
