@@ -327,6 +327,45 @@ fix at 492 by 338, 16% of the same viewport.
 **Rule 3 gives 2.25.** The measurement is 2.01 kB and the next quarter above it is 2.25.
 The line sits at 89% used, which is the same headroom the module had before.
 
+## Amendment, 2026-09-21: the keyboard cap goes to 3.00 kB, for the preview row and the caret
+
+`bun run build && bun run check:size`, run 2026-09-21, same toolchain as the amendments above.
+
+| Line | min | min+gzip | old cap | new cap |
+|---|---|---|---|---|
+| keyboard | 6.60 kB | 2.82 kB | 2.25 kB | 3.00 kB |
+
+**Rule 4, again properly.** The 2.25 kB cap was committed by the amendment above, so this is a
+cap in the repository being raised, in its own commit, with the code landing in the next one.
+
+**What the 0.81 kB buys.** A preview row at the bottom of the box that mirrors the field — its
+value on one line, a caret drawn where the field's selection is, bullets for a password — and
+the directions moving that caret while the row has the focus; a caret the plugin owns for a
+field that exposes no selection; the focus put back on the key at the same position after a
+shift or layer re-render, which used to drop it to `body`; a fifth custom property for the
+box's text colour; the four attribute names as exported constants; and all four insets written
+by the placement. The record is [ADR-0022](0022-virtual-keyboard.md), amendment of the same day.
+
+**No new external, and the one that was avoided.** The caret moves through the keyboard's own
+scope, so the line imports nothing it did not import before and its `external` list is
+unchanged. The design that was measured and rejected — the engage grammar, A holding the caret
+— would have imported `pushEngageScope`, and `engage.js` is a core export that the keyboard line
+does not declare external: the measurement would have charged the consumer a second copy, which
+is the family of defect the amendment on the debug line describes, for the sixth time. It did
+not happen because the import did not.
+
+**A figure in this record is corrected.** The amendment above says the box measured "492 by
+338, 16% of the same viewport". That was measured through a stale rule in the playground's
+stylesheet, `inset: auto 0 72px 0` on `[data-snav-keyboard]`, which stretched the box from the
+plugin's `top` to 72 px above the bottom — 338 is 800 − 390 − 72 — and over the field. With
+that rule deleted and the plugin owning all four insets, the same page measures the box at 492
+by 335, from 356 to 691 above a field at 695 to 716 (chromium, 1280 by 800, 2026-09-21). The
+height is the playground's 44 px keys plus the preview row; a page that styles its keys
+differently gets a different box, which is why the number travels with the page.
+
+**Rule 3 gives 3.00.** The measurement is 2.82 kB and the next quarter above it is 3.00. The
+line sits at 94% used.
+
 ## Alternatives considered
 
 **A bundlephobia badge in the README.** Rejected: it is not blocking, it lags

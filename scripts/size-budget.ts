@@ -122,12 +122,12 @@ const LINES: readonly Line[] = [
   {
     name: "keyboard",
     entries: ["keyboard/keyboard.js"],
-    cap: 2.25 * KB,
+    cap: 3 * KB,
     // Every module it reaches for is one the core already ships — the keymap for
     // `isTextEntryTarget`, tabbable for `focusElement` — so all four are external and
     // the number is what a consumer who already has the core pays to add a keyboard.
     external: ["../dom/event.js", "../dom/query.js", "../keymap.js", "../tabbable.js"],
-    note: "opt-in subpath next to the core; the on-screen keyboard plugin, no layout in it",
+    note: "opt-in subpath next to the core; the on-screen keyboard plugin with its preview row, no layout in it",
   },
   {
     name: "keyboard layout qwerty",
