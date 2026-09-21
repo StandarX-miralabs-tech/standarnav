@@ -38,8 +38,12 @@ const gamepad: GamepadPlugin = gamepadPlugin();
 // This page used to pass `openOn: "focus"` so a laptop with no pad could reach it, and
 // that was the bug — `mode: "app"` turns on `pointerFollowsFocus`, so the pointer focuses
 // whatever it crosses, and a keyboard on focus is a keyboard on hover.
+// Vertical moves leave the text field. Without this the page is a dead end: the arrows
+// belong to text entry (R11), left and right stay with the caret whatever happens, so a
+// remote that reaches the field has no key left that navigates anywhere.
 const input: InputSystem = createInputSystem({
   plugins: [gamepad, spatial, focusRingPlugin(), keyboardPlugin({ layout: alphabetic })],
+  allowVerticalInText: true,
 });
 
 const status = document.getElementById("status");
