@@ -38,7 +38,7 @@ The other libraries are in the same position, with one exception. Twenty competi
 built and adversarially re-verified (eighteen distinct projects, two pairs being the same project
 under two names; method in [docs/research/competitors.md](../research/competitors.md)). Their
 `shadow_dom` field records either "not supported" or no occurrence of `shadowRoot` / `attachShadow`
-in the source surveyed, for every entry but Tabster, which carries an opt-in `Shadowdomize` module
+in each project's source, for every entry but Tabster, which carries an opt-in `Shadowdomize` module
 in its own repository. That field is not one of the columns the published table carries, so the
 comparison above is a survey finding: checkable against each surveyed project's published source,
 and against nothing in this repository. The WICG spatial-navigation material documents the same gap

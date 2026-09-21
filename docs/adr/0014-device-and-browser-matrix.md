@@ -100,7 +100,7 @@ simulator that runs on the host's own browser engine is not evidence about a tel
 - A CI matrix of three current engines is cheap and catches real divergence — focus order, computed
   direction, `checkVisibility` semantics — which is why it stays even though it proves nothing about
   the baseline floor.
-- Gamepad behaviour is the least CI-testable part of the library: the source exposes a
+- Gamepad behaviour is the least CI-testable part of the library: the gamepad engine exposes a
   `GamepadRuntime` seam (`src/gamepad/gamepad.ts:73`, taken through the `runtime` option at `:107`,
   "a seam for tests and for TV shims") and the fake at `src/gamepad/gamepad.browser.test.ts:50`
   drives the polling loop through it by hand, which tests the logic and not the hardware. Stick dead

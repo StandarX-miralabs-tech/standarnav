@@ -26,9 +26,9 @@ engine is broken":
 | A move stops crossing containers in a deep tree | The walk out gives up at `MAX_CONTAINER_DEPTH = 16` and calls the bounds listeners instead | `src/spatial/spatial.ts:60`, `:423-444` |
 | A redirection attribute is ignored, or focuses nothing | `data-snav-<direction>` is a CSS selector resolved on the whole document. If it matches nothing, the move silently falls through to geometry. If it matches a non-focusable element, the engine calls `focus()` on it, reports success and writes `data-snav-focused` on an element the browser will not focus — there is no `isFocusable` check on that path | `src/spatial/spatial.ts:414-417`, then `commit` at `:308-333` |
 
-The precedent for the answer already exists in the source. `explainMove` is published as its own entry
-point so that "an application that ships spatial navigation does not ship the explanation of it"
-(`src/debug.ts:1-11`). `package.json` exports it as `./debug` and declares
+The precedent for the answer already exists in this repository. `explainMove` is published as its
+own entry point so that "an application that ships spatial navigation does not ship the explanation
+of it" (`src/debug.ts:1-11`). `package.json` exports it as `./debug` and declares
 `"sideEffects": false`, so a bundler drops it from any application that does not
 import it.
 
