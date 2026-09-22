@@ -23,10 +23,10 @@ Closes #
 
 <!--
 One sentence describing what changed for someone consuming the package, naming the
-affected subpath. This is what the CHANGELOG entry is written from at release time:
-release-please is the accepted tool (ADR-0012) and writes the changelog from the commit
-history, but no release has shipped yet, so the sentence lives here.
-Documentation-only or internal changes: write "internal only" instead.
+affected subpath. It becomes the subject of the squash merge, which is what release-please
+writes the CHANGELOG entry from (ADR-0012), so write it as the release note it is.
+Documentation-only or internal changes: write "internal only" instead, and type the
+commit `docs`, never `fix(docs)`: `fix` publishes a release.
 -->
 
 ## Checklist

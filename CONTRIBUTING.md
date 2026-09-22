@@ -1,6 +1,7 @@
 # Contributing to standarnav
 
-standarnav (npm package `@standarx/nav`) is unreleased; v0 is in progress. This
+standarnav (npm package `@standarx/nav`) is published — `0.1.0` since
+2026-09-22 — and v0 is in progress: the public API is not frozen. This
 document explains how to set up the project, what is expected of a pull
 request, and how to report a bug. Read it before opening a pull request.
 
@@ -90,7 +91,14 @@ Commit messages follow [Conventional Commits](https://www.conventionalcommits.or
 ```
 
 Types used in this repository: `feat`, `fix`, `perf`, `docs`, `refactor`,
-`test`, `chore`, `ci`.
+`test`, `chore`, `ci`. The type is also what releases: release-please bumps a
+patch on `fix`, a minor on `feat`, and publishes the result, while `docs`,
+`refactor`, `test`, `chore` and `ci` are hidden from the CHANGELOG and bump
+nothing. So a change confined to `.md` files is `docs`, never `fix(docs)` — a
+`fix` on a document publishes a release for a document. The CHANGELOG of
+`0.1.0` carries five such entries under "Bug Fixes", which is the lesson
+([ADR-0012](docs/adr/0012-versioning-and-release.md), amendment of
+2026-09-22, third).
 
 Scopes describe the area touched, for example `spatial`, `gamepad`, `react`,
 `focus-ring`, `keymap`, `modality`, `tabbable`. Use no scope for changes that
@@ -119,18 +127,15 @@ carrying the version bump and the CHANGELOG it writes from those commits,
 which is why the commit rules above are load-bearing rather than cosmetic.
 
 The wiring exists — `release-please-config.json`, `.release-please-manifest.json`
-and `.github/workflows/release.yml` — and ran for the first time on 2026-09-22,
-stopping at an organisation setting before it could open the release pull
-request. Until that pull request exists and the publishing account has a token
-and 2FA, no release ships and the rules above are the whole mechanism.
+and `.github/workflows/release.yml` — and has released: `0.1.0` reached npm on
+2026-09-22 from that workflow, and the CHANGELOG at the root is what it wrote.
 
-Until a release has shipped, the release note lives in the pull request description:
-a pull request that changes anything a consumer can observe carries one
-sentence saying what changed for that consumer, in English, and names the
-affected subpath rather than the file. That sentence is what the CHANGELOG
-entry is written from at release time. A documentation-only or
-internal-refactor pull request says so explicitly instead of leaving the
-line out.
+The release note is the squashed commit subject. A pull request that changes
+anything a consumer can observe carries one sentence saying what changed for
+that consumer, in English, naming the affected subpath rather than the file;
+that sentence becomes the subject of the squash merge, and so the CHANGELOG
+entry. A documentation-only or internal-refactor pull request says so
+explicitly instead of leaving the line out, and is typed accordingly.
 
 ## Tests are required for every behaviour change
 
@@ -297,10 +302,12 @@ its strict, file-by-file mirror. A documentation page without its mirror
 does not merge — add the French page in the same pull request, or hold the
 English page until it is ready.
 
-Neither directory exists yet: `docs/` holds `adr/`, `research/`
-and `specification.md` today, all of which are English-only
-by the paragraph below. The rule applies to the first page that lands under
-`docs/en`.
+Both directories exist since 2026-09-22, four pages each: `attributes.md`,
+`navigation.md`, `react.md` and `focus-ring.md`. `docs/` also holds `adr/`,
+`research/` and `specification.md`, all of which are English-only by the
+paragraph below. In a mirror, the prose is translated and everything that is
+the contract — code blocks, attribute and property names, cited paths, table
+cells holding code — is identical on both sides.
 
 This mirror rule applies to user-facing documentation only. Governance files
 (this one, the code of conduct, the security policy), ADRs, the

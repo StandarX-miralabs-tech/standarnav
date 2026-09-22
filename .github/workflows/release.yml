@@ -10,8 +10,8 @@ name: Release
 # job below replays the gates on the tag, because the version bump and the CHANGELOG that
 # land on `main` from that pull request were never checked by CI.
 #
-# The filename matters later: npm's trusted publishing matches the workflow by name, so a
-# rename after the first publish breaks it (ADR-0012).
+# The filename matters: npm's trusted publishing matches the workflow by this name, so a
+# rename breaks the publish until npmjs.com is told the new one (ADR-0012).
 on:
   push:
     branches: [main]
@@ -92,13 +92,15 @@ jobs:
     needs: [release-please, verify]
     runs-on: ubuntu-24.04
     permissions:
-      # `id-token: write` is what mints the provenance attestation, and `contents: read`
-      # is the rest of what npm asks for. Nothing else: this job writes to a registry, not
-      # to the repository.
+      # `id-token: write` lets the run mint the OIDC token that npm's trusted publishing
+      # exchanges for the publish, and the provenance attestation comes with that
+      # exchange; `contents: read` is the rest of what npm asks for. Nothing else: this
+      # job writes to a registry, not to the repository.
       contents: read
       id-token: write
-    # A named environment so the owner has somewhere to add a required reviewer or a
-    # deployment branch rule without touching this file. It is created on first use.
+    # The trusted publisher registered on npmjs.com names this environment along with the
+    # workflow filename, so both are part of the contract. It is also where the owner can
+    # add a required reviewer or a deployment branch rule without touching this file.
     environment: npm
     steps:
       - uses: actions/checkout@v7
@@ -111,21 +113,20 @@ jobs:
       # exception to the rule in CONTRIBUTING.md rather than a silent one: `bun publish`
       # emits no provenance attestation at all (oven-sh/bun#15601, open since 2024-12-05),
       # and a release without one would be visibly different from every other version.
-      # Node 22 carries an npm well above the 9.5.0 that token-based provenance needs, and
-      # is also the floor for the trusted publishing this is meant to move to.
+      # Node 24, because trusted publishing needs npm 11.5.1 or later and Node 22 still
+      # ships npm 10 (ADR-0012). No cache: bun does the installing, from the lockfile.
       - uses: actions/setup-node@v7
         with:
-          node-version: "22"
+          node-version: "24"
           registry-url: https://registry.npmjs.org
+          package-manager-cache: false
       - run: bun install --frozen-lockfile
       - run: bun run build
-      - name: Publish with provenance
-        # `publishConfig` in package.json already sets `access` and `provenance`; the flag
-        # is repeated here so the workflow says out loud what it is doing.
-        run: npm publish --provenance --access public
-        env:
-          # A granular token, for the first publish only. Trusted publishing attests
-          # without a token but is configured against an already-published package, so it
-          # cannot be used for 0.1.0. The plan is to switch after it and revoke this
-          # (ADR-0012).
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+      - name: Publish through the trusted publisher
+        # No token. npm authenticates with this run's OIDC token against the trusted
+        # publisher registered on npmjs.com for this repository, this workflow file and
+        # this environment, and attests provenance on its own, so the `--provenance` flag
+        # is gone with the token. `0.1.0` went out with a granular token, the only way to
+        # publish a package that does not exist yet; the switch is the amendment of
+        # 2026-09-22 in ADR-0012.
+        run: npm publish --access public

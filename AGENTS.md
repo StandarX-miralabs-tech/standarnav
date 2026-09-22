@@ -1,9 +1,10 @@
 # Working in this repository
 
 standarnav is the npm package `@standarx/nav`: a headless spatial-navigation engine in
-TypeScript, unreleased, MIT, one maintainer. This file is for a coding agent working
-in the tree. [CONTRIBUTING.md](CONTRIBUTING.md) is the full contract and wins on any
-conflict; what follows is the part an agent gets wrong without being told.
+TypeScript, on npm since 2026-09-22 with its API not frozen, MIT, one maintainer. This file
+is for a coding agent working in the tree. [CONTRIBUTING.md](CONTRIBUTING.md) is the full
+contract and wins on any conflict; what follows is the part an agent gets wrong without
+being told.
 
 ## Commands
 
@@ -82,7 +83,8 @@ write the amendment commit before the code commit.
 - Every behaviour change ships with a test; anything touching the DOM is a
   `*.browser.test.ts` and must pass on the three engines.
 - Conventional Commits, scoped by area (`spatial`, `gamepad`, `keyboard`, `react`,
-  `playground`, `docs`, ...). No AI trailer.
+  `playground`, `docs`, ...). No AI trailer. A change confined to `.md` files is typed `docs`,
+  never `fix(docs)`: `fix` bumps a patch and publishes a release, `docs` bumps nothing.
 - No comments by default. No `passWithNoTests`. No runtime dependency, ever.
 
 ## A green suite is not a working page

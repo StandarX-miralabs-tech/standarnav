@@ -1,6 +1,6 @@
 # standarnav (@standarx/nav)
 
-> Spatial navigation for the web: d-pad, gamepad sticks, TV remotes and arrow keys drive real DOM focus, declared in data attributes. Headless TypeScript, zero runtime dependencies, ESM only. Unreleased: nothing is on npm yet, and the `data-snav-*` names are not frozen before v1.
+> Spatial navigation for the web: d-pad, gamepad sticks, TV remotes and arrow keys drive real DOM focus, declared in data attributes. Headless TypeScript, zero runtime dependencies, ESM only. Published as `@standarx/nav@0.1.0` since 2026-09-22; while the major is 0 a minor may break, and the `data-snav-*` names are not frozen before v1.
 
 This file is for an assistant helping someone use the package. The facts below are read from the source at the commit that published this file; when they disagree with the linked documents, the documents are newer.
 
@@ -10,6 +10,7 @@ This file is for an assistant helping someone use the package. The facts below a
 - It ships **no component, no stylesheet and no widget**. A slider, a picker, a listbox or a dropdown is the application's markup; the package gives it the input grammar. Recipes for those controls live in the playground, linked below, and are meant to be copied.
 - One instance per document, never a global: `createInputSystem(...)` returns a system with `destroy()`. Options are read once at construction; to change a mode or a plugin option, destroy and rebuild. The only things adjustable live are the gamepad plugin's `setMapping` and `assign`.
 - Throws without a `document` (server render). Construct it in an effect or after mount.
+- The core is the vanilla API: no framework is needed, and `vanilla` is not an adapter. React is the one adapter shipped (`@standarx/nav/react`). A vanilla auto-mount helper, then Vue, Svelte and Angular adapters are planned in that order and do not exist yet (ADR-0011); do not tell a Vue, Svelte or Angular user there is nothing for them — the core works from any framework's mount hook.
 
 ## Entry points
 
@@ -115,9 +116,13 @@ Constraints to know before writing one:
 
 ## Documentation
 
-- [README](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/README.md): install, usage, the attribute tables, React, how a move is decided, browser support.
+- [README](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/README.md): status, install, the minimal setup, the attribute table the engine reads, the subpaths, the frameworks line.
+- [Attributes](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/docs/en/attributes.md): both attribute tables, read and written.
+- [Navigation](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/docs/en/navigation.md): how a move is decided, and what makes an element navigable.
+- [React](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/docs/en/react.md): the provider, the hooks, the `useMemo` contract, the parity suite the next adapters run.
+- [Focus ring](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/docs/en/focus-ring.md): the six custom properties and the two limits of an inline paint. Every `docs/en` page has a French mirror at the same path under `docs/fr`.
 - [Specification](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/docs/specification.md): the problem, the non-goals, the user contract and the numbered requirements.
-- [Roadmap](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/ROADMAP.md): what is open before the first publication, and what v1 freezes.
+- [Roadmap](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/ROADMAP.md): what is still open in v0, and what v1 freezes.
 - [Decision records index](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/docs/adr/README.md): every ADR with what it decides.
 - [ADR-0007 navigation modes](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/docs/adr/0007-navigation-modes.md): `composite` versus `app`.
 - [ADR-0021 native select on television](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/docs/adr/0021-native-select-on-television.md): why the popup is unreachable and what replaces it.

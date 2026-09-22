@@ -1,8 +1,8 @@
 # Product specification
 
 Project: standarnav — the input and spatial navigation engine published as `@standarx/nav`.
-Status: draft, v0 in progress. The engine is extracted and lives in `src/`; nothing is published to
-npm and nothing has been run on a television.
+Status: draft, v0 in progress. The engine is extracted and lives in `src/`; `0.1.0` is on npm since
+2026-09-22, and nothing has been run on a television.
 Date: 2026-09-18, revised 2026-09-20 against the extracted tree. Owner: Wesley Cormier.
 
 This document states the problem, the boundaries, the user contract, the functional requirements and
@@ -435,9 +435,9 @@ worked on. Both are checked by looking, not by remembering.
    written report of use. One separates "someone found it" from "nobody did", and every number above
    one would have been invented before the first week of data existed.
 2. **The package is published and still moving.** A first release on npm, and a CHANGELOG carrying
-   entries dated after it. Nothing is published today, so both halves are a target and not a claim,
-   and saying so is the point of writing the criterion down. Six released versions by 2027-03-31 is
-   roughly one a month across the project's first two quarters: enough to show the work continued,
+   entries dated after it. The first half is done, `0.1.0` on 2026-09-22; the second is a target
+   and not a claim, and saying so is the point of writing the criterion down. Six released
+   versions by 2027-03-31 is roughly one a month across the project's first two quarters: enough to show the work continued,
    few enough that it does not become a chore performed for the metric. It is checked by reading the
    registry and the CHANGELOG, neither of which can be back-dated.
 
