@@ -483,7 +483,14 @@ name — dropped the export and with it a few bytes.
 
 No cap moves, so rule 4 is not in play and the run never went red. This record exists because
 the amendment above states 0.62 and 12.64 as measurements, and those two numbers stopped being
-true before the pull request that carries them was opened. The amendment above is not edited:
+true before the pull request that carries them was opened.
+
+**One other slip in the amendment above, corrected here rather than edited there.** It says the
+helper is "one module among twelve" on the whole-package line. Twelve is the number of budget
+*lines*; the whole-package line groups **ten** entries, and the bundle behind it holds more
+modules than either number, since each entry drags its own graph in. The sentence's point — that
+a module compresses better among everything else the package ships than it does bundled alone —
+is unaffected by the miscount. The amendment above is not edited:
 it is what was measured when it was written, which is the whole point of dating it. A reader
 comparing either record against `bun run check:size` should expect 0.60 and 12.63, and the
 figures quoted in [ADR-0023](0023-vanilla-auto-mount.md) are the corrected ones.
