@@ -254,7 +254,7 @@ not been reproduced here, so it gets no guard and no claim, only this sentence.
   compiled under: inherited from the predecessor implementation
   ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here.
 - No television, console browser or handheld has been tested here: `ROADMAP.md` records that
-  nothing has been run on a television, and `:137-138` keeps one verified set, Tizen or webOS, with a
+  nothing has been run on a television, and `:138-139` keeps one verified set, Tizen or webOS, with a
   dated device report, open ([ROADMAP.md](../../ROADMAP.md)). There is no hardware for it here and no
   emulator.
 - Syntax floor for `es2020` output, fetched 2026-09-18 — optional chaining `?.` Chrome 80, Safari 13.1, Firefox 74, Samsung Internet 13.0: https://caniuse.com/mdn-javascript_operators_optional_chaining · nullish coalescing `??` Chrome 80, Safari 13.1, Firefox 72, Samsung Internet 13.0: https://caniuse.com/mdn-javascript_operators_nullish_coalescing · the two combined give Chrome 80, Safari 13.1, Firefox 74, Samsung Internet 13.0.

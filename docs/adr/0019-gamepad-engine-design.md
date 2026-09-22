@@ -10,7 +10,7 @@ The gamepad engine is not designed here. Its design is inherited from the predec
 implementation ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here; it arrived
 whole, across a package boundary drawn elsewhere ([ADR-0003](0003-package-boundaries.md)). This ADR
 records the design and its reasons here, so that the numbers stop being folklore, and marks what is
-still unverified. It lives in `src/gamepad/{gamepad.ts, mapping.ts, dead-zone.ts, repeat.ts}` — 464,
+still unverified. It lives in `src/gamepad/{gamepad.ts, mapping.ts, dead-zone.ts, repeat.ts}` — 472,
 91, 95 and 63 lines — and every bare `file.ts:line` citation below names a file in that directory,
 counted in this repository. Three facts frame it:
 
@@ -155,7 +155,7 @@ Line references in this table, like everywhere else in this record, are this rep
   <https://www.gamedeveloper.com/business/doing-thumbstick-dead-zones-right>,
   <https://minimuino.github.io/thumbstick-deadzones/>.
 - The engine as it stands here, and its coverage:
-  `src/gamepad/{gamepad,mapping,dead-zone,repeat}.ts` (464, 91, 95 and 63 lines), with unit cases in
+  `src/gamepad/{gamepad,mapping,dead-zone,repeat}.ts` (472, 91, 95 and 63 lines), with unit cases in
   `src/gamepad/{dead-zone,mapping,repeat}.test.ts` and the frame-driven suite in
   `src/gamepad/gamepad.browser.test.ts` — the `GamepadRuntime` seam this ADR describes is what
   drives it, one frame at a time, with no hardware and no timers. `gamepadPlugin` also carries its

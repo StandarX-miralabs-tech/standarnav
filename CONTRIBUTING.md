@@ -10,12 +10,13 @@ request, and how to report a bug. Read it before opening a pull request.
   (`1.4.0`); CI installs that exact version through
   `oven-sh/setup-bun` (`.github/workflows/ci.yml:22-24`). Use that version or
   a newer one. Never use `npm` or `npx` in this repository — every command
-  below is a `bun` command. The release workflow, once it is written, carries
-  the one documented exception: its publish step calls the npm CLI, because
-  publication has to happen from CI *with* a provenance attestation and the
-  `bun` client emits none. That exception is recorded, with the issue it turns
-  on and the dates, in [ADR-0012](docs/adr/0012-versioning-and-release.md) —
-  nothing else here may reach for npm.
+  below is a `bun` command. The release workflow carries the one documented
+  exception: its publish step calls the npm CLI (`npm publish --provenance` in
+  `.github/workflows/release.yml`), because publication has to happen from CI
+  *with* a provenance attestation and the `bun` client emits none. That
+  exception is recorded, with the issue it turns on and the dates, in
+  [ADR-0012](docs/adr/0012-versioning-and-release.md) — nothing else here may
+  reach for npm.
 - A Playwright browser for the browser test project. The default engine is
   Chromium (`vitest.config.ts`):
 
@@ -36,7 +37,7 @@ bun install
 ## Scripts
 
 The scripts used for contribution checks, read from the `scripts` field of
-`package.json` on 2026-09-20. Run them with `bun run <script>`.
+`package.json` on 2026-09-22. Run them with `bun run <script>`.
 
 | Script | Command | Purpose |
 |---|---|---|
@@ -52,6 +53,7 @@ The scripts used for contribution checks, read from the `scripts` field of
 | `test:watch` | `vitest` | Run tests in watch mode. |
 | `check:size` | `bun run scripts/size-budget.ts` | Measure the min+gzip size of every published entry of `dist/` against its cap. Needs a build first. |
 | `check:package` | `bun run scripts/check-package.ts` | Refuse any runtime dependency in `package.json`, then pack the tarball and run `publint --strict` and `attw --profile esm-only` on it — the real artifact npm receives, not the source tree. |
+| `check:docs` | `bun run scripts/check-citations.ts` | Resolve every `path:line` citation, bare `:NNN` anchor and link in every tracked `.md` against the tree, and refuse an absolute path or a `.local` reference (see "No documentation claim without its proof"). A required step of the CI lint job, independent of Biome. |
 
 There is no benchmark script. Vitest 5 no longer exports `bench`, and nothing
 in this repository measures throughput; a performance claim in a document needs
@@ -61,6 +63,7 @@ Before opening a pull request, run at minimum:
 
 ```sh
 bun run lint
+bun run check:docs
 bun run typecheck
 bun run test
 bun run build
@@ -68,7 +71,7 @@ bun run check:package
 bun run check:size
 ```
 
-All of those were run here on 2026-09-21 and pass. Between them they reproduce
+All of those were run here on 2026-09-22 and pass. Between them they reproduce
 five of the eight checks CI runs (six jobs, one of them a three-engine matrix);
 the firefox and webkit runs and the React 18.3 floor job only exist in CI, which
 reports them on the pull request. Measured on the same date: `bun run test:unit`
@@ -120,7 +123,7 @@ and `.github/workflows/release.yml` — and has never run, because that workflow
 triggers on a push to `main`. Until it does, and until the publishing account has
 a token and 2FA, no release runs and the rules above are the whole mechanism.
 
-Until it is wired, the release note lives in the pull request description:
+Until it has run, the release note lives in the pull request description:
 a pull request that changes anything a consumer can observe carries one
 sentence saying what changed for that consumer, in English, and names the
 affected subpath rather than the file. That sentence is what the CHANGELOG

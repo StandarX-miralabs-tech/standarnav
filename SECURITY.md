@@ -4,9 +4,11 @@
 
 This policy covers the standarnav library code (the `@standarx/nav` package
 and its subpath exports: core, `gamepad`, `spatial`, `focus-ring`, `debug`,
-and the framework adapters). It does not cover the local development page
-under `playground/`, which is not shipped in the package. No hosted demo or
-playground exists on 2026-09-18; `ROADMAP.md` lists one as pending work.
+`keyboard` with its `qwerty`, `azerty` and `alphabetic` layouts, and the
+React adapter). It does not cover the local development page under
+`playground/`, which is not shipped in the package. No hosted demo or
+playground exists on 2026-09-22; the pending demo work in `ROADMAP.md` is a
+video and a GIF, not a hosted page.
 
 The engine stores no user data and makes no network request. It reads DOM
 geometry and attributes, keyboard and pointer events, and the Gamepad API when

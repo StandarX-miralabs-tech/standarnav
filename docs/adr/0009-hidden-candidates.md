@@ -140,8 +140,9 @@ Then, in order:
   cases) and they pin the decided rule, which is what made (C1) land as a visible inversion rather
   than as a silent edit: the case at `:607` fails the moment the operator goes back to `&&`, and the
   case at `:621` fails the moment the rule creeps from zero to small. The README claims nothing
-  about opacity or clipping, and about size only what the filter now does: an element with a zero
-  dimension on either axis is not a candidate.
+  about clipping, and states the same size and opacity rules as this record: an element with a
+  zero dimension on either axis is not a candidate, and `opacity: 0` is kept for v0 and deferred
+  to v1.
 
 ## Amendment, 2026-09-20: the two changes are separated
 

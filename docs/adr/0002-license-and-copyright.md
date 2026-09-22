@@ -6,8 +6,8 @@ Deciders: Wesley Cormier
 
 ## Context
 
-standarnav is extracted from miralabs-ui (see
-[ADR-0003](0003-package-boundaries.md)). Two questions had to be answered before
+standarnav is extracted from miralabs-ui, across the package boundary
+[ADR-0003](0003-package-boundaries.md) draws. Two questions had to be answered before
 the first public commit: under which license the new repository ships, and
 whose name appears in the copyright line.
 
@@ -89,13 +89,14 @@ contributions". There is no CLA and no DCO sign-off requirement.
   proprietary products, provided the copyright notice and the license text
   travel with substantial portions of the software.
 - miralabs-ui, itself MIT, can depend on `@standarx/nav` with no license
-  friction in either direction ([ADR-0003](0003-package-boundaries.md)).
+  friction in either direction.
 - MIT is the most common license in this ecosystem, not a universal one. Of the
   twenty competitor fact sheets built on 2026-09-18 (license column of
-  [docs/research/competitors.md](../research/competitors.md)), ten declare MIT
-  at least on npm — among them Norigin, Tabster, the WICG polyfill,
-  `@please/lrud`, `react-sunbeam`, `react-js-spatial-navigation`,
-  `@arrow-navigation/core` and `react-tv-space-navigation`. Four declare
+  [docs/research/competitors.md](../research/competitors.md)), nine declare MIT
+  on npm — among them Norigin, Tabster, the WICG polyfill, `@please/lrud`,
+  `react-sunbeam`, `@arrow-navigation/core` and `react-tv-space-navigation` —
+  and a tenth, `react-js-spatial-navigation`, is MIT on GitHub only, with no
+  `license` field in any published npm version. Four declare
   Apache-2.0, including the BBC and LG projects (`lrud`,
   `@bbc/tv-lrud-spatial`, Enact Spotlight, `@gauntface/dpad-nav`). Three
   declare MPL-2.0, one diverges between GitHub and npm, and two declare none. A

@@ -72,7 +72,8 @@ Three rules complete the decision.
   four lines — three imports and one `createInputSystem` call with the two plugins —
   and nothing else (the Usage snippet of `README.md`; the playground does the same
   against the unbuilt modules, with the focus ring added, at
-  `playground/main.ts:15-29`).
+  `playground/main.ts:128-146` — the two plugins at `:128-129`, the plugin list at
+  `:131-140`, `createInputSystem` at `:142-146`).
 - Attribute names become a public contract. The prefix and the full list of names are
   decided in [ADR-0001](0001-name-scope-and-attribute-prefix.md), and that decision is
   what there is to freeze: the markup is written against those names, so they are
@@ -157,10 +158,12 @@ than an invention. See the [competitor comparison](../research/competitors.md).
   `ACTIVE_ATTRIBUTE` on every container up the path to it —
   `src/spatial/spatial.ts:276-292`. Both tables of the Decision are the published
   contract, and `README.md` carries both under Usage — the attributes read, then the
-  five written. That second table has grown since this record was accepted:
-  `data-snav-editing` arrived with the on-screen keyboard
-  ([ADR-0022](0022-virtual-keyboard.md)), so a reader who remembers four should look
-  again.
+  nine written. That second table has grown since this record was accepted: the
+  on-screen keyboard ([ADR-0022](0022-virtual-keyboard.md)) added `data-snav-editing`
+  on 2026-09-20 and then `data-snav-keyboard`, `-keyboard-row`, `-keyboard-preview`
+  and `-keyboard-caret` on 2026-09-21
+  ([ADR-0001](0001-name-scope-and-attribute-prefix.md), amended the same day), so a
+  reader who remembers four should look again.
 - Proof that unprepared markup navigates, executable rather than anecdotal: the fixture
   at `src/spatial/spatial.browser.test.ts:62` is "a three by three grid of plain
   buttons, carrying no attributes whatsoever", and the `spatialPlugin — plain HTML`

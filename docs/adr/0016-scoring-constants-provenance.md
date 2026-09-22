@@ -172,10 +172,11 @@ on the plugin. Per-container overrides via attributes remain open.
 - `0.3` is BBC `lrud-spatial`'s own directional-overlap default, exposed there as
   the `data-lrud-overlap-threshold` attribute: https://github.com/bbc/lrud-spatial.
   Here the same number is `DEFAULT_OVERLAP_THRESHOLD` (`src/spatial/geometry.ts:40`),
-  a `ScoreOptions` field rather than a DOM attribute. Two corroborations in this
-  tree: the `lrud-spatial` row of the [competitor survey](../research/competitors.md),
-  and requirement **R23** of the [specification](../specification.md), which states
-  the `0.3` tolerance and attributes it to `lrud-spatial` as well.
+  a `ScoreOptions` field rather than a DOM attribute. One corroboration in this
+  tree: requirement **R23** of the [specification](../specification.md), which states
+  the `0.3` tolerance and attributes it to `lrud-spatial` as well. The
+  [competitor survey](../research/competitors.md) sheets `lrud-spatial` as geometric
+  and attribute-driven but records no overlap tolerance.
 - Blink constants, `third_party/blink/renderer/core/page/spatial_navigation.cc`
   on `main` — line numbers there drift, so these are the lines as of 2026-09-18,
   which is what makes them falsifiable: line 673

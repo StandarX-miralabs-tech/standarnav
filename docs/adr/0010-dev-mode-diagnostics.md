@@ -136,7 +136,8 @@ did ([ADR-0017](0017-size-budgets.md), the amendment of that date).
 - The scan has false negatives it cannot fix: a click listener attached with `addEventListener` is
   invisible to it. The documentation says so, rather than let an empty report read as "your page is fine".
 - Diagnostics are opt-in. An application that never imports the subpath never sees a warning: that is
-  the price of costing nothing in production. The README's first troubleshooting line is the import.
+  the price of costing nothing in production. The README never shows the subpath being imported; it
+  closes "Make your element navigable" by sending a surprised reader to `explainMove`.
 - The depth and redirection warnings need a hook the engine does not have yet: the engine must expose
   enough state for the debug module to observe a saturated walk without re-running it. That surface is
   designed with point 4, not before.
@@ -160,7 +161,7 @@ the native `<select>`s the engine will focus and cannot follow into
 
 It ships where items 1, 2, 3 and 5 did not, and the reason is the one this record gave
 for deferring them: they had no source file behind them and would have been new design
-work inside the extraction window. This one is nine lines calling the engine's own
+work inside the extraction window. This one is five lines calling the engine's own
 `isFocusable`, and the window is closed. It obeys both rules that matter here — it
 lives in the debug subpath and never in the core, and it asks the engine rather than
 re-deriving the answer.

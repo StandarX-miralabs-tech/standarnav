@@ -39,7 +39,7 @@ one, and arrow keys and the d-pad produce exactly the same intents. It is
 
 ### 1.3 What TV, kiosk and game developers do today
 
-Twenty fact sheets covering eighteen distinct projects — two of them are listed twice under two npm
+Twenty fact sheets covering eighteen distinct projects — two of them are listed twice under two
 names — were written on 2026-09-18, each verified by reading the library's own source; the table
 lives in [docs/research/competitors.md](research/competitors.md). Two findings shape this project:
 
@@ -473,8 +473,9 @@ physical gamepad are recorded in a device report issue
    future attempt ([ADR-0008](adr/0008-shadow-dom.md)). Coherence between the two is a v1 goal. What
    stays open is the shape — an opt-in root list or real traversal — and what it costs per move.
 6. **Controls that hold a value: settled as recipes, not as shipped behaviour.** `pushEngageScope`
-   now has five consumers — slider, number field, wheel picker, splitter and listbox — in
-   `playground/widgets.ts`, driven by `src/engage.browser.test.ts`. None of them is exported: the
+   now has four consumers — slider, number field, wheel picker and splitter — in
+   `playground/widgets.ts`, driven by `src/engage.browser.test.ts`; the listbox added beside them
+   opens a trapped `bus.pushScope` instead, not the engage grammar. None of them is exported: the
    package stays a navigation engine and a consumer copies the pattern rather than importing a
    component. The `<select>` half is [ADR-0021](adr/0021-native-select-on-television.md) — a
    `scanNativeSelects` diagnostic in the debug subpath names the trap, and the listbox replaces it.

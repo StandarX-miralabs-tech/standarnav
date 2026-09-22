@@ -71,11 +71,12 @@ pull-request description carries the one sentence describing the user-facing cha
 sentence becomes the changelog entry. The difference after wiring is that the sentence is taken
 from the squashed commit subject instead of being copied by hand.
 
-**Publication from GitHub Actions only**, in the `release.yml` workflow the third amendment records: build,
-typecheck, lint, unit and browser suites, then `bun run check:package` — `scripts/check-package.ts`
-packs the tarball (`scripts/check-package.ts:68`) and runs `publint --strict`
-(`scripts/check-package.ts:74`) and `attw --profile esm-only` (`scripts/check-package.ts:75`) on it
-— then a publish with provenance (`publishConfig.provenance` is already `true`) and the permissions
+**Publication from GitHub Actions only**, in the `release.yml` workflow the third amendment records:
+lint, `bun run check:docs`, typecheck, build, the build-drift check, then `bun run check:package` —
+`scripts/check-package.ts` packs the tarball (`scripts/check-package.ts:68`) and runs
+`publint --strict` (`scripts/check-package.ts:74`) and `attw --profile esm-only`
+(`scripts/check-package.ts:75`) on it — then `bun run check:size` and the unit and browser suites,
+then a publish with provenance (`publishConfig.provenance` is already `true`) and the permissions
 that provenance needs.
 
 The shape of that publish is settled, not an open question. `bun publish` emits no provenance
@@ -105,8 +106,8 @@ device test exists.
 
 - A pull request that changes runtime behaviour states its user-facing effect in one sentence: in
   the pull-request description today, and in the squashed commit subject release-please reads once a
-  release has run. A docs-only or refactor pull request says "no user-facing change"
-  instead of skipping it.
+  release has run. A docs-only or refactor pull request writes "internal only" instead of
+  skipping it, the phrase the template asks for (`.github/PULL_REQUEST_TEMPLATE.md:29`).
 - One version number covers core, engines and every adapter ([ADR-0011](0011-package-layout-and-adapters.md)),
   so the changelog entry must name the affected subpath — "fix(spatial)", not "fix".
 - Nothing about the infrastructure blocks a release: Actions runs, and the CI workflow is green.
@@ -209,6 +210,18 @@ commit subject may carry no citation, which is the worse trade: the subject is t
 The `NPM_TOKEN` secret does not exist yet, and neither does 2FA on the publishing account. Both are
 the owner's, and the workflow fails loudly without the first rather than publishing something
 unsigned.
+
+## Amendment, 2026-09-22: verify replays seven of CI's eight checks, not eight
+
+The amendment above says the `verify` job replays every gate CI runs. It replays every gate
+*script*: lint, `check:docs`, typecheck, build, the drift check, `check:package`, `check:size`,
+`test:unit`, and `test:browser` on chromium, firefox and webkit
+(`.github/workflows/release.yml:48-89`). What it does not replay is the `react-floor` job
+(`.github/workflows/ci.yml:75-101`), which installs `react@^18.3.1` over the lockfile and re-runs
+typecheck and the chromium browser project against the declared peer floor. A release commit
+carries a version bump and a CHANGELOG and cannot move the React peer contract, so the tag is not
+less verified for it — but the claim was wider than the workflow, and the workflow's own header
+comment said the same thing until this amendment corrected both.
 
 ## Alternatives considered
 

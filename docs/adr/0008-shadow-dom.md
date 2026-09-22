@@ -57,8 +57,8 @@ for itself: isolated frames such as `iframe` and shadow DOM are outside what an 
    types of `src/spatial/spatial.ts` and `src/tabbable.ts`, not in the scan.
 3. Event-path code keeps `composedPath()` (`src/dom/query.ts`). Retargeting bugs are not the same
    problem as traversal, and the fix already exists.
-4. The README states the limitation in the "what this does not do" section: applications built on web
-   components are out of scope until the v1+ path below ships.
+4. The README states the limitation in the "Make your element navigable" section: applications built
+   on web components are out of scope until the v1+ path below ships.
 5. The evolution path is written down now, with one fixture that fails today, so the cost is known
    before anyone commits to it:
 

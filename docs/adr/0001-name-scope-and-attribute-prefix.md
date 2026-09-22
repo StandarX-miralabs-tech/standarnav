@@ -37,7 +37,11 @@ experience, risk — scored the shortlist out of 10.
 | CSS custom properties | `--snav-focus-ring-*`, `--snav-keyboard-*` |
 
 One package, subpath exports: `@standarx/nav` (core), `/gamepad`, `/spatial`,
-`/focus-ring`, `/debug`, and the adapters `/react`, `/vue`, `/svelte`, `/angular`.
+`/focus-ring`, `/debug`, `/keyboard` with one subpath per layout (`/keyboard/qwerty`,
+`/keyboard/azerty`, `/keyboard/alphabetic`), and the React adapter `/react`
+([ADR-0011](0011-package-layout-and-adapters.md)). The `/vue`, `/svelte` and
+`/angular` names are reserved by this decision for adapters that are planned and
+not built: this repository has no `src/vue`, `src/svelte` or `src/angular`.
 `vanilla` is the core itself. The package is unreleased; v0 is in progress.
 
 Attributes read from the markup: `data-snav="container"`, `data-snav-enter`,

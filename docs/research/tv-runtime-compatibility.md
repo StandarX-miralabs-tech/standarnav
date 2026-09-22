@@ -62,16 +62,20 @@ both fetched 2026-09-18.
 
 ## What this means for the engine
 
-Each row below restates the "behaviour if absent" column above as a design
-consequence, and names the resulting compatibility tier from
-`../adr/0013-browser-baseline-and-fallbacks.md`.
+Each bullet below restates the "behaviour if absent" column above as a design
+consequence. The resulting compatibility tiers of
+`../adr/0013-browser-baseline-and-fallbacks.md` are named in the next section.
 
 - **`WeakRef` absent**: no consequence, because the fallback is built. Among
   the APIs above, `WeakRef` has the lowest support threshold (Chromium 84 /
   Safari 14.1 / Firefox 79), but it still sits four versions above the Chromium
   80 syntax floor of the `es2020` target, so leaving it unguarded would raise
-  the effective floor from 80 to 84 — the plugin would not even be
-  constructible below it. The fallback of `elementHandle` (strong reference
+  the effective floor from 80 to 84 — not by failing to construct: the plugin
+  would mount, render and accept focus, then throw a `ReferenceError` the first
+  time the user pressed a direction, because the construction sits in
+  `elementHandle`, reached from `remember` and not from `setup`
+  (`../adr/0013-browser-baseline-and-fallbacks.md`, the `WeakRef` row). The
+  fallback of `elementHandle` (strong reference
   plus an `isConnected` check, `src/spatial/spatial.ts:127-141`) removes
   `WeakRef` as a constraint, which is what lets the syntax target become the
   single floor.

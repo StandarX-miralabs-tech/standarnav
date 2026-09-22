@@ -83,7 +83,8 @@ simulator that runs on the host's own browser engine is not evidence about a tel
 
 ## Consequences
 
-- The README and `docs/` carry the same matrix, written once and copied from a single place so the
+- The matrix of decision 3 is not yet published: neither the README nor `docs/` carries it today.
+  When it lands it lives in one place, and the README links to it rather than restating it, so the
   two cannot drift. A device claim that appears in the README and not in the matrix is a bug.
 - Keymap entries for Vidaa, Vizio, Roku, Fire TV and Android TV are **not** added speculatively. The
   default table today covers webOS and Tizen only: `REMOTE_KEY_CODES` at `src/keymap.ts:80-84` holds
@@ -93,8 +94,8 @@ simulator that runs on the host's own browser engine is not evidence about a tel
   the report linked from the commit. Guessing a remote's key codes from a forum post produces a
   table nobody can trust and nobody can correct.
 - Until the first device report exists, the project's public answer to "does it work on my TV?" is:
-  designed for it, never run on it. That sentence goes in the README verbatim rather than being
-  softened.
+  designed for it, never run on it. The README states it unsoftened and in bold — "No television,
+  set-top box or handheld has been tested." — rather than hedging it.
 - The fallback branches required by [ADR-0013](0013-browser-baseline-and-fallbacks.md) need unit
   tests that hide the modern API, because no engine in the CI matrix will ever take those branches.
 - A CI matrix of three current engines is cheap and catches real divergence — focus order, computed
@@ -118,8 +119,10 @@ The three-engine CI matrix of decision 1 runs and is green: `fail-fast: false` o
 declared React peer floor. That is a fourth browser run, not a fourth engine, and it changes
 nothing about this decision.
 
-Which is the point worth restating on the day this package is about to be published: 343 passing
-tests are evidence about three desktop browser engines, and about nothing else.
+Which is the point worth restating on the day this package is about to be published: the 243
+browser tests are evidence about three desktop browser engines, the 100 Node unit tests are
+evidence about pure module logic on no engine at all, and the 343 together are evidence about no
+television, no console and no handheld.
 
 ## Alternatives considered
 

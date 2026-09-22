@@ -8,7 +8,7 @@ Spatial navigation for the web: d-pad, gamepad sticks, TV remotes and arrow keys
 
 - Moves the **real DOM focus**: the engine calls `focusElement(to, { preventScroll: true })` and reads `document.activeElement`. There is no virtual cursor and no shadow focus state ([ADR-0005](docs/adr/0005-real-dom-focus.md)).
 - Plain HTML becomes navigable through attributes; the application writes no navigation code for it.
-- Arrow keys, d-pad buttons, the left analog stick and TV remote keys produce the same intent events. A consumer of an intent cannot tell which device sent it.
+- Arrow keys, d-pad buttons, the left analog stick and TV remote keys produce the same `intent`, so no move logic ever branches per device. The event still says where it came from: `event.source` is `keyboard`, `gamepad` or `remote` (`src/types.ts`), and only the d-pad and the stick are indistinguishable, both being `gamepad`.
 - The right stick scrolls: the focused element's scroll container first, the document's `scrollingElement` when nothing else scrolls.
 - Containers nest, and each one remembers the element that was focused in it. A container can wrap in one axis, block a direction, trap every exit, or redirect a direction to a CSS selector.
 - When no candidate is found, the engine scrolls one step and rescans once on the next frame — which is how a virtualised list keeps producing rows.

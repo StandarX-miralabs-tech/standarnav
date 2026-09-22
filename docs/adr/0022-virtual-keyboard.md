@@ -50,7 +50,7 @@ exists. A keyboard that broke the rule for its own convenience would make the ru
 The cost is real: while the keys hold the focus, the field is not `:focus`, so an application's own
 focus styling goes dark on the element the user is typing into. The package therefore writes
 `data-snav-editing` on the field for as long as the keyboard is open, so an application can style
-the editing state without guessing. That is a tenth attribute in the set
+the editing state without guessing. That is a fifth name written by the engine, in the set
 [ADR-0001](0001-name-scope-and-attribute-prefix.md) freezes at v1, and it is named under the same
 rule.
 
@@ -201,14 +201,17 @@ enough.
   scope and is asked through a trap on purpose. And A on a key must be claimed by the keyboard's own
   scope: inside a trap `activateFocused` stands down, so nothing clicks the focused key for it.
   Whatever the keyboard gets wrong, it will not be these two.
-- `data-snav-editing` takes the attribute set from nine to ten and is frozen at v1 with the rest
-  ([ADR-0001](0001-name-scope-and-attribute-prefix.md)).
+- `data-snav-editing` takes the set of attributes the engine writes from four to five and is frozen
+  at v1 with the rest ([ADR-0001](0001-name-scope-and-attribute-prefix.md)).
 - A layout is a public data shape, so its type is part of the surface a version number covers
   ([ADR-0012](0012-versioning-and-release.md)). Adding an optional field to `KeyboardKey` is a minor;
   renaming one breaks every third-party layout.
-- The keyboard must not be reachable by the spatial engine while closed. Its container is `hidden`
-  when shut, which is what makes it no candidate — the same mechanism the listbox recipe relies on,
-  and the reason both can sit in the document from the start instead of being mounted on open.
+- The keyboard must not be reachable by the spatial engine while closed. It gets there by not
+  existing: `open()` creates the container and appends it to `options.container ?? document.body`,
+  and `close()` removes it outright, so there is no element to filter between sessions. That is the
+  opposite of the listbox recipe, whose list sits in the document from the start and is toggled
+  `hidden` — either answer works, and a widget with keys to build per layout has less reason to
+  keep a box around.
 - An application that already has an on-screen keyboard gets `openOn: "manual"` and a plain refusal:
   two keyboards on one field is worse than none, and the package cannot detect the other one.
 - Nothing here has run on a television, and the module that implements it will not have either

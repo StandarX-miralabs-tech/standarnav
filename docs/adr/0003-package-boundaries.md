@@ -69,7 +69,7 @@ exists to be imported once.
 - `modality.ts` is a per-document ref-counted singleton, and that contract is load-bearing. Two
   copies of it on one page would fight over the attribute on `<html>`, so the engine must exist
   once and not twice — which is also why the modality surface is re-exported from the root
-  (`src/index.ts:33-48`) instead of living behind an engine subpath.
+  (`src/index.ts:33-40`) instead of living behind an engine subpath.
 - `focus-ring` ships without styling, because styling is what this boundary excludes. The plugin
   paints itself inline and six custom properties override every value —
   [ADR-0020](0020-focus-ring-defaults.md).

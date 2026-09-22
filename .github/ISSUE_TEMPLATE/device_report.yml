@@ -90,6 +90,14 @@ body:
     validations:
       required: true
 
+  - type: input
+    id: snav-version
+    attributes:
+      label: standarnav version or commit under test
+      placeholder: "commit sha, or the version of the build you made"
+    validations:
+      required: true
+
   - type: checkboxes
     id: checks
     attributes:

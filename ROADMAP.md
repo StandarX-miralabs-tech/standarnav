@@ -24,9 +24,10 @@ module, documented rather than discovered; the release section is the blocker.
 
 Controls that hold a value were the last gap to close before this one. The grammar was always public —
 `pushEngageScope` takes hold of a control, the directional intents become adjustments, confirm
-commits and back restores the entry value (`src/engage.ts:49`) — and nothing used it. The five
-controls it was written for are now wired in the playground and driven by
-`src/engage.browser.test.ts`, and the `<select>` question is settled in
+commits and back restores the entry value (`src/engage.ts:49`) — and nothing used it. The four
+controls it was written for are now wired in the playground — the listbox beside them takes a
+trapped scope instead, because a list is moved through rather than adjusted — and all five are
+driven by `src/engage.browser.test.ts`, and the `<select>` question is settled in
 [ADR-0021](docs/adr/0021-native-select-on-television.md).
 
 Four constraints came out of writing them, and all four are worth knowing before the surface

@@ -40,11 +40,11 @@ jobs:
           config-file: release-please-config.json
           manifest-file: .release-please-manifest.json
 
-  # Everything CI runs, on the tag, because the commit that created it never went through
-  # a pull request with checks. A version bump cannot break the browser suite, but it can
-  # break `check:package` — publint reads the manifest — and the build drift gate, since
-  # tsdown rewrites the exports map. The browser engines run anyway: a release is rare and
-  # this is the last gate before bytes reach a registry.
+  # Every gate script CI runs, on the tag, because the commit that created it never went
+  # through a pull request with checks. A version bump cannot break the browser suite, but
+  # it can break `check:package` — publint reads the manifest — and the build drift gate,
+  # since tsdown rewrites the exports map. The browser engines run anyway: a release is rare
+  # and this is the last gate before bytes reach a registry. Not replayed: `react-floor`.
   verify:
     needs: release-please
     if: needs.release-please.outputs.released == 'true'

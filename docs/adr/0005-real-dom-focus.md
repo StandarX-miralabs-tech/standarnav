@@ -131,8 +131,10 @@ returns one hit, `src/gamepad/gamepad.ts:161`, which is
 `new Map<string, ButtonOverrides>()` — the per-pad remap table of `setMapping`,
 keyed by `Gamepad.id`, holding button overrides and no element. No focus store
 exists. A reading is not a gate, and turning it into one before v1 is still the
-work item this section describes; it is listed with the rest in
-[ADR-0018](0018-testing-strategy.md).
+work item this section describes. [ADR-0018](0018-testing-strategy.md) decision 3
+carries the first check only — the browser-suite half; this second one is tracked
+here and in the "Never virtual focus" row of the
+[specification](../specification.md), nowhere else.
 
 ## Amendment, 2026-09-22: a pad-driven pointer is not a virtual cursor either
 
@@ -147,16 +149,17 @@ and paints something to match, while `document.activeElement` says something els
 all. Everything downstream breaks there: `:focus-visible` never fires, a screen reader is told
 nothing moved, a form control never receives what is typed.
 
-**The pointer does the opposite.** Every frame it asks `document.elementFromPoint` what is under
-it and calls `focus()` on the nearest focusable ancestor, so real DOM focus is what moves, the ring
-is painted by the ordinary plugin reacting to an ordinary focus change, and `document.activeElement`
-answers the question correctly at every instant. Nothing keyed, nothing mirrored, nothing to
-desynchronise — the dot is the *input device*, like a mouse pointer, and it is the one thing on
-screen that is not the focus. A mouse has always worked this way here: `pointerFollowsFocus` in
-`app` mode focuses whatever the pointer crosses, and this is that mechanism with a stick in front
-of it.
+**The pointer does the opposite.** On every frame the dot actually moves — a pad connected, the
+stick past its dead zone, nothing held — it asks `document.elementFromPoint` what is under it and
+calls `focus()` on the nearest focusable ancestor whenever that ancestor changes, so real DOM focus
+is what moves, the ring is painted by the ordinary plugin reacting to an ordinary focus change, and
+`document.activeElement` answers the question correctly at every instant. Nothing keyed, nothing
+mirrored, nothing to desynchronise — the dot is the *input device*, like a mouse pointer, and it is
+the one thing on screen that is not the focus. A mouse has always worked this way here:
+`pointerFollowsFocus` in `app` mode focuses whatever the pointer crosses, and this is that
+mechanism with a stick in front of it.
 
-R21's guarantee — a browser test asserting `document.activeElement` after every move, and no
+This record's own gate — a browser test asserting `document.activeElement` after every move, and no
 id-keyed focus map anywhere in the package — is untouched, and cannot be weakened by this: the
 cursor is not in the package. It is a consumer of it, built on `assign`
 (`src/gamepad/gamepad.ts:121`), which hands one pad's intents to a private handler. That it can be
@@ -182,7 +185,7 @@ comparison](../research/competitors.md)). These move or read real DOM focus:
 `@gauntface/dpad-nav`, `react-js-spatial-navigation`, and the CSS Spatial Navigation
 Level 1 draft. Norigin is virtual by default with a real-focus option. These are
 virtual: `lrud` (BBC, archived), `react-tv-space-navigation` (bamlab),
-`@please/lrud`, `react-sunbeam`, and `vue-spatialnavigation` is mostly virtual.
+`@please/lrud`, `react-sunbeam`, and `vue-spatialnavigation`.
 `naviix` keeps no focus state at all, real or virtual: it returns a neighbour map
 and the application applies it. The differentiator claimed elsewhere in this
 repository is the combination (gamepad polling, intent bus, declarative attributes,

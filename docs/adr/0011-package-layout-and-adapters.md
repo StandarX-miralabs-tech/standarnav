@@ -130,8 +130,9 @@ Adapter order, each shipping only once it passes the same browser suite as the c
    `src/angular`, and no predecessor code to port: they are new code, not a migration.
 
 Each engine and each adapter carries its own size-budget line, and a line without a cap fails the
-run. `scripts/size-budget.ts` now holds **seven** lines — core, gamepad engine, spatial engine,
-focus ring, debug, react adapter, whole package — and **no cap is `null`**: the react adapter line
+run. `scripts/size-budget.ts` now holds **eleven** lines — core, gamepad engine, spatial engine,
+focus ring, debug, react adapter, keyboard, keyboard layout qwerty, keyboard layout azerty,
+keyboard layout alphabetic, whole package — and **no cap is `null`**: the react adapter line
 was added when the adapter existed, exactly as this ADR said it would be, and the first build here
 set every cap (`scripts/size-budget.ts:77-172`). `bun run build && bun run check:size`, this
 repository on 2026-09-21, min+gzip: core 3.13 of 3.25 kB, gamepad engine 2.49 of 2.50, spatial
@@ -158,7 +159,7 @@ different question. Those figures are inherited from the predecessor implementat
   runtime size: subpaths are separate ESM modules, nothing imports an adapter implicitly.
 - Type resolution has one answer per subpath (ESM only, no CJS fallback): that removes the
   dual-resolution class of `attw` errors and leaves CommonJS consumers unsupported. Run and green:
-  `check:package` is the third run step of the `build` job (`.github/workflows/ci.yml:55-56`) and
+  `check:package` is the fourth `run:` step of the `build` job (`.github/workflows/ci.yml:55-56`) and
   passes, as does the `git diff --exit-code` drift gate before it (`:53-54`).
 - `sideEffects: false` is a promise: a module registering a listener at import time would break
   tree-shaking. Entries stay factory-based — `spatialPlugin` (`src/spatial/spatial.ts:237`),
@@ -170,8 +171,8 @@ different question. Those figures are inherited from the predecessor implementat
 **A monorepo with one package per adapter** (`@standarx/nav-core`, `@standarx/nav-react`, and so
 on). Real advantages: independent versioning, non-optional peers, and a lockfile that never
 mentions frameworks the consumer does not use. Rejected for v0: up to nine packages to publish,
-cross-package ranges to keep coherent, and no release pipeline yet
-([ADR-0012](0012-versioning-and-release.md)). Subpaths can become packages later.
+cross-package ranges to keep coherent, and a release pipeline wired for a single root package that
+has never run ([ADR-0012](0012-versioning-and-release.md)). Subpaths can become packages later.
 
 **A single package with everything in the root entry.** Simplest map, one import. Rejected: it
 puts gamepad polling and the focus-ring overlay in the dependency graph of an app that only wants

@@ -58,8 +58,8 @@ Rules that go with that skeleton:
   in the prose so the mismatch is visible when it does.
 - Related records are linked by file name, relative to this directory:
   `[ADR-0003](0003-package-boundaries.md)`.
-- Length: 60 to 150 lines is the target **for a new record**. The nineteen below
-  run from 74 to 260 lines (`wc -l docs/adr/0*.md`, 2026-09-20), because an
+- Length: 60 to 150 lines is the target **for a new record**. The twenty-one below
+  run from 74 to 504 lines (`wc -l docs/adr/0*.md`, 2026-09-22), because an
   accepted record grows by amendment. The target governs the first draft; an
   amendment is judged on whether it says something the record did not, not on the
   line count it adds.
@@ -68,6 +68,11 @@ Rules that go with that skeleton:
 
 1. Take the next free number. The highest in use is ADR-0022, so the next is
    ADR-0023. Numbers are never reused, and a superseded record keeps its number.
+   ADR-0004 is the one gap: it recorded a migration plan for the private
+   predecessor rather than a decision of this repository, so it was withdrawn on
+   2026-09-20 instead of superseded, its one design decision — the focus ring's
+   defaults — moving to [ADR-0020](0020-focus-ring-defaults.md). The number stays
+   retired.
 2. Name the file `NNNN-short-title.md`, lowercase, words separated by hyphens.
 3. Write it in English, with the skeleton above, and link it from every existing
    record it touches.
