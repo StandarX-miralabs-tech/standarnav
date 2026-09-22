@@ -5,15 +5,17 @@ Date: 2026-09-18
 Deciders: Wesley Cormier
 
 The versioning scheme, the publication channel and the changelog tool are all decided. The tool is
-**release-please**, settled by the owner on 2026-09-20 (first amendment at the foot of this record);
-it is wired as of the third amendment and ran for the first time on 2026-09-22, when the extraction
-branch reached `main` — and stopped at an organisation setting, the fifth amendment at the foot of
-this record. The first version is pinned to `0.1.0` there.
+**release-please**, settled by the owner on 2026-09-20 (first amendment at the foot of this record)
+and wired as of the third; its first run, on 2026-09-22, stopped at an organisation setting (fifth
+amendment), and its second put `@standarx/nav@0.1.0` on npm the same day, with a provenance
+attestation (sixth amendment). From that amendment on, the publish step authenticates through npm
+trusted publishing and the token that published `0.1.0` is to be revoked.
 
 ## Context
 
-standarnav is unreleased: `package.json` is at version `0.0.0` and nothing is published on npm.
-Everything about releasing has to be decided now rather than copied: there was no release workflow
+standarnav was unreleased when this was decided: `package.json` was at version `0.0.0` and nothing
+was published on npm — `0.1.0` has been on the registry since 2026-09-22 (sixth amendment).
+Everything about releasing had to be decided rather than copied: there was no release workflow
 to inherit, no changeset flow left standing and no publication channel beyond packed tarballs
 handed around as a workspace convenience — a state inherited from the predecessor implementation
 ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here.
@@ -85,16 +87,17 @@ attestation at all (`oven-sh/bun#15601`, open since 2024-12-05, last movement 20
 publish step calls the npm CLI. That is the one documented exception, not a silent one:
 [CONTRIBUTING.md](../../CONTRIBUTING.md) forbids the tool outright — "Never use `npm` or `npx` in
 this repository", at `CONTRIBUTING.md` — and records the exception in the same breath, as does
-the release-tooling section of [ROADMAP.md](../../ROADMAP.md). Token-based provenance requires
-npm >= 9.5.0, a cloud runner, a `permissions:` block granting `id-token: write` and
-`contents: read`, and a `repository` field matching the repository case-sensitively —
-`package.json` carries it. Trusted publishing requires npm >= 11.5.1 and Node >= 22.14.0 and
-attests on its own, but a trusted publisher is configured against a package that already exists on
-the registry, so it cannot serve the first publish; since 2026-09-03 a fresh configuration also
-defaults to `npm stage publish`, with a direct `npm publish` as an opt-in, and the workflow
-filename must match the one registered on npmjs.com exactly. Hence two steps rather than one: a
-granular token plus `--provenance` for `0.1.0`, then a switch to trusted publishing and revocation
-of the token. The publishing account must have 2FA enabled; publishing is never done from a laptop.
+the release-tooling section of [ROADMAP.md](../../ROADMAP.md). The publish authenticates through
+**npm trusted publishing**: no token in the workflow, an OIDC token minted by the run under
+`id-token: write` with `contents: read`, exchanged against a trusted publisher registered on
+npmjs.com for this repository, the workflow filename `release.yml` and the `npm` environment, with
+direct `npm publish` allowed — a configuration created after 2026-09-03 allows `npm stage publish`
+only unless told otherwise. It needs npm >= 11.5.1 and Node >= 22.14.0, and Node 22 ships npm 10,
+so the job runs on Node 24; the attestation comes with the registry exchange, so the
+`--provenance` flag went with the token. A trusted publisher is configured against a package that
+already exists, which is why it could not serve the first publish: `0.1.0` went out with a granular
+token and `--provenance`, and that token is revoked now that the workflow no longer reads it (sixth
+amendment). The publishing account has 2FA enabled; publishing is never done from a laptop.
 
 **Pre-releases for device validation.** TV runtimes are the risky target and no TV device test has
 ever been run, for want of the hardware and of an emulator
@@ -111,9 +114,12 @@ device test exists.
   skipping it, the phrase the template asks for (`.github/PULL_REQUEST_TEMPLATE.md:29`).
 - One version number covers core, engines and every adapter ([ADR-0011](0011-package-layout-and-adapters.md)),
   so the changelog entry must name the affected subpath — "fix(spatial)", not "fix".
-- Nothing about the infrastructure blocks a release: Actions runs, and the CI workflow is green.
-  What stands between this repository and a first publication is the release workflow, which is
-  still unwritten.
+- Nothing about the infrastructure blocks a release: Actions runs, the CI workflow is green, and
+  the release workflow has run end to end once, on 2026-09-22, which is what put `0.1.0` on npm.
+- A commit whose type release-please hides — `docs`, `refactor`, `test`, `chore`, `ci` — bumps
+  nothing and publishes nothing, so the README a consumer reads on the package page is the one in
+  the last published tarball until the next `feat`, `fix` or `perf` lands. A change confined to
+  `.md` files is therefore `docs`, never `fix(docs)`: `fix` bumps a patch and publishes a release.
 - Provenance ties each published version to a public workflow run and a git commit. It also means
   an emergency publish from a developer machine is not a fallback: it would produce a release
   without an attestation, visibly different from every other version.
@@ -257,6 +263,79 @@ not depend on one.
 What stands between the release pull request and npm is unchanged: `NPM_TOKEN` and 2FA. Merging that
 pull request before both exist creates the tag and a red `publish`, not a release.
 
+## Amendment, 2026-09-22 (third): `0.1.0` is on npm, and the publish moves to trusted publishing
+
+**The second run released.** The owner switched the organisation setting on, the repository-level
+equivalent followed through the API, and the re-run of the workflow opened the release pull
+request, #3 "chore(main): release 0.1.0". Two things about that pull request the amendment above
+had not foreseen. Its branch was still `release-please--branches--main--components--nav`:
+release-please reuses the branch of its open release pull request rather than creating one under
+the name the new configuration implies, so the old name survived the config change and the
+deletion of that branch is a hand step once it is merged. And a manual re-run of the workflow
+triggers `pull_request` on that pull request — the eight CI checks ran on it — where a run under
+the default `GITHUB_TOKEN` alone would not have; the tag is `v0.1.0` as decided, the only tag on
+the remote (`git ls-remote --tags origin`, 2026-09-22). The owner merged it at `68bb0c3`, and run
+`35774862381` on that push went green through all three jobs: release-please from 19:36:25 to
+19:36:39 UTC, creating the tag and the GitHub release; `verify` from 19:36:44 to 19:38:33;
+`publish` from 19:38:37 to 19:38:55. The publish step's own log (`npm publish --provenance
+--access public`): package size 116.6 kB, unpacked size 369.9 kB, 99 files, shasum
+`205c388b4a346cc17ef5397717271907cf640c07`, then "Signed provenance statement with source and
+build information from GitHub Actions". The registry agrees: `curl -s
+https://registry.npmjs.org/@standarx/nav` on 2026-09-22 answers `dist-tags.latest` `0.1.0`,
+`time.0.1.0` `2026-09-22T19:38:52.994Z`, `dist.unpackedSize` 369907 and `dist.fileCount` 99. The
+`NPM_TOKEN` secret and 2FA on the publishing account, which the two amendments above named as what
+stood between the pull request and npm, were both the owner's doing on 2026-09-22; that 2FA is
+enabled is the owner's statement of that day, not something this tree can show.
+
+**The switch to trusted publishing, decided here and wired in the next commit.** The facts, from
+the npm documentation (`https://docs.npmjs.com/trusted-publishers`, page dated 2026-09-03, fetched
+2026-09-22): it needs npm 11.5.1 or later and Node 22.14.0 or later; a GitHub Actions trusted
+publisher is registered on npmjs.com against an existing package with the organisation or user,
+the repository, the workflow filename and an optional environment name; the workflow needs
+`id-token: write` and `contents: read`; provenance is generated automatically, so the
+`--provenance` flag is unnecessary; the documentation recommends revoking existing automation
+tokens once the trusted publisher is verified. "npm stage publish is always allowed. Choose
+whether this trusted publisher can also publish directly with npm publish", and "Configurations
+created after Sep 03, 2026 are automatically set to allow npm stage publish, and you can choose
+whether to also permit direct publishing with npm publish." Node 22 does not qualify:
+`https://nodejs.org/dist/index.json` fetched 2026-09-22 lists v22.23.2 (2026-07-28) with npm
+10.9.8 and v24.21.0 (2026-09-07) with npm 11.19.0. So the `publish` job moves to Node 24, drops
+`NODE_AUTH_TOKEN` and `--provenance`, and turns the `package-manager-cache` input of
+`actions/setup-node` off — an input that exists since its v6 and defaults to on (its README,
+fetched 2026-09-22); bun does the installing here and a release build caches nothing. The
+`registry-url` input stays: the documentation's own example keeps it next to a token-less publish.
+
+**Staged publishing, considered and not taken.** `npm stage publish` uploads the tarball to a queue
+and "a human maintainer with a 2FA challenge is required to approve a staged package before it is
+released to the registry" (GitHub changelog, 2026-05-22). That is a second human action after the
+merge, on npmjs.com, for a repository whose release act is already the owner's merge of a pull
+request that `verify` replays every gate on; and a staged version nobody approves is the silent
+failure this record refuses — a tag, a version bump on `main`, and nothing installable. So the
+trusted publisher is registered **with direct `npm publish` allowed**, which the owner has to tick
+since the default since 2026-09-03 is staging only, and the workflow keeps calling `npm publish`.
+If a second gate is ever wanted, the `npm` environment can carry a required reviewer, on GitHub
+where the run is. Revisit when a second maintainer arrives.
+
+**Order of operations, and what is not proven.** Before the commit that drops the token reaches
+`main`, the owner registers the trusted publisher on npmjs.com: organisation
+`StandarX-miralabs-tech`, repository `standarnav`, workflow `release.yml`, environment `npm`,
+direct publish allowed. After the merge, the owner revokes the granular token on npmjs.com and
+deletes the `NPM_TOKEN` secret: the workflow reads neither from that commit on. Nothing runs
+through this path until the next release, so as with the third amendment the switch is wired and
+not proven; the next `feat`, `fix` or `perf` on `main` is what proves it. If the publisher is not
+registered when that day comes, `publish` fails with the tag already created, and the recovery is
+to register it and re-run the failed job — the outputs of the two jobs before it stand.
+
+**One convention this release taught.** The CHANGELOG of `0.1.0` carries five `fix(docs)` entries
+under "Bug Fixes" (`CHANGELOG.md`). Each described a document and none a behaviour a consumer
+could observe, and each on its own would have bumped a patch and published a release. From this
+amendment on, a change confined to `.md` files is typed `docs`, never `fix(docs)`; the Consequences
+above carry the rule and [CONTRIBUTING.md](../../CONTRIBUTING.md) states it. Its corollary is
+visible today: the package page on npm shows the README of the `0.1.0` tarball, which says the
+package is not published yet, and a `docs` commit correcting the tree does not change that page.
+The owner decided on 2026-09-22 to let the next feature carry the corrected README rather than cut
+a `0.1.1` for it.
+
 ## Alternatives considered
 
 **Manual publish from the maintainer's laptop**, after a local build. Rejected: no
@@ -290,19 +369,21 @@ first outside pull request arrives.
 
 ## Evidence
 
-- `package.json` in this repository: `"version": "0.0.0"`, and a `publishConfig` block
-  with `"access": "public"` and `"provenance": true`. The declared scripts are listed in the first
-  amendment above; its `devDependencies` carry `publint` `^0.3.24` and
-  `@arethetypeswrong/cli` `^0.18.5`, the two linters `check:package` runs.
-- Nothing is published under the `@standarx` scope, so no version of this package exists on the
-  registry for a consumer to install. The name probes per candidate are recorded in
-  [ADR-0001](0001-name-scope-and-attribute-prefix.md).
+- `package.json` in this repository: `"version": "0.1.0"`, written by release-please in the release
+  commit `da0b65a`, and a `publishConfig` block with `"access": "public"` and `"provenance": true`.
+  The declared scripts are listed in the first amendment above; its `devDependencies` carry
+  `publint` `^0.3.24` and `@arethetypeswrong/cli` `^0.18.5`, the two linters `check:package` runs.
+- `@standarx/nav@0.1.0` is on the registry: `curl -s https://registry.npmjs.org/@standarx/nav` on
+  2026-09-22 answers `dist-tags.latest` `0.1.0`, `time.0.1.0` `2026-09-22T19:38:52.994Z`,
+  `dist.unpackedSize` 369907 and `dist.fileCount` 99. The name probes that preceded it are
+  recorded in [ADR-0001](0001-name-scope-and-attribute-prefix.md).
 - No TV device test has ever been run, for want of the hardware and of an emulator.
-- Release tooling, as of the third amendment: `.github/workflows/` holds `ci.yml` and `release.yml`,
-  and `release-please-config.json` and `.release-please-manifest.json` exist. There is still no
-  `.changeset/` directory, `package.json` is still at `0.0.0` and declares neither release-please nor
-  changesets among the `devDependencies` at `package.json` — release-please is a GitHub Action,
-  not a dependency. Nothing here has run.
+- Release tooling: `.github/workflows/` holds `ci.yml`, `release.yml` and `pages.yml`;
+  `release-please-config.json` and `.release-please-manifest.json` exist, the manifest at `0.1.0`.
+  There is no `.changeset/` directory, and `package.json` declares neither release-please nor
+  changesets among its `devDependencies` — release-please is a GitHub Action, not a dependency.
+  The workflow has run end to end once, run `35774862381` on `68bb0c3`, three jobs green
+  (sixth amendment).
 - `check:package` is wired and green: `scripts/check-package.ts` packs the tarball
   (`scripts/check-package.ts:68`), runs `publint --strict` on it (`scripts/check-package.ts:74`)
   and `attw --profile esm-only` (`scripts/check-package.ts:75`), and fails when `package.json`
