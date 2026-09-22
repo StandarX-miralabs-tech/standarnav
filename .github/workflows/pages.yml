@@ -1,0 +1,55 @@
+name: Pages
+
+# The playground is the one page in this repository a reader can drive, and it imports
+# the engine from `src/` directly, so nothing is built before Vite. `--base` is the
+# repository name because a project site is served under it, and it is passed on the
+# command line rather than written in a config file so `bun run dev` keeps serving
+# from `/`. Deployment is gated on `main`: a pull request never publishes.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions: {}
+
+# Never two deployments at once, and never cancel one in flight: Pages serves whatever
+# artifact landed last, so a cancelled deploy is not a rollback.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+      - run: bun install --frozen-lockfile
+      - run: bun x vite build playground --base=/standarnav/
+      # The convention places `llms.txt` at the root of the site it describes, and the
+      # site root here is the playground.
+      - run: cp llms.txt playground/dist/
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: playground/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-24.04
+    permissions:
+      # `pages: write` deploys; `id-token: write` is how the deployment proves it came
+      # from this workflow. Nothing else: this job never touches the repository.
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/deploy-pages@v5
+        id: deployment

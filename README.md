@@ -213,7 +213,7 @@ The engine already drives a documentation site with a gamepad — a site whose c
 1. Some controls should be selected to enter and only then adjusted — a picker or a slider should take a confirm press before the directions start changing its value, instead of being adjusted the moment focus lands on it. This is what engage mode is for, and applying it to those controls is still open.
 2. The right stick must scroll the page even when nothing is focused. Fixed here: the scroll target falls back to `document.scrollingElement` when no focused element has a scrollable ancestor, covered by four browser tests.
 
-A playground fixture is in this repository at `playground/index.html`, served by `bun run dev`. `playground/main.ts` imports the engine from `src/` rather than from the built package, so Vite compiles it and a change to the engine is on screen on the next reload with no build step between; it arms `app` mode, because `composite` on a laptop with no pad looks like nothing happening at all. A demo GIF and tests on real devices are roadmap items.
+A playground fixture is in this repository at `playground/index.html`, served by `bun run dev` and published as a static page at https://standarx-miralabs-tech.github.io/standarnav/ by `.github/workflows/pages.yml` on every push to `main`. `playground/main.ts` imports the engine from `src/` rather than from the built package, so Vite compiles it and a change to the engine is on screen on the next reload with no build step between; it arms `app` mode, because `composite` on a laptop with no pad looks like nothing happening at all. A demo GIF and tests on real devices are roadmap items.
 
 ## Documentation
 
