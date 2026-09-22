@@ -119,11 +119,12 @@ carrying the version bump and the CHANGELOG it writes from those commits,
 which is why the commit rules above are load-bearing rather than cosmetic.
 
 The wiring exists — `release-please-config.json`, `.release-please-manifest.json`
-and `.github/workflows/release.yml` — and has never run, because that workflow
-triggers on a push to `main`. Until it does, and until the publishing account has
-a token and 2FA, no release runs and the rules above are the whole mechanism.
+and `.github/workflows/release.yml` — and ran for the first time on 2026-09-22,
+stopping at an organisation setting before it could open the release pull
+request. Until that pull request exists and the publishing account has a token
+and 2FA, no release ships and the rules above are the whole mechanism.
 
-Until it has run, the release note lives in the pull request description:
+Until a release has shipped, the release note lives in the pull request description:
 a pull request that changes anything a consumer can observe carries one
 sentence saying what changed for that consumer, in English, and names the
 affected subpath rather than the file. That sentence is what the CHANGELOG
