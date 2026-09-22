@@ -269,10 +269,13 @@ function mount(): void {
   }
 
   // `scanNativeSelects` reports every focusable `<select>` that would open a platform
-  // popup. It cannot see that a recipe has taken one over — a scan reads the DOM, and an
-  // engage scope leaves no mark on it until the moment it is held — so the page filters
-  // what it has handled itself rather than letting the diagnostic report a control that
-  // now works. An application without a recipe still gets the full list.
+  // popup, and it cannot tell that a recipe has taken one over: what it asks is
+  // `isFocusable` plus `multiple`/`size`, none of which a recipe changes. The page
+  // therefore filters the one it handled itself rather than letting the diagnostic report
+  // a control that works. `attachNativeSelect` does leave `aria-expanded` behind, which a
+  // future version of the scan could read as the convention this needs — that is a public
+  // surface decision and bytes in a subpath measured at 0.49 kB against a 0.50 cap, so it
+  // is named in ADR-0021 and not taken here.
   const unnavigable = scanNativeSelects(document.body).filter((it) => !engagedSelects.has(it));
   if (unnavigable.length > 0) {
     console.warn(

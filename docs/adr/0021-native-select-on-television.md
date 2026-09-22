@@ -140,3 +140,40 @@ without and reports both. The playground filters its own by hand (`playground/ma
 diagnostic tell them apart needs a convention — an attribute a recipe writes on attach — and that
 is a public surface decision plus bytes in a `debug` subpath measured at 0.49 kB against a 0.50 cap,
 so it is named here and not taken.
+
+## Amendment, 2026-09-22 (second): a dropdown has to drop something down
+
+The amendment above was right about the mechanism and wrong about the product, and it was
+reported the same day by the same person driving the same page: *the other options can be
+selected, but the dropdown does not open, which is strange — with a pad as with a keyboard.*
+
+It was strange. Claiming `select` and stepping `selectedIndex` in place does make a native
+`<select>` respond to a pad, and it leaves the user looking at a control that changes its own
+label with no list anywhere. The options cannot be seen, only guessed one press at a time, and
+the state "this control is now listening to the directions" is carried by a dashed outline and
+nothing else. Three options hide that; thirty make it unusable. The first amendment reasoned
+from "the popup is not needed to change the value", which is true, to "a list is not needed",
+which does not follow — the list is not how a `<select>` stores a value, it is how a `<select>`
+is read.
+
+**What ships now.** `attachNativeSelect` opens a list of real elements in the document, built
+from the `<option>`s the element already carries and rebuilt on every open, since an application
+may refill a `<select>` between two openings. It is the mechanism `attachListbox` already used —
+a `trapped` scope, `data-snav-trap` on the list for the confinement a base scope cannot give, and
+the scope clicking the focused option itself because `select` cannot escape a trap — with the
+`<select>` itself as the trigger rather than a `<button>`. The element stays in the document and
+stays the value, so a form submits it and an application that never attaches this still gets the
+platform's own control.
+
+The pointer is intercepted as well, on `mousedown` because the popup opens on the press. Letting
+a mouse open the platform popup while a pad opens this list would ship two different controls
+wearing one element. Alt+Down is intercepted too: it is the documented shortcut for opening a
+`<select>`, and the keymap drops anything carrying a modifier (`src/keymap.ts:111-113`), so it
+never reaches a scope to be claimed and would have opened the popup behind the engine's back.
+
+**What this costs.** The two controls in the playground now differ less than the original
+Decision implied — both open a list of real elements — and that is the honest outcome rather than
+a regrettable one. What still separates them is ownership: one augments a native form control,
+the other is markup an application wrote. The list also renders below its trigger with no
+flip-up when it would overflow the viewport, which is visible on this page with the footer in the
+way. That is a positioning problem, not a navigation one, and it is named here rather than fixed.

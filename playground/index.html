@@ -83,6 +83,33 @@
         display: grid;
         gap: 4px;
         font-size: 0.875rem;
+        /* The native select's list is absolute and anchors to this. */
+        position: relative;
+      }
+
+      /* The list a native `<select>` opens instead of its platform popup. The
+         `:not([hidden])` is not decoration: a bare `display` here has the specificity of
+         one class, ties with the browser's `[hidden] { display: none }` and wins on
+         source order, so `hidden = true` would set the attribute and change nothing on
+         screen. That exact bug shipped on this page once already. */
+      .native-select-list:not([hidden]) {
+        display: grid;
+        gap: 2px;
+      }
+      .native-select-list {
+        position: absolute;
+        top: 100%;
+        left: 0;
+        z-index: 1600;
+        min-width: 100%;
+        padding: 4px;
+        border: 1px solid color-mix(in srgb, currentColor 30%, transparent);
+        border-radius: 8px;
+        background: Canvas;
+        box-shadow: 0 6px 20px rgb(0 0 0 / 25%);
+      }
+      .native-select-list button[aria-selected="true"] {
+        font-weight: 600;
       }
       .widget button {
         font: inherit;
@@ -280,18 +307,21 @@
       </div>
     </section>
 
-    <!-- The native select and its replacement, side by side. The first is never opened:
-         a recipe takes hold of it instead, so the platform popup the engine cannot see
-         stays shut and the directions move the option in place. The second is real markup
-         it navigates like anything else, and stays the better control for a list long
-         enough to want a scroll. `scanNativeSelects` prints nothing here now — this page
-         has one select and it has a recipe, so main.ts filters it out of the scan. -->
+    <!-- The native select and its replacement, side by side, and the distance between
+         them is now small on purpose. Both open a list of real elements in the document;
+         the difference is what the list is built from and what holds the value. The first
+         keeps a `<select>` underneath, so a form submits it and a phone could still get
+         its own wheel; the second is a button and markup an application wrote itself.
+         The platform popup is never opened in either case — that is the thing that loses
+         a pad. `scanNativeSelects` prints nothing here now: this page has one select and
+         it has a recipe, so main.ts filters it out of the scan. -->
     <section class="widgets" data-snav="container" aria-label="Select on a television">
       <label class="widget">
-        <span>A native <code>&lt;select&gt;</code>, made to work rather than labelled as a trap.
-          Its popup is a platform surface outside the document, so opening it is what loses a
-          pad — the recipe never opens it. A takes hold, the directions move the selected
-          option in place, B puts it back and A keeps it. Same keys as every control above.</span>
+        <span>A native <code>&lt;select&gt;</code> that opens a real list. Its own popup is a
+          platform surface outside the document, so opening <em>that</em> is what loses a pad;
+          this opens a list of ordinary elements built from the select's own options. A opens
+          it, the directions move through it, A picks and B closes with nothing changed. The
+          <code>&lt;select&gt;</code> keeps the value, so a form still submits it.</span>
         <select id="native">
           <option>Europe</option>
           <option>Asia</option>

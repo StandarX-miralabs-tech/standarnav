@@ -167,39 +167,165 @@ export function attachEngageable(bus: IntentScopeHost, options: EngageableOption
 }
 
 /**
- * A native `<select>`, made to work instead of being labelled as a trap.
+ * A native `<select>` that actually opens a list.
  *
- * [ADR-0021](../docs/adr/0021-native-select-on-television.md) is right that the
- * platform popup is unreachable: it renders outside the document, the engine cannot
- * see it, a pad cannot open it at all, and the keys that do open it move a selection
- * nothing on screen reflects — then Escape commits the move rather than undoing it.
- * The answer here is not to open it. Engage claims `select` while the element is
- * focused and the system calls `preventDefault` on the key that carried a consumed
- * intent (`src/input-system.ts:181`, in capture, so before the browser acts), so
- * Enter and Space take hold rather than opening anything.
+ * [ADR-0021](../docs/adr/0021-native-select-on-television.md) is right that the platform
+ * popup is unreachable: it renders outside the document, the engine cannot see it, a pad
+ * cannot open it, and the keys that do open it move a selection nothing on screen
+ * reflects — then Escape commits that move rather than undoing it. So this never opens
+ * it. What it opens instead is a list of real elements in the document, built from the
+ * `<option>`s the `<select>` already carries.
  *
- * A closed `<select>` paints its own selected option, so moving `selectedIndex` is
- * the on-screen feedback a popup would otherwise give, and it works identically for
- * a pad, a remote and a keyboard. No wrap: a native select stops at its ends, and a
- * replacement that comes round would be a different control wearing its clothes.
+ * The first version of this recipe adjusted `selectedIndex` in place with no list at
+ * all, and that was reported as exactly what it was: you cannot see the options, so you
+ * have to guess them one press at a time. Three options hide the problem; thirty make it
+ * unusable. A control called a dropdown has to drop something down.
  *
- * The mouse is untouched — clicking still opens the platform popup, which is the
- * right behaviour where a pointer exists.
+ * The `<select>` stays in the document and stays the value: the form submits it, a
+ * screen reader gets a real listbox, and a phone still gets its own native wheel if the
+ * application never attaches this. What this adds is the surface a television can
+ * navigate, and the `<select>` itself is the trigger — which is the difference between
+ * this and `attachListbox`, where the trigger is a `<button>` and there is no native
+ * control underneath at all.
+ *
+ * Three mechanics are inherited from that sibling and are not obvious:
+ * the list must carry `data-snav-trap` or the engine walks straight out of it, since the
+ * scope is pushed as `base` and a base scope is asked even through a trap; the scope has
+ * to click the focused option itself, because `select` cannot escape a trap so
+ * `activateFocused` never runs inside one; and closing has to restore the focus to the
+ * `<select>`, or the focus sits on an element that is now hidden and the engine has
+ * nowhere to move from.
+ *
+ * The pointer is intercepted too. Letting a mouse open the platform popup while a pad
+ * opens this one would ship two different controls wearing one element, and "it depends
+ * how you opened it" is the kind of surprise this page exists to remove.
  */
-export function attachNativeSelect(bus: IntentScopeHost, host: HTMLSelectElement): Engageable {
-  return attachEngageable(bus, {
-    host,
-    // Down is the next option, which is how a closed select reads on every platform.
-    steps: { moveDown: 1, moveUp: -1, pageDown: PAGE_FACTOR, pageUp: -PAGE_FACTOR },
-    min: 0,
-    max: host.options.length - 1,
-    step: 1,
-    read: () => host.selectedIndex,
-    write: (value) => {
-      host.selectedIndex = value;
-      host.dispatchEvent(new Event("change", { bubbles: true }));
-    },
+export function attachNativeSelect(bus: IntentScopeHost, host: HTMLSelectElement): Listbox {
+  const list = document.createElement("div");
+  list.className = "native-select-list";
+  list.setAttribute("role", "listbox");
+  list.setAttribute("aria-label", host.getAttribute("aria-label") ?? "Options");
+  list.setAttribute("data-snav", "container");
+  // Half the recipe, and the half that is easy to leave out: without the trap a
+  // direction walks out of the open list, because the scope below is a `base` one.
+  list.setAttribute("data-snav-trap", "");
+  list.hidden = true;
+  host.insertAdjacentElement("afterend", list);
+
+  let pop: VoidFunction | null = null;
+
+  function options(): readonly HTMLButtonElement[] {
+    return [...list.querySelectorAll<HTMLButtonElement>("button")];
+  }
+
+  function pick(index: number): void {
+    host.selectedIndex = index;
+    host.dispatchEvent(new Event("change", { bubbles: true }));
+    close();
+  }
+
+  /**
+   * Rebuilt on every open rather than once on attach: a `<select>` is ordinary markup an
+   * application may refill between two openings, and a list built once would go on
+   * offering options that no longer exist.
+   */
+  function build(): void {
+    list.replaceChildren();
+    for (const [index, option] of [...host.options].entries()) {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.setAttribute("role", "option");
+      button.setAttribute("aria-selected", String(index === host.selectedIndex));
+      button.textContent = option.textContent;
+      button.disabled = option.disabled;
+      button.addEventListener("click", () => pick(index));
+      list.append(button);
+    }
+  }
+
+  function close(): void {
+    if (pop === null) return;
+    const detach = pop;
+    pop = null;
+    detach();
+    list.hidden = true;
+    host.setAttribute("aria-expanded", "false");
+    host.focus();
+  }
+
+  function open(): void {
+    if (pop !== null) return;
+    build();
+    list.hidden = false;
+    host.setAttribute("aria-expanded", "true");
+    pop = bus.pushScope(
+      (event: IntentEvent): boolean => {
+        if (event.intent === "back") {
+          close();
+          return true;
+        }
+        if (event.intent === "select") {
+          const focused = document.activeElement;
+          if (!(focused instanceof HTMLElement) || !list.contains(focused)) return false;
+          // Claiming it also suppresses the native Enter-to-click on a real keyboard,
+          // so the option is picked once rather than twice.
+          focused.click();
+          return true;
+        }
+        return false;
+      },
+      { trapped: true },
+    );
+    (options()[host.selectedIndex] ?? options()[0])?.focus();
+  }
+
+  // A `<select>` is not a `<button>`, so nothing clicks it for us and nothing opens this
+  // list on its own: `activateFocused` would call `.click()` on the element, which is
+  // precisely the call that opens the platform popup. This scope claims A first, so that
+  // call never happens (`src/input-system.ts:118-132`), and the system then calls
+  // `preventDefault` on the key that carried the consumed intent (`:181`, in capture),
+  // which is what stops a keyboard Enter or Space opening the popup itself.
+  const popIdle = bus.pushScope((event: IntentEvent): boolean => {
+    if (event.intent !== "select" || document.activeElement !== host) return false;
+    open();
+    return true;
   });
+
+  const onPointer = (event: MouseEvent): void => {
+    event.preventDefault();
+    host.focus();
+    open();
+  };
+  // `mousedown` rather than `click`: the platform popup opens on the press, so a
+  // `click` listener would run after the thing it is meant to prevent.
+  host.addEventListener("mousedown", onPointer);
+
+  // A keyboard can still open the popup without producing an intent at all — Alt+Down is
+  // the documented shortcut and the keymap drops anything carrying a modifier
+  // (`src/keymap.ts:111-113`), so it never reaches a scope to be claimed.
+  const onKeydown = (event: KeyboardEvent): void => {
+    if (event.altKey && (event.key === "ArrowDown" || event.key === "ArrowUp")) {
+      event.preventDefault();
+      open();
+    }
+  };
+  host.addEventListener("keydown", onKeydown);
+
+  host.setAttribute("aria-expanded", "false");
+
+  return {
+    open,
+    close,
+    isOpen: (): boolean => pop !== null,
+    dispose(): void {
+      host.removeEventListener("mousedown", onPointer);
+      host.removeEventListener("keydown", onKeydown);
+      close();
+      popIdle();
+      host.removeAttribute("aria-expanded");
+      list.remove();
+    },
+  };
 }
 
 /**
