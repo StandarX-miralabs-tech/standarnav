@@ -102,3 +102,41 @@ is the same code either way; what changes is whether it carries a version number
 [ROADMAP.md](../../ROADMAP.md) item it came from said the decision could not stay open. A package
 that claims to handle television navigation and hands back the one control television breaks is
 promising something it does not deliver.
+
+## Amendment, 2026-09-22: the third way was not to open it
+
+The decision stands and gains a case it did not consider. Reported from the page, twice, by
+someone driving it rather than reading it: the native `<select>` still did not work, and being
+told so on screen is not the same as it working.
+
+**What the record got right.** Everything about the popup. It renders outside the document, the
+engine cannot see it, `document.activeElement` stops describing where the user is, and on a
+television the way back is whatever the platform decides. Driven on a real page on 2026-09-22 the
+failure is worse than the Context describes: the arrows move the selection inside the popup with
+**nothing on the page reflecting it**, and Escape — the one key that gets out — *commits* the move
+instead of undoing it, so the user leaves with a value they never chose. With a pad it is not
+awkward, it is nothing at all: `activateFocused` reaches the element with `.click()`, and a click
+is exactly what opens the surface the engine then loses.
+
+**What it missed.** Context and Decision both reason from "the popup is unreachable" to "the
+control is unreachable", and the step between them does not hold. The popup is only reached
+because something opens it. A scope that claims `select` while the element is focused means
+nothing opens it: `activateFocused` runs only for an unconsumed `select`
+(`src/input-system.ts:118-132`), and the keydown handler calls `preventDefault` on the key that
+carried a consumed intent, in capture, before the browser acts (`src/input-system.ts:181`). So A
+takes hold of the `<select>` the way it takes hold of a slider, the directions move
+`selectedIndex` in place, B restores the entry value and A keeps it. A closed `<select>` paints
+its own selected option, so the feedback the popup would have given is already on screen.
+
+**What changes.** The playground attaches `attachNativeSelect` (`playground/widgets.ts`), and the
+page no longer carries a label describing a trap it cannot escape. The two halves of the original
+decision are untouched: the diagnostic still ships, and the replacement listbox is still the better
+control for a list long enough to want a scroll or a filter — this recipe shows one row at a time,
+which is what a closed `<select>` is.
+
+**What this leaves open.** `scanNativeSelects` reads the DOM, and an engage scope leaves no mark on
+the DOM until the instant it is held, so the scan cannot tell a `<select>` with a recipe from one
+without and reports both. The playground filters its own by hand (`playground/main.ts`). Making the
+diagnostic tell them apart needs a convention — an attribute a recipe writes on attach — and that
+is a public surface decision plus bytes in a `debug` subpath measured at 0.49 kB against a 0.50 cap,
+so it is named here and not taken.

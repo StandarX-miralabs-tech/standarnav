@@ -97,14 +97,29 @@ export function attachEngageable(bus: IntentScopeHost, options: EngageableOption
     options.onEngagedChange?.(on);
   }
 
+  /**
+   * Backspace means "stop manipulating this", and it is bound here rather than in the
+   * keymap on purpose. `back` is one of the intents allowed inside a text entry
+   * (`src/keymap.ts:164-169`), so a global Backspace row would erase a character and
+   * leave the field with one press, and it would close the virtual keyboard instead
+   * of erasing. Bound to the held control, it exists only while something is held.
+   */
+  function onBackspace(event: KeyboardEvent): void {
+    if (event.key !== "Backspace" || pop === null) return;
+    event.preventDefault();
+    releaseOutsideTheBus(false);
+  }
+
   function engage(): void {
     if (pop !== null) return;
     entry = read();
     setEngaged(true);
+    document.addEventListener("keydown", onBackspace, { capture: true });
     pop = pushEngageScope(bus, {
       onAdjust: adjust,
       onRelease: (committed) => {
         pop = null;
+        document.removeEventListener("keydown", onBackspace, { capture: true });
         if (!committed) write(entry);
         setEngaged(false);
       },
@@ -123,6 +138,7 @@ export function attachEngageable(bus: IntentScopeHost, options: EngageableOption
     const detach = pop;
     pop = null;
     detach();
+    document.removeEventListener("keydown", onBackspace, { capture: true });
     if (!committed) write(entry);
     setEngaged(false);
   }
@@ -148,6 +164,42 @@ export function attachEngageable(bus: IntentScopeHost, options: EngageableOption
       popIdle();
     },
   };
+}
+
+/**
+ * A native `<select>`, made to work instead of being labelled as a trap.
+ *
+ * [ADR-0021](../docs/adr/0021-native-select-on-television.md) is right that the
+ * platform popup is unreachable: it renders outside the document, the engine cannot
+ * see it, a pad cannot open it at all, and the keys that do open it move a selection
+ * nothing on screen reflects — then Escape commits the move rather than undoing it.
+ * The answer here is not to open it. Engage claims `select` while the element is
+ * focused and the system calls `preventDefault` on the key that carried a consumed
+ * intent (`src/input-system.ts:181`, in capture, so before the browser acts), so
+ * Enter and Space take hold rather than opening anything.
+ *
+ * A closed `<select>` paints its own selected option, so moving `selectedIndex` is
+ * the on-screen feedback a popup would otherwise give, and it works identically for
+ * a pad, a remote and a keyboard. No wrap: a native select stops at its ends, and a
+ * replacement that comes round would be a different control wearing its clothes.
+ *
+ * The mouse is untouched — clicking still opens the platform popup, which is the
+ * right behaviour where a pointer exists.
+ */
+export function attachNativeSelect(bus: IntentScopeHost, host: HTMLSelectElement): Engageable {
+  return attachEngageable(bus, {
+    host,
+    // Down is the next option, which is how a closed select reads on every platform.
+    steps: { moveDown: 1, moveUp: -1, pageDown: PAGE_FACTOR, pageUp: -PAGE_FACTOR },
+    min: 0,
+    max: host.options.length - 1,
+    step: 1,
+    read: () => host.selectedIndex,
+    write: (value) => {
+      host.selectedIndex = value;
+      host.dispatchEvent(new Event("change", { bubbles: true }));
+    },
+  });
 }
 
 /**

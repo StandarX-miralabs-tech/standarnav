@@ -21,6 +21,7 @@ import { alphabetic } from "../src/keyboard/layouts/alphabetic";
 import { type MoveDirection, type SpatialPlugin, spatialPlugin } from "../src/spatial/spatial";
 import {
   attachListbox,
+  attachNativeSelect,
   attachSlider,
   attachSplitter,
   attachStepper,
@@ -139,11 +140,19 @@ if (regionTrigger instanceof HTMLButtonElement && regionList !== null && region 
   attachListbox(input, regionTrigger, regionList, region);
 }
 
-// The diagnostic for the one control the engine cannot rescue. A closed `<select>`
-// opens a platform popup outside the document, and on a desktop the browser navigates
-// that popup itself — so the trap is invisible exactly where the code is written. The
-// page keeps one on purpose, so this prints something.
-const unnavigable = scanNativeSelects(document.body);
+const native = document.getElementById("native");
+const engagedSelects = new Set<HTMLSelectElement>();
+if (native instanceof HTMLSelectElement) {
+  attachNativeSelect(input, native);
+  engagedSelects.add(native);
+}
+
+// `scanNativeSelects` reports every focusable `<select>` that would open a platform
+// popup. It cannot see that a recipe has taken one over — a scan reads the DOM, and an
+// engage scope leaves no mark on it until the moment it is held — so the page filters
+// what it has handled itself rather than letting the diagnostic report a control that
+// now works. An application without a recipe still gets the full list.
+const unnavigable = scanNativeSelects(document.body).filter((it) => !engagedSelects.has(it));
 if (unnavigable.length > 0) {
   console.warn(
     `${unnavigable.length} native <select> the engine will focus and cannot follow into:`,
