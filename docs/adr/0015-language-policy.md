@@ -52,8 +52,10 @@ in the first place.
    its front matter the git blob hash of the English source it was translated
    from; a CI job recomputes the hash of `docs/en/<page>.md` and fails the run on
    mismatch or on a missing counterpart. This is a proposal, not a built gate:
-   `docs/en` and `docs/fr` do not exist yet, and the owner has to confirm the
-   mechanism before it is implemented.
+   the owner has to confirm the mechanism before it is implemented. `docs/en`
+   and `docs/fr` exist since 2026-09-22, four pages each (amendment at the
+   foot of this record), so the gate has something to check and still does
+   not exist.
 6. Internal French working notes are never committed. Drafts, research scratch,
    session briefs and anything the owner writes to think with stay untracked and
    outside the published tree.
@@ -80,6 +82,32 @@ in the first place.
 - Issues and discussions opened in French get answered in English, which may read
   as unfriendly to a French contributor. Accepted: the alternative is a thread no
   one else can follow.
+
+## Amendment, 2026-09-22: `docs/en` exists, four pages, each with its mirror
+
+Rule 5 stops being forward-looking. The README was cut from 238 lines to 79
+(`wc -l README.md`, 2026-09-22, before and after the cut), and the four
+sections a newcomer does not need on the first screen but a user needs
+somewhere moved under `docs/en/`: `attributes.md` (the two attribute tables,
+44 lines), `navigation.md` (how a move is decided, and what makes an element
+navigable, 53), `react.md` (72) and `focus-ring.md` (38). Each has its
+file-by-file mirror under `docs/fr/` (45, 61, 75 and 41 lines: French runs
+longer), translated in the same pull request, so the merge condition of rule 5
+is met by the first pages it applies to.
+
+What a mirror is, made precise because the rule only said "strict": the prose
+is translated, and everything that is the contract rather than its description
+is identical on both sides — code blocks, attribute and custom property names,
+cited paths, table cells that hold code. A French page that renamed an
+attribute would be a different contract, not a translation. Headings are
+translated; file names are not, so a reader switches language by changing one
+path segment.
+
+What did not change: the mechanism of rule 5 is still Proposed. The mirrors
+carry no front matter and no blob hash, because the owner has not confirmed
+that mechanism, and nothing in CI checks that a `docs/fr` page exists or is
+current — review does, as the Consequences say. The rider stays open with
+something to check now, which it did not have before.
 
 ## Alternatives considered
 
@@ -117,10 +145,11 @@ untracked and no reader ever sees them.
   2026-09-18, published in [docs/research/competitors.md](../research/competitors.md).
 - Rejection of bilingual ADRs: the owner's decision of 2026-09-18, recorded in
   this ADR.
-- `docs/en` and `docs/fr` do not exist in this repository on 2026-09-18, and
-  still do not on 2026-09-20 (`ls docs/` → `adr/`, `research/`,
-  `specification.md`); rule 5 and its gate stay forward-looking, and the rider
-  above stays open because there is nothing yet for a CI job to check.
+- `docs/en` and `docs/fr` did not exist in this repository on 2026-09-18, nor
+  on 2026-09-20 (`ls docs/` → `adr/`, `research/`, `specification.md`). They
+  exist since 2026-09-22: `ls docs/en docs/fr` lists `attributes.md`,
+  `focus-ring.md`, `navigation.md` and `react.md` on each side. Rule 5 applies
+  to them; its gate stays a proposal, and the rider above stays open.
 - Rules 2 and 3 are satisfied by the code that arrived in the meantime: every
   file under `src/` is English, comments included. The
   committed Markdown of `docs/adr/` is English throughout.

@@ -93,8 +93,8 @@ and one named detail inside it still waits on the owner. Two rows changed on
 2026-09-20: ADR-0009 moved from Proposed to Accepted when its two behaviour
 changes were settled in opposite directions, and ADR-0012's rider closed on
 release-please. On 2026-09-22 ADR-0012 gained the first publication and the
-switch to trusted publishing. Every such change carries a dated amendment in
-its record.
+switch to trusted publishing, and the `docs/en` and `docs/fr` of ADR-0015 came
+into existence. Every such change carries a dated amendment in its record.
 
 | ADR | Title | Status | What it decides |
 |---|---|---|---|
@@ -111,7 +111,7 @@ its record.
 | [0012](0012-versioning-and-release.md) | Versioning and release | Accepted | Semver from 0.x with breaking minors, publication from CI with provenance, `next` dist-tag for device trials, and release-please deriving the version and the CHANGELOG from the commit history. The tooling released `0.1.0` on 2026-09-22 with a signed provenance statement; from the same day the publish authenticates through npm trusted publishing, direct publish allowed, and the token that published `0.1.0` is to be revoked. A `.md`-only change is `docs`, never `fix(docs)`. |
 | [0013](0013-browser-baseline-and-fallbacks.md) | Browser baseline: most recent first, fallbacks for older runtimes | Accepted, one rider Proposed | Build target es2020, a fallback for every newer API, and three support tiers. Open: the decision date for a separate legacy build. |
 | [0014](0014-device-and-browser-matrix.md) | Device and browser test matrix | Accepted, one rider Proposed | Three engines in CI, no device claim without a dated device report, a matrix in three columns of which two are empty today. Open: which devices are bought and which are borrowed. |
-| [0015](0015-language-policy.md) | Language policy | Accepted, one rider Proposed | Every committed file is English; user documentation is `docs/en` canonical with a strict `docs/fr` mirror. Open: the CI mechanism enforcing that mirror. |
+| [0015](0015-language-policy.md) | Language policy | Accepted, one rider Proposed | Every committed file is English; user documentation is `docs/en` canonical with a strict `docs/fr` mirror — four pages on each side since 2026-09-22. Open: the CI mechanism enforcing that mirror. |
 | [0016](0016-scoring-constants-provenance.md) | Scoring constants and their provenance | Accepted | Where `0.3`, `30`, `2` and the alignment bonus come from, what the score formula is, and that it is not Blink's. |
 | [0017](0017-size-budgets.md) | Size budgets: measure before capping | Accepted | Two measured lines per subpath, caps written only after a first measurement here, and a line without a cap fails the run. Eleven lines are measured and capped as of 2026-09-21. |
 | [0018](0018-testing-strategy.md) | Testing strategy | Accepted | Two Vitest projects, inline-style fixtures, tests through the real input system, one adapter parity suite, and no benchmark until a runner is chosen. The eight gaps it listed after the port are closed, by the amendment of 2026-09-20. |
