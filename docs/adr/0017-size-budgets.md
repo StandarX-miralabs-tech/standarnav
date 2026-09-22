@@ -428,6 +428,46 @@ is load-bearing.
 **Rule 3 gives 12.50.** The measurement is 12.40 kB and the next quarter above it is 12.50. The
 line sits at 99 % used, which is rule 3 working as intended: headroom for noise, not for growth.
 
+## Amendment, 2026-09-22: a twelfth line for the vanilla auto-mount, and the whole package goes to 12.75 kB
+
+`bun run build && bun run check:size`, run 2026-09-22, same toolchain as the amendments above.
+This record comes **before** the commit that adds the entry, which is what rule 4 asks of a cap
+that has to move.
+
+| Line | min | min+gzip | old cap | new cap |
+|---|---|---|---|---|
+| auto mount | 1.04 kB | 0.62 kB | none, the line is new | **0.75 kB** |
+| whole package | 33.64 kB | 12.64 kB | 12.50 kB | **12.75 kB** |
+
+**Why a line at all, for 0.62 kB.** Decision 2 gives every subpath its own line, and rule 5 of the
+budget script makes a line without a cap fail the run (`scripts/size-budget.ts:311-315`). The
+vanilla auto-mount helper is a subpath, `@standarx/nav/auto`
+([ADR-0023](0023-vanilla-auto-mount.md)), so it gets a line whether or not the number is
+interesting. It is small because it is meant to be: two branches, a mode read off one attribute,
+and `createInputSystem` called once.
+
+**Its externals are one specifier, and the reason is the rule about globs.** The line names
+`../input-system.js` external and nothing else. That is the only module the helper imports, and
+nothing reaches `/auto` without the core, so charging a second copy of the input system here would
+measure bytes no consumer downloads. The `SpatialMode` type the helper's config names is a
+**type-only** import, which erases at build: there is no spatial module on this line to externalise
+in the first place, and the helper's 0.62 kB is therefore a number about the helper.
+
+**0.62 on its own line and 0.24 on the whole-package line are two different measurements, and both
+are right.** The whole package moved from 12.40 to 12.64 kB min+gzip — 0.24 kB — while the helper's
+own line reads 0.62. Neither is wrong and neither is the other's error: on its own line the module
+is bundled alone with the core external, and on the whole-package line it is one module among
+twelve, minified and compressed against everything else the package ships. The per-subpath line
+answers "what does adding this next to the core cost"; the whole-package line answers "how much
+runtime code does this package ship". The gap between them is what sharing a minifier and a gzip
+window buys, not a defect in either line.
+
+**Rule 3 gives 0.75 and 12.75.** The helper measures 0.62 and the next quarter above it is 0.75, at
+83 % used. The whole package measures 12.64 and the next quarter above it is 12.75, at 99 % used —
+the same one-percent margin the line has carried since the amendment above, and for the same
+reason: rule 3 is headroom for noise, not for growth. The next entry point added to this package
+needs an amendment here before its commit, and at 99 % that sentence is load-bearing again.
+
 ## Alternatives considered
 
 **A bundlephobia badge in the README.** Rejected: it is not blocking, it lags
