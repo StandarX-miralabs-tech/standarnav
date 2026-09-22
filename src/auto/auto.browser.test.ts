@@ -1,7 +1,10 @@
 import { afterEach, describe, expect, it } from "vitest";
 import type { InputPlugin } from "../input-system";
 import { MODALITY_ATTRIBUTE } from "../modality";
-import { type AutoConfig, autoMount, MODE_ATTRIBUTE } from "./auto";
+import { type AutoConfig, autoMount } from "./auto";
+
+/** The literal, not an import: a test that pins a name must fail when the name changes. */
+const MODE_ATTRIBUTE = "data-snav-mode";
 
 const cleanups: VoidFunction[] = [];
 

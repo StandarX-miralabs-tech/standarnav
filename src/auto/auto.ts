@@ -24,8 +24,12 @@ export type { SpatialMode } from "../spatial/spatial";
  * Read once, before the system exists, and never again: the mode is a property of the
  * engine instance ([ADR-0007](../../docs/adr/0007-navigation-modes.md)), so this is a
  * source for the option at construction and not a switch the running engine watches.
+ *
+ * Private, like the nine attribute constants the spatial engine reads: a name the
+ * consumer writes in HTML must have one way to depend on it, not two
+ * ([ADR-0011](../../docs/adr/0011-package-layout-and-adapters.md)).
  */
-export const MODE_ATTRIBUTE = "data-snav-mode";
+const MODE_ATTRIBUTE = "data-snav-mode";
 
 export interface AutoConfig {
   /** The document the system was built on. */
