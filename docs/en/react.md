@@ -67,6 +67,8 @@ The adapter is held to a shared suite rather than to tests of its own invention:
 `src/adapter-parity.ts` is the contract any framework adapter has to satisfy — one system and not
 during the first render, LIFO scope order, a scope released when only its own subtree unmounts, a
 trap that stops the walk, a base scope reached through that trap, and a base re-registered on a
-rerender. The adapters that follow — a vanilla auto-mount helper, then Vue, Svelte and Angular, in
-the order of [ADR-0011](../adr/0011-package-layout-and-adapters.md) — run the same suite before
-they ship.
+rerender. The adapters that follow — Vue, Svelte and Angular, in the order of
+[ADR-0011](../adr/0011-package-layout-and-adapters.md) — run the same suite before they ship. The
+vanilla auto-mount helper that shipped before them does not, and
+[ADR-0023](../adr/0023-vanilla-auto-mount.md) is the record of why: the suite asserts what a
+provider does across a render, and that helper has neither ([Auto-mount](auto.md)).

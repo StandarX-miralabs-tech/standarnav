@@ -60,8 +60,9 @@ write the amendment commit before the code commit.
   the next one below it. The pull request body follows the same rule: sections are dated
   and appended.
 - Test counts are written in prose in several documents. After adding or removing a test,
-  grep the tree for the old totals (`343 passed`, `344`, `22 files`, and the per-project
-  figures) and fix every one in the same commit.
+  grep the tree for the old totals (`357 passed`, `358`, `23 files`, and the per-project
+  figures) and fix every one in the same commit. A count that carries its own date —
+  "on 2026-09-21", or a dated amendment — is a measurement, not a stale claim: leave it.
 - Numbers, `sed` and scripted replacements corrupt Markdown and TypeScript in ways a diff
   hides. Reread the whole diff before committing.
 - ADRs: one per pull request, next free number is ADR-0023, the skeleton and the index are
@@ -89,7 +90,7 @@ write the amendment commit before the code commit.
 
 ## A green suite is not a working page
 
-Three defects in a row were invisible to 343 passing tests and visible in three key
+Three defects in a row were invisible to the 343 passing tests of that day and visible in three key
 presses on the playground. When a behaviour is in doubt, open `bun run dev` and drive it:
 a Playwright script placed **inside** the tree (`*.tmp.mjs`, so Node resolves the
 dependency) can probe every focusable in all four directions and list the dead ends.
