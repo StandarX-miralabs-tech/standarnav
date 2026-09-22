@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.2.0](https://github.com/StandarX-miralabs-tech/standarnav/compare/v0.1.0...v0.2.0) (2026-09-22)
+
+
+### Features
+
+* **auto:** a vanilla auto-mount helper on @standarx/nav/auto ([7bdca8e](https://github.com/StandarX-miralabs-tech/standarnav/commit/7bdca8e7812e067cedd9f3ac68cd331a46f8cf03))
+
 ## 0.1.0 (2026-09-22)
 
 

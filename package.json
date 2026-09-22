@@ -1,6 +1,6 @@
 {
   "name": "@standarx/nav",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Spatial navigation for the web: d-pad, gamepad sticks, TV remotes and arrow keys drive real DOM focus, declared in data attributes.",
   "keywords": [
     "spatial-navigation",
