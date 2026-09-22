@@ -31,6 +31,7 @@
   ],
   "exports": {
     ".": "./dist/index.js",
+    "./auto": "./dist/auto/auto.js",
     "./debug": "./dist/debug.js",
     "./focus-ring": "./dist/focus-ring/focus-ring.js",
     "./gamepad": "./dist/gamepad/gamepad.js",

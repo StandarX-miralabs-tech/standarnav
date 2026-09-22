@@ -113,6 +113,16 @@ const LINES: readonly Line[] = [
     note: "explainMove and the native-select scan, measured next to the spatial engine",
   },
   {
+    name: "auto mount",
+    entries: ["auto/auto.js"],
+    cap: 0.75 * KB,
+    // The only module it reaches for, and the one every consumer already has: nothing
+    // reaches `/auto` without the core. `SpatialMode` is a type-only import, so no
+    // spatial module is on this line to externalise in the first place.
+    external: ["../input-system.js"],
+    note: "opt-in subpath next to the core; attribute-driven start-up, no engine in it",
+  },
+  {
     name: "react adapter",
     entries: ["react/react.js"],
     cap: 1.5 * KB,
@@ -160,9 +170,10 @@ const LINES: readonly Line[] = [
       "keyboard/layouts/qwerty.js",
       "keyboard/layouts/azerty.js",
       "keyboard/layouts/alphabetic.js",
+      "auto/auto.js",
       "react/react.js",
     ],
-    cap: 12.5 * KB,
+    cap: 12.75 * KB,
     // The one external on this line, and the only one it may ever carry: react is an
     // optional peer every consumer of the adapter already has. Bundled instead, the
     // line reads 21.06 kB and measures React rather than this package.
