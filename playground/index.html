@@ -170,6 +170,47 @@
       body {
         padding-bottom: 72px;
       }
+
+      .device-panel {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 4px 10px;
+        margin: 0 0 12px;
+        padding: 8px 10px;
+        border: 1px solid color-mix(in srgb, currentColor 25%, transparent);
+        border-radius: 8px;
+      }
+      .device-option {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 8px;
+        border-radius: 6px;
+        cursor: pointer;
+        white-space: nowrap;
+      }
+      .device-option:has(:checked) {
+        background: color-mix(in srgb, currentColor 12%, transparent);
+      }
+
+      /* The pad cursor. `position: fixed` because it is pushed in viewport
+         coordinates, and the translate is written straight onto the element every
+         frame. `pointer-events: none` so it never becomes its own hit target — the
+         script hides it for the hit test as well, for a stylesheet that drops this. */
+      .pad-cursor {
+        position: fixed;
+        top: 0;
+        left: 0;
+        z-index: 1800;
+        width: 14px;
+        height: 14px;
+        margin: -7px 0 0 -7px;
+        border: 2px solid #fff;
+        border-radius: 50%;
+        background: #1a73e8;
+        box-shadow: 0 0 0 1px rgb(0 0 0 / 55%);
+        pointer-events: none;
+      }
     </style>
   </head>
   <body>
@@ -187,6 +228,13 @@
       <button type="button" data-move="right">→</button>
       <span id="readout">arrows, a d-pad or a remote drive it; moves are explained in the console</span>
     </div>
+
+    <!-- Not data-snav-ignore, unlike the move buttons above: a panel you can only reach
+         with a mouse is useless on the device it configures. These are real checkboxes,
+         so a pad navigates to one and A ticks it. Every change rebuilds the system —
+         nearly every option in the package is read once, at construction. -->
+    <section id="device-options" class="device-panel" data-snav="container"
+      aria-label="Input devices and options"></section>
 
     <section class="rail" data-snav="container" data-snav-enter="last" aria-label="Rail">
       <button type="button">Rail 1</button>

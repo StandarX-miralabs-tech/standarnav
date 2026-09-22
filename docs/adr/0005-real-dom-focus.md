@@ -134,6 +134,35 @@ exists. A reading is not a gate, and turning it into one before v1 is still the
 work item this section describes; it is listed with the rest in
 [ADR-0018](0018-testing-strategy.md).
 
+## Amendment, 2026-09-22: a pad-driven pointer is not a virtual cursor either
+
+The playground grew a console-style cursor on 2026-09-22, asked for by name: a dot the left stick
+pushes around the screen, the way a game console lets you point at a web page instead of hopping
+between its controls. That is the shape this record refuses, so the difference has to be written
+down rather than left for a reader to find in `playground/cursor.ts` and mistrust.
+
+**What this record refuses is a focus model, not a picture.** The virtual cursor it rejects is one
+where the library keeps its own idea of where the user is — a key, an id, an index into a list —
+and paints something to match, while `document.activeElement` says something else or nothing at
+all. Everything downstream breaks there: `:focus-visible` never fires, a screen reader is told
+nothing moved, a form control never receives what is typed.
+
+**The pointer does the opposite.** Every frame it asks `document.elementFromPoint` what is under
+it and calls `focus()` on the nearest focusable ancestor, so real DOM focus is what moves, the ring
+is painted by the ordinary plugin reacting to an ordinary focus change, and `document.activeElement`
+answers the question correctly at every instant. Nothing keyed, nothing mirrored, nothing to
+desynchronise — the dot is the *input device*, like a mouse pointer, and it is the one thing on
+screen that is not the focus. A mouse has always worked this way here: `pointerFollowsFocus` in
+`app` mode focuses whatever the pointer crosses, and this is that mechanism with a stick in front
+of it.
+
+R21's guarantee — a browser test asserting `document.activeElement` after every move, and no
+id-keyed focus map anywhere in the package — is untouched, and cannot be weakened by this: the
+cursor is not in the package. It is a consumer of it, built on `assign`
+(`src/gamepad/gamepad.ts:121`), which hands one pad's intents to a private handler. That it can be
+written at all without the engine growing a mode is the argument this record has been making since
+the Decision: real focus composes with anything, a virtual one composes with nothing.
+
 ## Alternatives considered
 
 | Option | Why not |
