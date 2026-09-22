@@ -86,6 +86,40 @@ the options at construction and no attribute changes it
   d-pad can leave an APG composite that a keyboard cannot leave with arrows. That
   asymmetry is the point, not an oversight: the pad has no `Tab`.
 
+## Amendment, 2026-09-22: one attribute may now *source* the mode, on one element, before the engine exists
+
+The Decision above says the mode "is read once from the options at construction and no
+attribute changes it", and the table of alternatives below rejects a per-container
+`data-snav-mode="app"`. Both sentences were written when nothing in the package read
+such an attribute, and nothing did until today. The vanilla auto-mount helper
+([ADR-0023](0023-vanilla-auto-mount.md)) now reads `data-snav-mode` off the root element —
+`document.documentElement` by default — and passes the parsed value to the plugin factory the
+caller supplied. This record says what that does and does not change.
+
+**The rejection stands, in full.** What the table rejects is a *per-container* mode: a mode
+that depends on where the focus currently is, that can change mid-move as the walk goes out to
+a parent, and that reintroduces the "who owns this arrow key" ambiguity APG exists to remove.
+None of that is touched. `data-snav-mode` is read on one element, once, and only by a helper
+that has not yet constructed anything; no container carries it, no walk consults it, and no
+running engine watches it.
+
+**"No attribute changes it" is still true, and is the precise wording that survives.** The
+attribute does not *change* the mode — it *sources* the option, at construction, in the place
+where a caller would otherwise have typed a string. `spatialPlugin` is untouched: it still
+reads `options.mode ?? "composite"` on one line (`src/spatial/spatial.ts:238-239`) and still
+has no idea an attribute exists. A consumer calling `createInputSystem` directly sees no
+change at all.
+
+**Why the default had to be the conservative one here too.** `readMode` returns `app` only for
+the exact string `app` (`src/auto/auto.ts:65-67`): a typo, an empty value, `APP`, or a missing
+attribute all give `composite`. A helper that guessed generously would hand a content site the
+one mode this record spends its Consequences warning content sites away from, and it would do
+it from a markup typo.
+
+**What this costs.** `data-snav-mode` is the first `data-snav-*` name that only a helper reads.
+A page that sets it and never calls `autoMount` gets silence — no warning, no effect. That is
+the price of keeping the engine free of it, and it is named here rather than discovered.
+
 ## Alternatives considered
 
 | Option | Why not |
