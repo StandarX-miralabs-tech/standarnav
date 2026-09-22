@@ -19,7 +19,7 @@ computed visibility are exactly where jsdom and the browsers disagree".
 The material to port was a known quantity: roughly 160 core cases and 8 React-adapter cases,
 inherited from the predecessor implementation ([ADR-0002](0002-license-and-copyright.md)) and not
 re-derived here. What the port produced is countable in this repository instead, and the amendment
-below records it: 343 passed and 1 skipped across 22 test files.
+below record it: 357 passed and 1 skipped across 23 test files today.
 
 Those browser tests are not unit tests of a plugin in isolation:
 `src/spatial/spatial.browser.test.ts:2` and `src/gamepad/gamepad.browser.test.ts:2` both import
@@ -170,6 +170,32 @@ on chromium.
 One configuration change belongs here too: `vitest.config.ts` no longer sets `passWithNoTests`, so
 a project that matches no file now fails the run instead of passing it. That was harmless while
 there was nothing to run and is a real gate now that there is.
+
+## Amendment, 2026-09-22: decision 5 binds adapters, and the vanilla auto-mount is not one
+
+Decision 5 asks every adapter to reproduce the behaviours of `src/adapter-parity.ts`, and the
+amendment above records that the suite grew from six to eleven cases. `@standarx/nav/auto`
+([ADR-0023](0023-vanilla-auto-mount.md)) ships without running it, and this record says why
+rather than leaving a subpath that quietly skipped the gate.
+
+**The suite's first case is the one that cannot be met.** "Builds exactly one system, and not
+during the first render" (`src/adapter-parity.ts:84`) asserts over `ParityProbe.renders()` — what
+the system was on each render pass — and the `ParityAdapter` contract asks for `mount`, `update`,
+`settle` and `act` around a provider with two nested scope components (`:57-76`). A vanilla
+helper has no render pass, no provider and no components. Satisfying the suite would mean
+inventing all three for the fixture, and a test that asserts its own fixture is not a gate.
+
+**What it runs instead.** Fourteen browser cases in `src/auto/auto.browser.test.ts`, on the three
+engines like every other browser file: the two plugin shapes, the two forwarded
+`createInputSystem` options, four on the mode read from the markup, three on a document still
+parsing, and two on `destroy`. Decision 2 (a behaviour touching the DOM is a `*.browser.test.ts`)
+and decision 3 (three engines) apply unchanged; only decision 5 does not, and only because it is
+addressed to adapters.
+
+**Suite state on the day of this amendment.** `bun run test:unit` → 100 passed in 10 files.
+`bun run test:browser` → 257 passed and 1 skipped in 13 files. 357 passed, 1 skipped in total,
+across 23 test files. The single skip is still the shadow-DOM fixture of
+[ADR-0008](0008-shadow-dom.md). Both commands run in this repository on 2026-09-22.
 
 ## Consequences
 

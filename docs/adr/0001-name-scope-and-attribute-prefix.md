@@ -37,16 +37,22 @@ experience, risk — scored the shortlist out of 10.
 | CSS custom properties | `--snav-focus-ring-*`, `--snav-keyboard-*` |
 
 One package, subpath exports: `@standarx/nav` (core), `/gamepad`, `/spatial`,
-`/focus-ring`, `/debug`, `/keyboard` with one subpath per layout (`/keyboard/qwerty`,
-`/keyboard/azerty`, `/keyboard/alphabetic`), and the React adapter `/react`
+`/focus-ring`, `/debug`, `/auto`, `/keyboard` with one subpath per layout
+(`/keyboard/qwerty`, `/keyboard/azerty`, `/keyboard/alphabetic`), and the React
+adapter `/react`
 ([ADR-0011](0011-package-layout-and-adapters.md)). The `/vue`, `/svelte` and
 `/angular` names are reserved by this decision for adapters that are planned and
 not built: this repository has no `src/vue`, `src/svelte` or `src/angular`.
-`vanilla` is the core itself. `0.1.0` is on npm since 2026-09-22; v0 is in progress.
+`vanilla` is the core itself, and `/auto` is its start-up helper rather than an
+adapter ([ADR-0023](0023-vanilla-auto-mount.md)).
+`0.1.0` is on npm since 2026-09-22; v0 is in progress.
 
-Attributes read from the markup: `data-snav="container"`, `data-snav-enter`,
-`data-snav-wrap`, `data-snav-block`, `data-snav-trap`, `data-snav-scroll`,
-`data-snav-ignore`, `data-snav-up/down/left/right`. Names written by the engine:
+Attributes read from the markup by the spatial engine: `data-snav="container"`,
+`data-snav-enter`, `data-snav-wrap`, `data-snav-block`, `data-snav-trap`,
+`data-snav-scroll`, `data-snav-ignore`, `data-snav-up/down/left/right`. One more is
+read by the auto-mount helper and by no engine: `data-snav-mode`, `app` or
+`composite`, on the root element ([ADR-0023](0023-vanilla-auto-mount.md)).
+Names written by the engine:
 
 | Name | Written on |
 |---|---|
@@ -107,6 +113,20 @@ and `--snav-keyboard-color` with the preview row — the box declared a backgrou
 which on a light page painted the page's text colour onto it. That is **eleven** custom
 properties in two families, frozen at v1 on the same terms: adding one is a minor change,
 renaming or removing one is breaking. The Decision table names both families.
+
+**Amended 2026-09-22: `/auto`, and the first read name no engine reads.** The subpath list above
+gains `/auto`, the vanilla auto-mount helper of [ADR-0023](0023-vanilla-auto-mount.md). It is not
+one of the three reserved adapter names and does not spend one: `vanilla` is still the core
+itself, and `/auto` is a start-up helper next to it rather than an adapter.
+
+With it comes `data-snav-mode`, and it is a different kind of name from every other in this
+record. Until now the read list was the spatial engine's vocabulary and the written list was
+what the engine and its plugins stamp on the page. `data-snav-mode` is read by neither: only
+`autoMount` looks at it, on the root element, once, before any engine exists. A page that sets
+it and calls nothing gets silence. It is in this record anyway, because the contract this record
+freezes is the `data-snav-*` namespace and not the subset of it the engine happens to consume —
+a future rename of `data-snav-mode` is as breaking for a consumer's HTML as a rename of
+`data-snav-trap`.
 
 ## Consequences
 

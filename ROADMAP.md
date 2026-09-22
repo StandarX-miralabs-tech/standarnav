@@ -144,7 +144,6 @@ that land on `main` were never seen by CI.
 
 - [ ] Freeze the public API: entry points, attribute names, option names, event payloads
 - [ ] Write the deprecation policy that the freeze implies
-- [ ] Vanilla auto-mount helper: build the containers from the attributes with no framework
 - [ ] Vue adapter, on the same browser test suite
 - [ ] Svelte adapter, on the same browser test suite
 - [ ] Angular adapter, on the same browser test suite

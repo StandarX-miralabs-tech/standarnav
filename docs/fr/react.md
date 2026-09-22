@@ -69,7 +69,10 @@ L'adaptateur est tenu à une suite partagée plutôt qu'à des tests de sa propr
 `src/adapter-parity.ts` est le contrat que tout adaptateur de framework doit satisfaire — un seul
 système et pas pendant le premier rendu, un ordre de portées LIFO, une portée libérée quand seul son
 propre sous-arbre est démonté, un piège qui arrête le parcours, une portée de base atteinte à
-travers ce piège, et une base réenregistrée à un nouveau rendu. Les adaptateurs qui suivent — un
-utilitaire d'auto-montage vanilla, puis Vue, Svelte et Angular, dans l'ordre
+travers ce piège, et une base réenregistrée à un nouveau rendu. Les adaptateurs qui suivent — Vue,
+Svelte et Angular, dans l'ordre
 d'[ADR-0011](../adr/0011-package-layout-and-adapters.md) — passent la même suite avant d'être
-livrés.
+livrés. L'utilitaire d'auto-montage vanilla livré avant eux, non, et
+[ADR-0023](../adr/0023-vanilla-auto-mount.md) est le registre du pourquoi : la suite affirme
+ce que fait un fournisseur à travers un rendu, et cet utilitaire n'a ni l'un ni l'autre
+([Auto-montage](auto.md)).

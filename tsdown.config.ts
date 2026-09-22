@@ -10,6 +10,7 @@ const config: UserConfig = defineConfig({
     "src/spatial/spatial.ts",
     "src/focus-ring/focus-ring.ts",
     "src/debug.ts",
+    "src/auto/auto.ts",
     "src/react/react.tsx",
     "src/keyboard/keyboard.ts",
     // One entry per layout, never one module holding them all: a French application must
@@ -33,6 +34,7 @@ const config: UserConfig = defineConfig({
         "./gamepad/gamepad": "./gamepad",
         "./spatial/spatial": "./spatial",
         "./focus-ring/focus-ring": "./focus-ring",
+        "./auto/auto": "./auto",
         "./react/react": "./react",
         "./keyboard/keyboard": "./keyboard",
         // `layouts/` is a directory, not a subpath: a consumer writes
