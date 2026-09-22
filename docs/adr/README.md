@@ -58,16 +58,16 @@ Rules that go with that skeleton:
   in the prose so the mismatch is visible when it does.
 - Related records are linked by file name, relative to this directory:
   `[ADR-0003](0003-package-boundaries.md)`.
-- Length: 60 to 150 lines is the target **for a new record**. The twenty-one below
-  run from 74 to 504 lines (`wc -l docs/adr/0*.md`, 2026-09-22), because an
+- Length: 60 to 150 lines is the target **for a new record**. The twenty-two below
+  run from 74 to 544 lines (`wc -l docs/adr/0*.md`, 2026-09-22), because an
   accepted record grows by amendment. The target governs the first draft; an
   amendment is judged on whether it says something the record did not, not on the
   line count it adds.
 
 ## Adding one
 
-1. Take the next free number. The highest in use is ADR-0022, so the next is
-   ADR-0023. Numbers are never reused, and a superseded record keeps its number.
+1. Take the next free number. The highest in use is ADR-0023, so the next is
+   ADR-0024. Numbers are never reused, and a superseded record keeps its number.
    ADR-0004 is the one gap: it recorded a migration plan for the private
    predecessor rather than a decision of this repository, so it was withdrawn on
    2026-09-20 instead of superseded, its one design decision — the focus ring's
@@ -93,8 +93,11 @@ and one named detail inside it still waits on the owner. Two rows changed on
 2026-09-20: ADR-0009 moved from Proposed to Accepted when its two behaviour
 changes were settled in opposite directions, and ADR-0012's rider closed on
 release-please. On 2026-09-22 ADR-0012 gained the first publication and the
-switch to trusted publishing, and the `docs/en` and `docs/fr` of ADR-0015 came
-into existence. Every such change carries a dated amendment in its record.
+switch to trusted publishing, the `docs/en` and `docs/fr` of ADR-0015 came
+into existence, and ADR-0011's rider closed on `@standarx/nav/auto` when
+[ADR-0023](0023-vanilla-auto-mount.md) named it — leaving four records carrying
+one: ADR-0010, ADR-0013, ADR-0014 and ADR-0015. Every such change carries a
+dated amendment in its record.
 
 | ADR | Title | Status | What it decides |
 |---|---|---|---|
@@ -107,7 +110,7 @@ into existence. Every such change carries a dated amendment in its record.
 | [0008](0008-shadow-dom.md) | Light DOM only in v0 (shadow DOM is a non-goal) | Accepted | No shadow traversal in v0; the escape hatch is an explicit root. `getFocusables` and `contains` deliberately disagree about a shadow boundary, and the evolution path ships as the suite's one skipped fixture. |
 | [0009](0009-hidden-candidates.md) | Which candidates count as visible | Accepted | Which elements are dropped from a move. The zero-size change (C1) is accepted for v0 and shipped in this pull request, pinned by three fixtures; `opacity: 0` (C2) is refused for v0 and deferred to v1. |
 | [0010](0010-dev-mode-diagnostics.md) | Development-mode diagnostics | Accepted, one rider Proposed | A `@standarx/nav/debug` subpath with a reachability scan, depth and redirection warnings, and `explainMove` calling the engine's own winner rule. Open: (O1) the `cursor: pointer` heuristic default. |
-| [0011](0011-package-layout-and-adapters.md) | One package, subpath exports, adapters as subpaths | Accepted, one rider Proposed | One published package with ten subpaths built today, adapters as optional peers, React shipped and passing the parity suite, zero runtime dependencies enforced by `check:package`. Open: the subpath name of the vanilla auto-mount helper. |
+| [0011](0011-package-layout-and-adapters.md) | One package, subpath exports, adapters as subpaths | Accepted | One published package with eleven subpaths built today, adapters as optional peers, React shipped and passing the parity suite, zero runtime dependencies enforced by `check:package`. Its one rider closed on 2026-09-22: the vanilla auto-mount helper is `/auto` ([ADR-0023](0023-vanilla-auto-mount.md)). |
 | [0012](0012-versioning-and-release.md) | Versioning and release | Accepted | Semver from 0.x with breaking minors, publication from CI with provenance, `next` dist-tag for device trials, and release-please deriving the version and the CHANGELOG from the commit history. The tooling released `0.1.0` on 2026-09-22 with a signed provenance statement; from the same day the publish authenticates through npm trusted publishing, direct publish allowed, and the token that published `0.1.0` is to be revoked. A `.md`-only change is `docs`, never `fix(docs)`. |
 | [0013](0013-browser-baseline-and-fallbacks.md) | Browser baseline: most recent first, fallbacks for older runtimes | Accepted, one rider Proposed | Build target es2020, a fallback for every newer API, and three support tiers. Open: the decision date for a separate legacy build. |
 | [0014](0014-device-and-browser-matrix.md) | Device and browser test matrix | Accepted, one rider Proposed | Three engines in CI, no device claim without a dated device report, a matrix in three columns of which two are empty today. Open: which devices are bought and which are borrowed. |
@@ -119,3 +122,4 @@ into existence. Every such change carries a dated amendment in its record.
 | [0020](0020-focus-ring-defaults.md) | Focus ring defaults, and why no stylesheet ships | Accepted | The plugin paints itself inline; six custom properties override every value, with the contrast figures and the two limits the choice carries. |
 | [0021](0021-native-select-on-television.md) | A native `<select>` on a television, and what the package offers instead | Accepted | A closed `<select>` opens a platform popup the engine cannot see, and the trap is invisible on a desktop. A `scanNativeSelects` diagnostic in the debug subpath names it; a trigger-and-list recipe replaces it. Why no runtime warning, and the two bus mechanics the recipe depends on. |
 | [0022](0022-virtual-keyboard.md) | The virtual keyboard — layout data, insertion, and what closes it | Accepted | Keys take real focus; a layout is data in its own module with no registry; insertion is `beforeinput`, mutate, `input`, with the framework-tracking risk named; `back` closes and keeps, deliberately unlike engage mode; composition deferred to its own ADR. Built, then amended three times against a real page: `activate` opens it, the box paints and places itself, and a preview row at its bottom draws the caret the field cannot show and moves it with the directions — decision 9 reversed on 2026-09-21. |
+| [0023](0023-vanilla-auto-mount.md) | The vanilla auto-mount helper is `@standarx/nav/auto` | Accepted | Closes ADR-0011's rider on the subpath name. `autoMount()` is a factory, never a side-effecting import, and adds exactly two things to `createInputSystem`: it waits for `DOMContentLoaded` when the document is still parsing, and it lets the page pick the navigation mode through a new `data-snav-mode` attribute read once off the root. `plugins` takes a factory so that attribute can reach an engine at all. No engine is imported, and the adapter parity suite is not run — there is no render pass to satisfy it with. |
