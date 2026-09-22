@@ -6,8 +6,9 @@ Deciders: Wesley Cormier
 
 The versioning scheme, the publication channel and the changelog tool are all decided. The tool is
 **release-please**, settled by the owner on 2026-09-20 (first amendment at the foot of this record);
-it is wired as of the third amendment and has never run, because the workflow triggers on a push to
-`main` and this is still a branch.
+it is wired as of the third amendment and ran for the first time on 2026-09-22, when the extraction
+branch reached `main` — and stopped at an organisation setting, the fifth amendment at the foot of
+this record. The first version is pinned to `0.1.0` there.
 
 ## Context
 
@@ -222,6 +223,39 @@ typecheck and the chromium browser project against the declared peer floor. A re
 carries a version bump and a CHANGELOG and cannot move the React peer contract, so the tag is not
 less verified for it — but the claim was wider than the workflow, and the workflow's own header
 comment said the same thing until this amendment corrected both.
+
+## Amendment, 2026-09-22 (second): the first run, and the two defaults it exposed
+
+The workflow ran for the first time when pull request #1 reached `main` at `4bef558`. release-please
+read the 105 commits, built the release pull request, pushed its branch, and failed on the last
+call: "GitHub Actions is not permitted to create or approve pull requests". Nothing was tagged;
+`verify` and `publish` were skipped. The setting is the organisation's — Settings, Actions, General,
+Workflow permissions, "Allow GitHub Actions to create and approve pull requests" — and the
+repository-level equivalent refuses with a conflict until the organisation allows it. That switch is
+the owner's; the run is replayed once it is on.
+
+Two defaults surfaced before the failure, and both contradicted this record.
+
+**1. It computed `1.0.0`, not `0.1.0`.** Not from a breaking change — no commit on `main` carries
+`!` or `BREAKING CHANGE` — but because no release exists yet: the manifest's `0.0.0` matches no tag,
+so `bump-minor-pre-major` never enters the calculation, and the first version is release-please's
+`initial-version`, which defaults to `1.0.0`. The Decision says `0.1.0`, and the owner confirmed it
+on 2026-09-22 when asked whether to take the `1.0.0` instead: a `1.0.0` freezes the attribute names
+([ADR-0006](0006-declarative-first.md) makes any rename after it a major) before a single
+television has run the engine. So `release-please-config.json` gains `initial-version: 0.1.0`, in
+its own commit after this one.
+
+**2. The tag would have been `nav-v1.0.0`.** In a manifest configuration `include-component-in-tag`
+defaults to true, with the component derived from the package name, which is why the branch the
+run created is `release-please--branches--main--components--nav` and its commit is "release nav
+1.0.0". One package, one tag: `include-component-in-tag: false` in the same config commit, so the
+tag is `v0.1.0`, the branch `release-please--branches--main`, and the pull request "chore(main):
+release 0.1.0". The branch under the old name is deleted by hand once the new one exists. Nothing in
+this repository named a tag format before this amendment, and the trusted-publishing plan above does
+not depend on one.
+
+What stands between the release pull request and npm is unchanged: `NPM_TOKEN` and 2FA. Merging that
+pull request before both exist creates the tag and a red `publish`, not a release.
 
 ## Alternatives considered
 

@@ -25,8 +25,8 @@ Closes #
 One sentence describing what changed for someone consuming the package, naming the
 affected subpath. This is what the CHANGELOG entry is written from at release time:
 release-please is the accepted tool (ADR-0012) and writes the changelog from the commit
-history, but it has never run — its workflow only fires on a push to `main` — so the
-sentence lives here. Documentation-only or internal changes: write "internal only" instead.
+history, but no release has shipped yet, so the sentence lives here.
+Documentation-only or internal changes: write "internal only" instead.
 -->
 
 ## Checklist

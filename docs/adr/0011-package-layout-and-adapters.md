@@ -172,7 +172,8 @@ different question. Those figures are inherited from the predecessor implementat
 on). Real advantages: independent versioning, non-optional peers, and a lockfile that never
 mentions frameworks the consumer does not use. Rejected for v0: up to nine packages to publish,
 cross-package ranges to keep coherent, and a release pipeline wired for a single root package that
-has never run ([ADR-0012](0012-versioning-and-release.md)). Subpaths can become packages later.
+has not shipped a release ([ADR-0012](0012-versioning-and-release.md)). Subpaths can become
+packages later.
 
 **A single package with everything in the root entry.** Simplest map, one import. Rejected: it
 puts gamepad polling and the focus-ring overlay in the dependency graph of an app that only wants

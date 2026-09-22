@@ -16,8 +16,9 @@ once a release has actually run.
 
 The engine navigates between focusable elements, the five controls that hold a value are wired, the
 `<select>` question is answered and the on-screen keyboard is built. **One thing blocks the first
-publication**: the release tooling is wired but has never run, and the account it would publish from
-has neither a token nor 2FA.
+publication**: the release tooling is wired and ran once, on 2026-09-22, stopping at an organisation
+setting before it could open the release pull request; and the account it would publish from has
+neither a token nor 2FA.
 
 The two sections below are not blockers. The keyboard's open items are limitations of a shipped
 module, documented rather than discovered; the release section is the blocker.
@@ -91,7 +92,10 @@ playground rule that stretched the box over the field.
 The wiring is in place: `release-please-config.json`, `.release-please-manifest.json` and
 [.github/workflows/release.yml](.github/workflows/release.yml), three jobs — release-please, a
 verify that replays every gate on the tag, then a publish that calls the npm CLI with
-`--provenance`. It has never run: nothing reaches it until this branch is on `main`.
+`--provenance`. It ran for the first time on 2026-09-22, when the extraction branch reached `main`,
+and stopped at the organisation setting that lets Actions open a pull request
+([ADR-0012](docs/adr/0012-versioning-and-release.md), fifth amendment); the first version it will
+propose is pinned to `0.1.0` there.
 
 Two things about its shape are worth knowing before reading it. The publish job lives in the
 **same run** as release-please rather than in a tag-triggered workflow, because GitHub does not
@@ -100,8 +104,9 @@ pull request with no checks would have left a tag-triggered publish never runnin
 verify job exists precisely because of that missing-checks half: the version bump and the CHANGELOG
 that land on `main` were never seen by CI.
 
-- [ ] First npm publication of a 0.x version with provenance. Needs a granular `NPM_TOKEN` secret,
-      2FA on the publishing account, and the owner's hand on the merge of the release pull request
+- [ ] First npm publication of a 0.x version with provenance. Needs the organisation to allow
+      Actions to open the release pull request, a granular `NPM_TOKEN` secret, 2FA on the
+      publishing account, and the owner's hand on the merge of that pull request
 - [ ] Record the published size from the registry after that publication — measure first
 - [ ] Move to npm trusted publishing and revoke the token. A trusted publisher is configured on an
       existing package, so this can only happen after the first publication
