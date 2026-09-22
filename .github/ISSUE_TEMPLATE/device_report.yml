@@ -74,7 +74,7 @@ body:
       description: >
         One button per line, as reported by the keydown event (keyCode, key, or code).
         The placeholder shows the webOS Back and Tizen Exit codes carried by the default keymap
-        (source: miralabs-ui packages/core/src/input/keymap.ts, read 2026-09-18).
+        (src/keymap.ts).
       placeholder: |
         Back: keyCode 461
         Exit: keyCode 10182
@@ -87,6 +87,14 @@ body:
     attributes:
       label: Date of the run
       placeholder: "YYYY-MM-DD"
+    validations:
+      required: true
+
+  - type: input
+    id: snav-version
+    attributes:
+      label: standarnav version or commit under test
+      placeholder: "commit sha, or the version of the build you made"
     validations:
       required: true
 

@@ -10,6 +10,10 @@ const browser = (process.env.SNAV_BROWSER ?? "chromium") as PlaywrightBrowser;
 
 const config: ViteUserConfig = defineConfig({
   test: {
+    // `passWithNoTests` was set here while `src/` did not exist, so the scaffold did
+    // not ship a gate that was already red. Both projects match files now, and an
+    // empty project means the globs below stopped matching — a discovery breakage
+    // that must be as red as a failing assertion, not a green run of nothing.
     projects: [
       {
         test: {
@@ -17,14 +21,12 @@ const config: ViteUserConfig = defineConfig({
           environment: "node",
           include: ["src/**/*.test.ts", "src/**/*.test.tsx", "scripts/**/*.test.ts"],
           exclude: ["**/*.browser.test.ts", "**/*.browser.test.tsx"],
-          benchmark: { include: ["src/**/*.bench.ts"] },
         },
       },
       {
         test: {
           name: "browser",
           include: ["src/**/*.browser.test.ts", "src/**/*.browser.test.tsx"],
-          benchmark: { include: [] },
           browser: {
             enabled: true,
             provider: playwright(),

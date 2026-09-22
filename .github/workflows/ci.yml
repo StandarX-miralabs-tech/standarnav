@@ -9,21 +9,30 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+# The runner is pinned rather than tracking `ubuntu-latest`, which migrates to Ubuntu 26
+# on 2026-10-19. Every other form of drift here is already barred — build output, size
+# budgets, the React floor, the citation anchors — and an operating system that changes
+# under the browser matrix with no commit to point at is the same class of problem.
+# Moving it is a deliberate bump, reviewed like any other.
 jobs:
   lint:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version-file: .bun-version
       - run: bun install --frozen-lockfile
       - run: bun run lint
+      # Every document cites the code by `path:line`, and those anchors drift the
+      # moment a line is inserted above them. Two review passes shipped anchors
+      # pointing at the wrong line before this existed.
+      - run: bun run check:docs
 
   typecheck:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version-file: .bun-version
@@ -31,9 +40,9 @@ jobs:
       - run: bun run typecheck
 
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version-file: .bun-version
@@ -49,30 +58,67 @@ jobs:
         run: bun run check:size
 
   test:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version-file: .bun-version
       - run: bun install --frozen-lockfile
       - run: bun run test:unit
 
+  # `package.json` declares `react` and `react-dom` as optional peers at `>=18.3.0`,
+  # while the lockfile pins 19 and every job above installs `--frozen-lockfile`. The
+  # floor of that range was therefore never built, typechecked or run anywhere: a
+  # promise the repository had no means of keeping. This job keeps it, or the range
+  # gets narrowed to what is tested.
+  react-floor:
+    name: react 18.3 (the declared peer floor)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+      - run: bun install --frozen-lockfile
+      - name: Install the declared floor
+        run: bun add --dev react@^18.3.1 react-dom@^18.3.1 @types/react@^18.3 @types/react-dom@^18.3
+      # The types are half the contract: 18 and 19 differ on `ReactNode` and on the
+      # JSX namespace, and the provider's props are exported `.d.ts` surface.
+      - run: bun run typecheck
+      - name: Resolve the playwright version
+        id: playwright
+        run: echo "version=$(bun pm ls | grep -oP '(?<![-\w])playwright@\K[0-9.]+' | head -1)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ steps.playwright.outputs.version }}-chromium
+      - run: bun x playwright install --with-deps chromium
+      # One engine is enough here: what is under test is the React version, and the
+      # browser matrix is covered by the job below.
+      - run: bun run test:browser
+        env:
+          SNAV_BROWSER: chromium
+
   browser:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
         browser: [chromium, firefox, webkit]
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: oven-sh/setup-bun@v2
         with:
           bun-version-file: .bun-version
       - run: bun install --frozen-lockfile
+      # The lookbehind is load-bearing: `bun pm ls` prints @vitest/browser-playwright
+      # first, an unanchored pattern matches inside its tail, and the key would then carry
+      # that package's version — never changing when playwright itself is bumped, and
+      # restoring last release's browser binaries for this one.
       - name: Resolve the playwright version
         id: playwright
-        run: echo "version=$(bun pm ls | grep -oP 'playwright@\K[0-9.]+' | head -1)" >> "$GITHUB_OUTPUT"
+        run: echo "version=$(bun pm ls | grep -oP '(?<![-\w])playwright@\K[0-9.]+' | head -1)" >> "$GITHUB_OUTPUT"
       - uses: actions/cache@v4
         with:
           path: ~/.cache/ms-playwright

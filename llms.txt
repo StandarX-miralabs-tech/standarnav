@@ -1,0 +1,147 @@
+# standarnav (@standarx/nav)
+
+> Spatial navigation for the web: d-pad, gamepad sticks, TV remotes and arrow keys drive real DOM focus, declared in data attributes. Headless TypeScript, zero runtime dependencies, ESM only. Unreleased: nothing is on npm yet, and the `data-snav-*` names are not frozen before v1.
+
+This file is for an assistant helping someone use the package. The facts below are read from the source at the commit that published this file; when they disagree with the linked documents, the documents are newer.
+
+## What the package is, and is not
+
+- It moves the browser's real focus (`element.focus()`, `document.activeElement`). There is no virtual cursor and no focus registry.
+- It ships **no component, no stylesheet and no widget**. A slider, a picker, a listbox or a dropdown is the application's markup; the package gives it the input grammar. Recipes for those controls live in the playground, linked below, and are meant to be copied.
+- One instance per document, never a global: `createInputSystem(...)` returns a system with `destroy()`. Options are read once at construction; to change a mode or a plugin option, destroy and rebuild. The only things adjustable live are the gamepad plugin's `setMapping` and `assign`.
+- Throws without a `document` (server render). Construct it in an effect or after mount.
+
+## Entry points
+
+Ten entry points in `package.json` `exports`; the root deliberately does not re-export the engines, so a consumer pays only for what it imports.
+
+- `@standarx/nav` — `createInputSystem`, `pushEngageScope`, `createIntentBus`, `createIntentEvent`, `resolveKeyIntent`, `isTextEntryTarget`, `isIntentAllowedInTextEntry`, modality helpers (`getInputModality`, `setInputModality`, `trackInputModality`, `isFocusVisible`, `isFocusVisibleModality`, `MODALITY_ATTRIBUTE`), focusability primitives (`FOCUSABLE_SELECTOR`, `focusElement`, `getFocusables`, `isFocusable`, `isTabbable`), and the types.
+- `@standarx/nav/spatial` — `spatialPlugin(options)`: the engine that turns `moveUp/Down/Left/Right` into a focus move. Without it, arrow keys and d-pads produce intents and nothing moves.
+- `@standarx/nav/gamepad` — `gamepadPlugin(options)`: polls `navigator.getGamepads`, standard mapping, dead zones, repeat, rumble.
+- `@standarx/nav/focus-ring` — `focusRingPlugin(options)`: one overlay element that follows `focusin`, painted inline, styled through six custom properties.
+- `@standarx/nav/keyboard` — `keyboardPlugin({ layout, ... })`: an on-screen keyboard whose keys are real buttons the engine navigates.
+- `@standarx/nav/keyboard/qwerty`, `/keyboard/azerty`, `/keyboard/alphabetic` — layout data only (`qwerty`, `azerty`, `alphabetic` exports). Import one; nothing registers itself.
+- `@standarx/nav/react` — `NavProvider`, `useIntent`, `useInputSystem`, `useIntentScopeHost`, `useInputModality`, `NavDocumentProvider`. React 18.3+ is an optional peer.
+- `@standarx/nav/debug` — `explainMove(origin, direction, { root?, score? })` returns the scored candidates and the winner of a move; `scanNativeSelects(root)` lists the closed native `<select>`s a television cannot navigate.
+
+## Minimal setup
+
+```ts
+import { createInputSystem } from "@standarx/nav";
+import { spatialPlugin } from "@standarx/nav/spatial";
+import { gamepadPlugin } from "@standarx/nav/gamepad";
+import { focusRingPlugin } from "@standarx/nav/focus-ring";
+
+const input = createInputSystem({
+  plugins: [spatialPlugin({ mode: "app" }), gamepadPlugin(), focusRingPlugin()],
+});
+// later: input.destroy();
+```
+
+`mode: "app"` is what makes arrow keys move across the page. The default, `"composite"`, leaves keyboard arrows to the page's own composite widgets (APG-strict) and only a gamepad crosses the page. A television, a kiosk or a dashboard wants `"app"`.
+
+`createInputSystem` options: `doc`, `plugins`, `keymap` (`{ keys: { [event.key]: intent | null }, keyCodes: { [event.keyCode]: intent | null } }`; `null` disables a default row and lets the browser's native behaviour survive), `allowVerticalInText` (off by default).
+
+The system: `pushScope(handler, { trapped?, base? })` returns a dispose; `emit(init)`; `onIntent(listener)`; `onModalityChange(listener)`; `pause()`; `resume()`; `destroy()`; `modality`.
+
+## Markup contract (read by the engine)
+
+| Attribute | On | Value |
+|---|---|---|
+| `data-snav="container"` | any element | declares a navigation container; moves are scored inside it first, nested containers count as one candidate |
+| `data-snav-enter` | a container | `last` (default; falls back to `nearest`), `first`, `nearest` |
+| `data-snav-wrap` | a container | `x`, `y`, `both`, or bare |
+| `data-snav-block` | a container | directions separated by spaces, or bare for all |
+| `data-snav-trap` | a container | bare; a move never leaves it |
+| `data-snav-scroll` | a container | `center` |
+| `data-snav-ignore` | any element | bare; not a candidate |
+| `data-snav-up` / `-down` / `-left` / `-right` | a focusable | a CSS selector; that direction goes to the first match in the document before any geometry |
+
+Written by the engine, for styling: `data-snav-focused` (the focused element), `data-snav-active` (every container on the path to it), `data-snav-input` on `<html>` (`keyboard`, `pointer`, `touch`, `gamepad`), `data-snav-focus-ring` (the ring overlay), `data-snav-editing` (the field the on-screen keyboard is open on), `data-snav-keyboard` (the keyboard box, valued with the layout id), `data-snav-keyboard-row`, `data-snav-keyboard-preview`, `data-snav-keyboard-caret`.
+
+Focusable means the platform's own rule: `input`, `select`, `textarea`, `button`, `a[href]`, `area[href]`, `iframe`, `object`, `embed`, `audio[controls]`, `video[controls]`, `summary`, `[contenteditable]`, `[tabindex]`, minus `disabled`, hidden and `inert`. A clickable `div` needs `tabindex="0"`. `aria-hidden` and `aria-disabled` elements stay candidates on purpose. An element with a zero width or height is dropped; `opacity: 0` is not. Shadow roots are not traversed in v0.
+
+## Intents and where they come from
+
+`NavigationIntent`: `moveUp`, `moveDown`, `moveLeft`, `moveRight`, `select`, `secondary`, `back`, `contextMenu`, `tabNext`, `tabPrev`, `pageUp`, `pageDown`, `home`, `end`, `scrollX`, `scrollY`. An `IntentEvent` carries `intent`, `source` (`keyboard`, `gamepad`, `remote`), `repeat`, `value` (-1..1, analogue intents only), `originalEvent`, `defaultPrevented`, `preventDefault()`.
+
+Default keymap: arrows → moves; Enter and Space → `select`; Escape → `back`; Tab → `tabNext`, Shift+Tab → `tabPrev`; PageUp/PageDown/Home/End; ContextMenu and Shift+F10 → `contextMenu`. TV remotes: `GoBack`, `BrowserBack`, `Exit` → `back`; `ChannelUp`/`ChannelDown` → `pageUp`/`pageDown`; keyCodes 461 (webOS Back), 10009 (Tizen Return), 10182 (Tizen Exit), 427/428 (channel). Anything with Ctrl, Alt or Meta produces nothing. Shift+arrow produces nothing (it is the range-extend gesture). Left/right are physical and never mirrored for RTL.
+
+Gamepad standard mapping: button 0 (A/Cross) → `select`, 1 (B/Circle) → `back`, 2 (X/Square) → `secondary`, 3 (Y/Triangle) → `contextMenu`, 4/5 (LB/RB) → `tabPrev`/`tabNext`, 6/7 (LT/RT) → `pageUp`/`pageDown`, 9 (Start) → `contextMenu`, 12–15 (d-pad) → moves, left stick → moves through four sticky sectors, right stick → `scrollX`/`scrollY`. `swapNintendoConfirm` puts confirm on the glyph instead of the position.
+
+## Scopes: how an application handles an intent
+
+```ts
+const dispose = input.pushScope((event) => {
+  if (event.intent !== "back") return false; // not mine, keep walking
+  closeDialog();
+  return true; // consumed
+}, { trapped: true });
+```
+
+- The top scope is asked first; returning `true` ends the walk and the system calls `preventDefault()` on the key that carried the intent, in the capture phase.
+- `trapped: true` swallows every intent it does not handle, except `back`, `tabNext` and `tabPrev`, which always escape (a dialog must be leavable; Tab is the focus trap's business).
+- `base: true` is asked even through a trap. The spatial engine is a base scope: a trapped dialog still gets d-pad movement inside it. The confinement comes from `data-snav-trap` on the dialog's container, not from the scope.
+- An unclaimed `select` from a gamepad or remote clicks the focused element, so A works on a button, a checkbox or a link with no code. It never does that for a keyboard source (the browser already clicks), never on repeat, and never on a text-entry target. Inside a trapped scope nothing clicks the focused element for you: the scope has to call `.click()` itself.
+- `spatialPlugin` also exposes `move(direction)`, `focus(elementOrSelector)`, `focusFirst(container?)`, `onWillMove(listener)` (call `event.preventDefault()` to veto), `onBoundsHit(listener)`.
+
+## Engage mode: controls that hold a value
+
+A gamepad cannot drag. `pushEngageScope(host, { onAdjust(intent, event), onRelease?(committed) })` takes hold of a control: the four moves plus `pageUp`, `pageDown`, `home`, `end` become adjustments, `select` releases with `committed = true`, `back` releases with `committed = false` (restore the entry value). The returned dispose detaches silently and does not call `onRelease`. Recipes for a slider, a stepper, a wheel picker, a listbox, a splitter and a native `<select>` are in `playground/widgets.ts` and are driven by the browser tests.
+
+Constraints to know before writing one:
+
+- A control must not be a text-entry target. `<input type="number">` is one, so `select` never reaches it and it cannot be engaged; the stepper recipe uses a `<button>` that owns the value. `<input type="range">` is fine.
+- Enter engage through a scope that claims `select` while the control is focused, not through a click handler: that is the one route identical for a pad, a remote and a keyboard.
+- Engage returns `tabNext` to the layer beneath, so a user can Tab out of a held control; the recipe releases on `focusout` and redoes the commit-or-restore itself.
+- Backspace as "let go" is bound to the held control, not to the keymap: `back` is allowed inside a text field, so a global Backspace row would erase a character and leave the field at once.
+
+## Pitfalls
+
+- **Text fields are dead ends by design.** Inside `input`, `textarea`, `[contenteditable]`, `role="textbox"` or `role="searchbox"` only `back`, `tabNext`, `tabPrev` and `contextMenu` reach a scope. Left and right never do. `allowVerticalInText: true` lets `moveUp`, `moveDown`, `pageUp` and `pageDown` out, which is what a form on a television needs; leave it off for a `textarea`-heavy page.
+- **A native `<select>` cannot be navigated on a television.** Closed, it opens a platform popup outside the document; the engine loses the focus into it, and on a desktop the bug is invisible because the browser drives its own popup. `scanNativeSelects` in `/debug` finds them. The recipe: claim `select` while the `<select>` is focused (that also suppresses Enter and Space, which would open the popup), open a `data-snav="container" data-snav-trap` list of real buttons built from its `<option>`s, click the focused option yourself, restore focus to the `<select>` on close, intercept `mousedown` (the popup opens on the press) and Alt+ArrowDown (a modifier never reaches the keymap). `multiple` and `size > 1` render in the document and need nothing.
+- **`gamepadPlugin().assign(padIndex, route)` is a total override, not a filter.** With a route set, every intent from that pad goes to the route and never to the shared stack; an intent the route does not re-emit is dropped.
+- **Nothing hot-swaps.** `mode`, `pointerFollowsFocus`, `allowVerticalInText` and every plugin option are read at construction. Rebuild the system to change them.
+- **React: hoist or memoise the plugins.** `NavProvider` compares the `plugins` list element by element; `plugins={[gamepadPlugin()]}` is a new instance every render and rebuilds the whole system. `useInputSystem()` is `null` until the provider's effect has run and on the server; `useIntent` copes with that itself.
+- **Hidden lists and CSS specificity.** A recipe that hides its list with the `hidden` attribute loses to any bare `display` rule on the same element, because `[hidden] { display: none }` has class specificity. Write the rule as `.list:not([hidden]) { display: grid }`.
+- **No `navigator.getGamepads`, no pad.** The gamepad plugin registers nothing when the API is absent (Playwright's WebKit, some television runtimes) rather than throwing inside `createInputSystem`.
+- **`composite` on a laptop looks like nothing happening.** Arrow keys are handed to the page; only Tab and a pad move. Use `mode: "app"` when the whole page is the composite.
+- **`pointerFollowsFocus`** is on in `app` and off in `composite`: under `app` a hover focuses what it crosses, so a mouse and a pad do not fight over two cursors.
+
+## Focus ring and on-screen keyboard
+
+- Focus ring: `focusRingPlugin({ offset?, duration? })`, `refresh()` after a layout change it cannot see. Custom properties, inherited by the overlay: `--snav-focus-ring-z-index` (1700), `--snav-focus-ring-width` (3px), `--snav-focus-ring-color` (#1a73e8), `--snav-focus-ring-offset` (2), `--snav-focus-ring-duration` (260 ms, 150 under reduced motion), `--snav-focus-ring-easing`. A custom property of the wrong type makes the ring compute to nothing with no error. `box-shadow` is suppressed under `forced-colors: active`.
+- On-screen keyboard: `keyboardPlugin({ layout, container?, openOn? })` with `openOn` one of `activate` (default: a click on the field or a `select` on it from any device; never a focus alone), `focus`, `gamepad`, `manual`. Methods `open(field)`, `close()`, `isOpen()`, `target()`. Insertion goes through `beforeinput`, the mutation, then `input`, so a mask can refuse a keystroke by cancelling `beforeinput`. `back` closes and keeps what was typed. `contenteditable` is refused. A layout is `{ id, languages, layers: { [name]: rows }, initialLayer }` where a row is a string (one key per character) or an array of `{ label, value?, action?, shift?, span?, layer? }` with `action` one of `backspace`, `space`, `enter`, `shift`, `layer`, `close`.
+
+## Documentation
+
+- [README](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/README.md): install, usage, the attribute tables, React, how a move is decided, browser support.
+- [Specification](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/docs/specification.md): the problem, the non-goals, the user contract and the numbered requirements.
+- [Roadmap](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/ROADMAP.md): what is open before the first publication, and what v1 freezes.
+- [Decision records index](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/docs/adr/README.md): every ADR with what it decides.
+- [ADR-0007 navigation modes](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/docs/adr/0007-navigation-modes.md): `composite` versus `app`.
+- [ADR-0021 native select on television](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/docs/adr/0021-native-select-on-television.md): why the popup is unreachable and what replaces it.
+- [ADR-0022 virtual keyboard](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/docs/adr/0022-virtual-keyboard.md): layouts, insertion, what closes it.
+- [Playground](https://standarx-miralabs-tech.github.io/standarnav/): the fixture page, driven by keyboard and gamepad, with a device panel for every option.
+- [Engage and select recipes](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/playground/widgets.ts): `attachEngageable`, `attachSlider`, `attachStepper`, `attachWheelPicker`, `attachListbox`, `attachNativeSelect`, `attachSplitter`.
+
+## Source
+
+- [Input system](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/src/input-system.ts): `createInputSystem`, the keydown listener, `activateFocused`.
+- [Intent bus](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/src/intent-bus.ts): scopes, `trapped`, `base`.
+- [Keymap](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/src/keymap.ts): every default key and remote code, the text-entry rule.
+- [Engage](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/src/engage.ts): `pushEngageScope`.
+- [Spatial engine](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/src/spatial/spatial.ts): options, the walk, the attributes.
+- [Gamepad engine](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/src/gamepad/gamepad.ts): options, `setMapping`, `assign`, `rumble`.
+- [Gamepad mapping](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/src/gamepad/mapping.ts): the standard button table.
+- [Focus ring](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/src/focus-ring/focus-ring.ts)
+- [On-screen keyboard](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/src/keyboard/keyboard.ts): `KeyboardLayout`, `KeyboardKey`, `openOn`.
+- [React adapter](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/src/react/react.tsx)
+- [Debug](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/src/debug.ts): `explainMove`, `scanNativeSelects`.
+- [Types](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/src/types.ts): `NavigationIntent`, `IntentEvent`, `InputModality`.
+
+## Optional
+
+- [Competitors](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/docs/research/competitors.md): eighteen projects compared on real focus, attributes, gamepad and framework independence.
+- [TV runtime compatibility](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/docs/research/tv-runtime-compatibility.md): Chromium versions behind Tizen and webOS releases, with vendor URLs.
+- [Contributing](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/CONTRIBUTING.md): `bun` only, the gates, size budgets, the documentation rules.

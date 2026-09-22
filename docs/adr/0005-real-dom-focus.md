@@ -40,17 +40,21 @@ so that it survives refactors.
 The engine moves the real DOM focus, and only the real DOM focus.
 
 - Moving focus is `element.focus({ preventScroll: true })`, through a single
-  helper (`src/tabbable.ts`, `focusElement`).
+  helper (`focusElement`, `src/tabbable.ts:113-120`, which defaults
+  `preventScroll` to `true`).
 - Reading focus is `document.activeElement`, narrowed to `HTMLElement`. The engine
-  keeps no authoritative copy. The one element reference it holds (`spatial.ts:208`)
-  only strips the styling attribute from the element that had focus before.
+  keeps no authoritative copy. The one element reference it holds only strips the
+  styling attribute from the element that had focus before.
 - `preventScroll: true` is part of the contract: the engine scrolls the element
   into view itself, after the focus call, so that a container can ask for
   `center` instead of the browser's `nearest`.
-- Per-container memory stores a `WeakRef` to a previously focused **element**, not
-  an id or a key. It is a hint for re-entry, never a source of truth: the engine
-  re-checks that the remembered element is still contained and still focusable
-  before landing on it.
+- Per-container memory stores a reference to a previously focused **element**, not
+  an id or a key — a `WeakRef` where the runtime has one and a self-releasing
+  strong reference where it does not ([ADR-0013](0013-browser-baseline-and-fallbacks.md);
+  `src/spatial/spatial.ts:113-141`). It is a hint for re-entry, never a source of
+  truth: the engine re-checks that the remembered element is still contained and
+  still focusable before landing on it (`contains` and `isFocusable`,
+  `src/spatial/spatial.ts:345`).
 - The attributes the engine writes (`data-snav-focused` on the focused element,
   `data-snav-active` on every container on the path) are styling hooks that
   mirror the real focus. They are never read back as state.
@@ -79,7 +83,9 @@ Consequence for the public surface: the library has no `getFocusedKey()` and no
 - Focus moves are observable from outside, so tests assert a browser fact.
 - Cost: every move queries and measures live DOM, and a focus call can trigger
   scrolling, focus events and framework effects the library does not control. The
-  `onWillMove` veto exists for that (`spatial.ts:261-276`).
+  `onWillMove` veto exists for that, and it runs before the focus call
+  (the `onWillMove` block of `commit()`, `src/spatial/spatial.ts:312-327`; the
+  `focusElement` call is `:329`, after it).
 - Cost: the engine cannot move focus into a closed shadow root or a cross-origin
   iframe, because `focus()` cannot either — see [ADR-0008](0008-shadow-dom.md).
 
@@ -89,10 +95,76 @@ Two checks keep this ADR true, and both must exist before v1. First, a browser t
 that asserts `document.activeElement === expectedElement` after every simulated
 move; asserting a class name, an attribute or a library getter does not satisfy the
 gate. Second, a source-level check that no id-keyed focus store — a
-`Map<string, HTMLElement>` or equivalent — exists in `src/`. Neither is written yet:
-Vitest is configured (a unit project and a browser project) but the repository has
-no `src/` and no test on 2026-09-18. Both are v0 work items, listed with the rest in
-[ADR-0018](0018-testing-strategy.md).
+`Map<string, HTMLElement>` or equivalent — exists in `src/`.
+
+**Status, 2026-09-20.** The first is written and running. The spatial browser suite
+reads `document.activeElement` through its scene helper on every move assertion
+(`src/spatial/spatial.browser.test.ts`), as does the composition suite
+(`src/composition.browser.test.ts`), and nothing in either asserts a class, an
+attribute or a getter in place of it. `bun run test:browser` on 2026-09-21 → 243
+passed and 1 skipped in 12 files; the skip is the shadow-DOM fixture of
+[ADR-0008](0008-shadow-dom.md) and is unrelated to this gate.
+
+## Amendment, 2026-09-21: a text caret mirrored from the field is not a virtual cursor
+
+The on-screen keyboard now draws a caret, in a preview row at the bottom of its own box
+([ADR-0022](0022-virtual-keyboard.md), amendment of 2026-09-21). It is worth saying here
+why that is not the thing this record refuses. This record is about *focus*: a
+library-owned "focused" state that the DOM never learns, with everything the platform
+gives the real focused element lost as a result. The caret in the row has the opposite
+shape. Real DOM focus is on the row while the caret is moved — `document.activeElement`
+says so, and the tests assert it in this record's gate wording. The position is the
+field's own `selectionStart`, moved with `setSelectionRange` and read back from the field
+for every paint; the row stores nothing, which is exactly the relation `data-snav-focused`
+has to `document.activeElement` in the Decision above. Where a field exposes no selection
+at all (`email`, `number`), the plugin keeps an index for the life of the keyboard, and
+that is not a copy of anything: the field has no position to copy.
+
+The fact that makes it legal under this record, measured on chromium, firefox and webkit
+(2026-09-20): `setSelectionRange` on a field that does not have the focus moves no focus
+and fires no focus event, and the selection it set survives the field's later refocus.
+The gate is unchanged.
+
+The second is **not** written. There is no automated check for an id-keyed focus
+store; what exists is a reading of this repository: `grep -rn "Map<string" src/`
+returns one hit, `src/gamepad/gamepad.ts:161`, which is
+`new Map<string, ButtonOverrides>()` — the per-pad remap table of `setMapping`,
+keyed by `Gamepad.id`, holding button overrides and no element. No focus store
+exists. A reading is not a gate, and turning it into one before v1 is still the
+work item this section describes. [ADR-0018](0018-testing-strategy.md) decision 3
+carries the first check only — the browser-suite half; this second one is tracked
+here and in the "Never virtual focus" row of the
+[specification](../specification.md), nowhere else.
+
+## Amendment, 2026-09-22: a pad-driven pointer is not a virtual cursor either
+
+The playground grew a console-style cursor on 2026-09-22, asked for by name: a dot the left stick
+pushes around the screen, the way a game console lets you point at a web page instead of hopping
+between its controls. That is the shape this record refuses, so the difference has to be written
+down rather than left for a reader to find in `playground/cursor.ts` and mistrust.
+
+**What this record refuses is a focus model, not a picture.** The virtual cursor it rejects is one
+where the library keeps its own idea of where the user is — a key, an id, an index into a list —
+and paints something to match, while `document.activeElement` says something else or nothing at
+all. Everything downstream breaks there: `:focus-visible` never fires, a screen reader is told
+nothing moved, a form control never receives what is typed.
+
+**The pointer does the opposite.** On every frame the dot actually moves — a pad connected, the
+stick past its dead zone, nothing held — it asks `document.elementFromPoint` what is under it and
+calls `focus()` on the nearest focusable ancestor whenever that ancestor changes, so real DOM focus
+is what moves, the ring is painted by the ordinary plugin reacting to an ordinary focus change, and
+`document.activeElement` answers the question correctly at every instant. Nothing keyed, nothing
+mirrored, nothing to desynchronise — the dot is the *input device*, like a mouse pointer, and it is
+the one thing on screen that is not the focus. A mouse has always worked this way here:
+`pointerFollowsFocus` in `app` mode focuses whatever the pointer crosses, and this is that
+mechanism with a stick in front of it.
+
+This record's own gate — a browser test asserting `document.activeElement` after every move, and no
+id-keyed focus map anywhere in the package — is untouched, and cannot be weakened by this: the
+cursor is not in the package. It is a consumer of it, built on `assign`
+(`src/gamepad/gamepad.ts:121`), which hands one pad's intents to a private handler. That it can be
+written at all without the engine growing a mode is the argument this record has been making since
+the Decision: real focus composes with anything, a virtual one composes with nothing.
 
 ## Alternatives considered
 
@@ -113,7 +185,7 @@ comparison](../research/competitors.md)). These move or read real DOM focus:
 `@gauntface/dpad-nav`, `react-js-spatial-navigation`, and the CSS Spatial Navigation
 Level 1 draft. Norigin is virtual by default with a real-focus option. These are
 virtual: `lrud` (BBC, archived), `react-tv-space-navigation` (bamlab),
-`@please/lrud`, `react-sunbeam`, and `vue-spatialnavigation` is mostly virtual.
+`@please/lrud`, `react-sunbeam`, and `vue-spatialnavigation`.
 `naviix` keeps no focus state at all, real or virtual: it returns a neighbour map
 and the application applies it. The differentiator claimed elsewhere in this
 repository is the combination (gamepad polling, intent bus, declarative attributes,
@@ -122,29 +194,37 @@ modes), not this decision alone.
 ## Evidence
 
 - `focusElement` is the single focus call, and defaults `preventScroll` to `true`:
-  `packages/core/src/focus/tabbable.ts:106-113` (miralabs-ui, commit `289fa607`,
-  read 2026-09-18).
-- The focusable predicate the engine uses, including the `checkVisibility` test with
-  its fallback and the `inert` test: `packages/core/src/focus/tabbable.ts:40-59`.
-  `aria-disabled` stays focusable on purpose (comment at lines 56-57).
-- `commit()` is focus, then remember, then scroll into view:
-  `packages/core/src/input/spatial/spatial.ts:257-282`. The veto runs before the
-  focus call, lines 261-276.
-- The focus query reads the document, not a stored field:
-  `packages/core/src/input/spatial/spatial.ts:220-223` (`activeElement()`); the
-  `focused` field at `:208` is used only by `remember()` at `:225-231`.
-- Container memory is `WeakMap<HTMLElement, WeakRef<HTMLElement>>`, elements not
-  keys: `packages/core/src/input/spatial/spatial.ts:198` and `:235`; re-entry
-  re-validates with `contains` and `isFocusable` at `:293-297`.
-- The design intent predates the extraction. Principle 2 of the engine
-  specification of 2026-08-27 states, in translation: real DOM focus with roving
-  tabindex, not virtual focus by key, because screen reader accessibility and native
-  interoperability with `:focus`, forms and extensions come free that way —
-  miralabs-ui `docs/research/input.md:141`, a French document deleted by commit
-  `289fa607` and readable with `git show 289fa607^:docs/research/input.md`.
-  Decision D9 of the miralabs-ui cahier des charges, 2026-08-27: the gamepad drives
-  real DOM focus, never virtual focus — miralabs-ui
-  `docs/cahier-des-charges.md:43`, deleted by the same commit.
-- Competitor focus models: the focus-model column of the 20 fact sheets, each
-  verified by reading the competitor's source on 2026-09-18. The committed table is
+  `src/tabbable.ts:113-120`.
+- The focusable predicate the engine uses is `isFocusable` (`src/tabbable.ts:56-63`), which
+  delegates the visibility question to `isHidden` (`:41-50`, the `checkVisibility` test with its
+  `offsetParent` and `getClientRects` fallback) and the `inert` question to `isInert` (`:52-54`,
+  a `closest("[inert]")` walk). `aria-disabled` stays focusable on purpose, and the comment
+  saying why is at `:60-61`.
+- `commit()` is veto, then focus, then remember, then scroll into view:
+  `src/spatial/spatial.ts:308-333` — the `onWillMove` block at `:312-327`, the `focusElement`
+  call at `:329`, `remember()` at `:330`, `scrollFocusIntoView()` at `:331`.
+- The focus query reads the document, not a stored field: `activeElement()` returns
+  `doc()?.activeElement` narrowed by `isHTMLElement` (`src/spatial/spatial.ts:271-274`). The one
+  `focused` field (`:259`) is written only by `remember()` (`:276-292`), which uses it to strip
+  the styling attribute from the element that had focus before.
+- Container memory is a `WeakMap<HTMLElement, ElementHandle>` of elements, not of keys:
+  `src/spatial/spatial.ts:248`, filled by `remember()` at `:286`. The handle is a `WeakRef` where
+  the runtime has one and a self-releasing strong reference where it does not (`elementHandle`,
+  `:127-141`). Re-entry re-validates the remembered element with `contains` and `isFocusable`
+  at `:345`.
+- Everything the engine focuses is reached through real nodes: `queryAll`
+  (`src/dom/query.ts:10-15`) is how `getFocusables` collects candidates, `getEventTarget`
+  (`:45-48`) reads `composedPath()[0]` rather than the retargeted `event.target`, and `contains`
+  (`:24-39`) is the shadow-aware containment seam [ADR-0008](0008-shadow-dom.md) reserves and
+  nothing calls in v0. None of them holds focus state.
+- No focus registry: `grep -rn "Map<string" src/` returns one hit, the per-pad remap table at
+  `src/gamepad/gamepad.ts:161`, which holds button overrides and no element.
+- The design intent predates this package: the principle that a gamepad drives real DOM focus
+  with roving tabindex, never a virtual focus keyed by id, because screen reader accessibility
+  and native interoperability with `:focus`, forms and extensions come free that way. That
+  principle is inherited from the predecessor implementation
+  ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here; what this repository can
+  show for it is the code cited above.
+- Competitor focus models: the focus-model column of the fact sheets, each verified against the
+  competitor's own source. The committed table is
   [competitor comparison](../research/competitors.md).

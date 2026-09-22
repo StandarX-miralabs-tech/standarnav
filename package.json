@@ -30,7 +30,29 @@
     "README.md"
   ],
   "exports": {
+    ".": "./dist/index.js",
+    "./debug": "./dist/debug.js",
+    "./focus-ring": "./dist/focus-ring/focus-ring.js",
+    "./gamepad": "./dist/gamepad/gamepad.js",
+    "./keyboard": "./dist/keyboard/keyboard.js",
+    "./keyboard/alphabetic": "./dist/keyboard/layouts/alphabetic.js",
+    "./keyboard/azerty": "./dist/keyboard/layouts/azerty.js",
+    "./keyboard/qwerty": "./dist/keyboard/layouts/qwerty.js",
+    "./react": "./dist/react/react.js",
+    "./spatial": "./dist/spatial/spatial.js",
     "./package.json": "./package.json"
+  },
+  "peerDependencies": {
+    "react": ">=18.3.0",
+    "react-dom": ">=18.3.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    },
+    "react-dom": {
+      "optional": true
+    }
   },
   "publishConfig": {
     "access": "public",
@@ -47,20 +69,25 @@
     "test:unit": "vitest run --project unit",
     "test:browser": "vitest run --project browser",
     "test:watch": "vitest",
-    "bench": "vitest bench --project unit --run",
     "check:size": "bun run scripts/size-budget.ts",
-    "check:package": "bun run scripts/check-package.ts"
+    "check:package": "bun run scripts/check-package.ts",
+    "check:docs": "bun run scripts/check-citations.ts"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
     "@biomejs/biome": "2.5.14",
     "@types/node": "^26.6.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
     "@vitest/browser-playwright": "^5.0.1",
     "axe-core": "^4.13.0",
     "playwright": "^1.63.0",
     "publint": "^0.3.24",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
     "tsdown": "0.23.0",
     "typescript": "^7.0.2",
+    "unrun": "^0.3.1",
     "vite": "^8.3.0",
     "vitest": "^5.0.1"
   }

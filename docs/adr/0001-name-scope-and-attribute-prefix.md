@@ -6,7 +6,7 @@ Deciders: Wesley Cormier
 
 ## Context
 
-The input system extracted from miralabs-ui (see [ADR-0003](0003-extraction-scope.md))
+The extracted input system (see [ADR-0003](0003-package-boundaries.md))
 needs three names before the repository can exist: a project name, an npm
 package identifier, and a prefix for the DOM attributes the engine reads and
 writes. The constraints were fixed before any candidate was generated:
@@ -17,15 +17,14 @@ writes. The constraints were fixed before any candidate was generated:
 | Short attribute prefix | The prefix appears in every consumer's markup, repeated on every container and every focusable element. |
 | Free on npm (unscoped and scoped), free as a GitHub repository, no significant product collision | A name already taken is a rename later. |
 | Coherent with the StandarX family | The owner's other projects are standardoc, standarflow, standarlua, standarcli. |
-| Not a device word only | The library drives navigation from a keyboard, a gamepad and a TV remote: `packages/core/src/input/keymap.ts:80-84` maps webOS Back 461, Tizen Return 10009, Tizen Exit 10182 and channel up/down 427/428 (read 2026-09-18). |
+| Not a device word only | The library drives navigation from a keyboard, a gamepad and a TV remote: `REMOTE_KEY_CODES` in `src/keymap.ts:80-84` maps webOS Back 461, Tizen Return 10009, Tizen Exit 10182 and channel up/down 427/428. |
 
 The last constraint is the owner's own: navigation is pad, keyboard and remote,
 not only pad. It disqualifies any name built solely on the gamepad.
 
 Forty-eight candidates were checked with the same protocol on 2026-09-18: 29
 free, 8 risky, 11 taken. Three independent judges — product, developer
-experience, risk — scored the shortlist out of 10. The protocol, the commands and the full candidate table are published in
-[docs/research/name-availability-2026-09-18.md](../research/name-availability-2026-09-18.md).
+experience, risk — scored the shortlist out of 10.
 
 ## Decision
 
@@ -35,37 +34,82 @@ experience, risk — scored the shortlist out of 10. The protocol, the commands 
 | GitHub repository | `StandarX-miralabs-tech/standarnav` |
 | npm package | `@standarx/nav` |
 | Attribute prefix | `data-snav-*` |
-| CSS custom properties | `--snav-focus-ring-*` |
+| CSS custom properties | `--snav-focus-ring-*`, `--snav-keyboard-*` |
 
 One package, subpath exports: `@standarx/nav` (core), `/gamepad`, `/spatial`,
-`/focus-ring`, `/debug`, and the adapters `/react`, `/vue`, `/svelte`, `/angular`.
+`/focus-ring`, `/debug`, `/keyboard` with one subpath per layout (`/keyboard/qwerty`,
+`/keyboard/azerty`, `/keyboard/alphabetic`), and the React adapter `/react`
+([ADR-0011](0011-package-layout-and-adapters.md)). The `/vue`, `/svelte` and
+`/angular` names are reserved by this decision for adapters that are planned and
+not built: this repository has no `src/vue`, `src/svelte` or `src/angular`.
 `vanilla` is the core itself. The package is unreleased; v0 is in progress.
 
 Attributes read from the markup: `data-snav="container"`, `data-snav-enter`,
 `data-snav-wrap`, `data-snav-block`, `data-snav-trap`, `data-snav-scroll`,
 `data-snav-ignore`, `data-snav-up/down/left/right`. Names written by the engine:
 
-| Name | Written on | Replaces (miralabs-ui) |
-|---|---|---|
-| `data-snav-focused` | the focused element | `data-focused` |
-| `data-snav-active` | every container on the active path | `data-nav-active` |
-| `data-snav-input` | `<html>`, modality: keyboard, pointer, touch, gamepad | `data-mira-input` |
-| `data-snav-focus-ring` | the focus ring overlay | `data-mira-focus-ring` |
-| `--snav-focus-ring-*` | CSS custom properties read by the overlay | `--mira-focus-ring-*` |
+| Name | Written on |
+|---|---|
+| `data-snav-focused` | the focused element |
+| `data-snav-active` | every container on the active path |
+| `data-snav-input` | `<html>`, modality: keyboard, pointer, touch, gamepad |
+| `data-snav-focus-ring` | the focus ring overlay |
+| `data-snav-editing` | the field the on-screen keyboard is open on ([ADR-0022](0022-virtual-keyboard.md)) |
+| `data-snav-keyboard` | the keyboard's box, carrying the layout's id as its value |
+| `data-snav-keyboard-row` | each row of keys; `[data-snav-keyboard-row] button` is a key and nothing else is |
+| `data-snav-keyboard-preview` | the preview row at the bottom of the box, the focusable mirror of the field |
+| `data-snav-keyboard-caret` | the caret drawn inside the preview row |
+| `--snav-focus-ring-*` | six CSS custom properties: `offset`, `duration` and `easing`, read by the overlay, plus `color`, `width` and `z-index`, substituted into its inline style |
+| `--snav-keyboard-*` | five CSS custom properties substituted into the box's inline style: `z-index`, `font-size`, `color`, `background` and `shadow` |
 
-Two of them change category, not just prefix: `data-focused` and `data-nav-active`
-are unprefixed in the source
-(`packages/core/src/input/spatial/containers.ts:17-18`).
+`data-snav-editing` is the one addition that is **not** a rename. It was added on 2026-09-20 with the
+keyboard, and it exists because the keys take the focus, so the field being typed into is not
+`:focus` and an application has nothing else to style the editing state against. It is frozen at v1
+with the rest.
+
+Every one of the other five is a rename: the names these replace were inherited from the predecessor
+implementation ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here. Two of
+them change category and not merely prefix — the focused and active markers carried no namespace
+at all before extraction, so the prefix is new surface rather than a substitution, and both are
+now declared as constants at `src/spatial/containers.ts:17-18` (`FOCUSED_ATTRIBUTE`,
+`ACTIVE_ATTRIBUTE`).
+
+**Amended 2026-09-20: the custom-property contract is six names, not five.** The row above read
+five until the focus ring was reviewed before merge. The sixth is `--snav-focus-ring-z-index`,
+fallback `1700`, and it exists because the overlay is `position: fixed`, which opens no stacking
+context: without a `z-index` of its own the ring paints at the root level in DOM order and goes
+behind the first dialog it meets. `1700` is the rung the ring sat on above modal, popover, toast
+and tooltip: that ordering is inherited from the predecessor implementation
+([ADR-0002](0002-license-and-copyright.md)) and not re-derived here, so the number is inherited
+rather than invented — but no stylesheet ships with this package
+([ADR-0020](0020-focus-ring-defaults.md)), which is why the plugin carries it inline. The same
+review moved the `width` fallback from `2px` to `3px`, which changes no name and so does not
+change the contract.
+
+Six names is the frozen number for v0, and each is a public contract on the same terms as the
+attributes: adding one is a minor change, renaming or removing one is breaking. They appear at
+`src/focus-ring/focus-ring.ts:51-52` (`RING_PAINT`: `z-index`, `width`, `color`), `:104-106`
+(`offset`, in `measure`) and `:134-137` (`duration` and `easing`, in `motion`).
+
+**Amended 2026-09-21: the keyboard's names, which the table had not caught up with.** The
+on-screen keyboard writes attributes of its own on elements it creates, the way the focus ring
+writes `data-snav-focus-ring` on its overlay, and two of them had shipped without a row here:
+`data-snav-keyboard`, whose value is the layout's id, and `data-snav-keyboard-row`. Two more
+arrive with the preview row of [ADR-0022](0022-virtual-keyboard.md)'s amendment of the same
+day: `data-snav-keyboard-preview` and `data-snav-keyboard-caret`. All four are declared as
+constants next to `EDITING_ATTRIBUTE` in `src/keyboard/keyboard.ts`, as the evidence below
+requires of every name, rather than written through `dataset`. The engine therefore writes
+**nine** attribute names, not five, and `data-snav-editing` is no longer the one addition.
+
+The custom-property contract was never six names either, once the keyboard painted its own box:
+`--snav-keyboard-z-index`, `-font-size`, `-background` and `-shadow` arrived with that amendment,
+and `--snav-keyboard-color` with the preview row — the box declared a background and no colour,
+which on a light page painted the page's text colour onto it. That is **eleven** custom
+properties in two families, frozen at v1 on the same terms: adding one is a minor change,
+renaming or removing one is breaking. The Decision table names both families.
 
 ## Consequences
 
-- miralabs-ui must rename every read and written attribute when it adopts this
-  package. Counted in the source at commit `289fa607` on 2026-09-18:
-  `grep -rl data-mira-nav packages/core/src/components --include=*.ts` covers
-  fourteen components once test files are removed, and
-  `grep -rl data-mira-input packages/styles/scss --include=*.scss` returns nine
-  files. Coordinated breaking change, tracked in
-  [ADR-0004](0004-relationship-with-miralabs-ui.md).
 - The prefix is a public contract from the first release; changing it later is a
   major version for every consumer's HTML and CSS.
 - `standar` without the `d` is a permanent typo trap for English speakers, the
@@ -84,9 +128,7 @@ are unprefixed in the source
 ## Alternatives considered
 
 Scores, collision facts and star counts below come from the name-availability
-research of 2026-09-18, published in
-[docs/research/name-availability-2026-09-18.md](../research/name-availability-2026-09-18.md)
-(candidate table, judge panel, and the `snav` probe run after the panel).
+research of 2026-09-18.
 
 | Candidate | Score (product + devex + risk) | Why not |
 |---|---|---|
@@ -106,8 +148,7 @@ unique web token. The owner broke the tie on the product constraint.
 
 ## Evidence
 
-Availability protocol, run per candidate on 2026-09-18 (18:00 to 19:50 UTC) and published in
-[docs/research/name-availability-2026-09-18.md](../research/name-availability-2026-09-18.md).
+Availability protocol, run per candidate on 2026-09-18 (18:00 to 19:50 UTC).
 Verbatim commands and outputs for the `standarnav` entry:
 
 ```powershell
@@ -133,18 +174,16 @@ checked separately on 2026-09-18: `registry.npmjs.org/@standarx%2Fnav` → 404, 
 scope search `scope:standarx` → 0 packages.
 
 Third-party org, `gh api users/standarx`: created 2024-12-24, Brazil, 1
-repository (`.github`), 2 followers, blog standarx.com live (2026-09-18; "Known
-risks and follow-ups" in
-[docs/research/name-availability-2026-09-18.md](../research/name-availability-2026-09-18.md)).
+repository (`.github`), 2 followers, blog standarx.com live (2026-09-18).
 No formal trademark search (INPI, EUIPO, USPTO) was made for any candidate, so that dimension is unverified.
 
-Judge scores, overall ranking table of the same document:
+Judge scores, overall ranking:
 standarnav 23/30, padnav 22.5/30, standarpad 21.3/30, focon 19/30, joyko 19/30.
 
-Attribute names in the source, read 2026-09-18 at commit `289fa607`:
-`packages/core/src/input/spatial/containers.ts:10-18`,
-`packages/core/src/interaction/modality.ts:20`,
-`packages/core/src/input/focus-ring/focus-ring.ts:26`, `:84` and `:112`.
+The attribute names are declared as constants in this repository, not spelled inline at their
+call sites: `src/spatial/containers.ts:10-18` (`CONTAINER_SELECTOR` through `ACTIVE_ATTRIBUTE`),
+`src/modality.ts:19` (`MODALITY_ATTRIBUTE`) and `src/focus-ring/focus-ring.ts:26`
+(`RING_ATTRIBUTE`), which is what makes a rename a single edit rather than a grep.
 
 Related: [ADR-0002](0002-license-and-copyright.md),
-[ADR-0003](0003-extraction-scope.md), [ADR-0004](0004-relationship-with-miralabs-ui.md).
+[ADR-0003](0003-package-boundaries.md), [ADR-0020](0020-focus-ring-defaults.md).

@@ -13,13 +13,24 @@
 // any other, and the run fails printing the number: a cap is written after the number
 // exists, never before, and a default would be a guess this file ratifies by being green.
 
-import { existsSync, mkdtempSync, rmSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
-import { pathToFileURL } from "node:url";
 
 // Declared locally rather than through `@types/bun`, which ships its own node typings
-// and collides with `@types/node`. Only the two calls below are needed.
+// and collides with `@types/node`. Only what the two calls below use.
+interface BuildPlugin {
+  readonly name: string;
+  setup(build: {
+    onResolve(
+      constraints: { filter: RegExp },
+      callback: (args: {
+        path: string;
+        importer: string;
+      }) => { path: string; external: true } | undefined,
+    ): void;
+  }): void;
+}
+
 declare const Bun: {
   build(options: {
     entrypoints: string[];
@@ -27,7 +38,7 @@ declare const Bun: {
     format?: "esm";
     minify?: boolean;
     splitting?: boolean;
-    external?: string[] | undefined;
+    plugins?: BuildPlugin[];
   }): Promise<{
     success: boolean;
     logs: unknown[];
@@ -51,48 +62,112 @@ interface Line {
   readonly note: string;
 }
 
-const SIBLINGS_EXTERNAL: readonly string[] = ["../*", "../../*"];
-
+// Externals are named file by file, never globbed. A glob is how a budget line stops
+// measuring without ever going red: `*` does not cross a path separator, so `../*` marks
+// `../modality.js` external and misses `../dom/query.js`, while `./*` on a top-level entry
+// can externalise the line's own contents and report a re-export stub as proof. Each list
+// below is the part of the core graph that the subpath also imports — and deliberately
+// not a module whose only importers are subpaths, because externalising one of those
+// charges it to nobody and only the whole-package line ever sees it.
+//
+// Read off `dist/` after a build, never off `src/`: the two disagree. `src/types.ts` is
+// types only, so no `types.js` is emitted and naming one is an external that matches
+// nothing; and a type-only import of a sibling entry (gamepad's `InputPlugin`, say)
+// erases, so that sibling is not on the line to begin with.
 const LINES: readonly Line[] = [
   {
     name: "core",
     entries: ["index.js"],
-    cap: null,
-    note: "intent bus, input system, keymap, engage mode, modality — what every consumer pays",
+    cap: 3.25 * KB,
+    note: "intent bus, input system, keymap, engage mode, modality, tabbable, and the dom/event.js and dom/query.js they pull in — what every consumer pays",
   },
   {
     name: "gamepad engine",
     entries: ["gamepad/gamepad.js"],
-    cap: null,
-    external: SIBLINGS_EXTERNAL,
+    cap: 2.5 * KB,
+    external: ["../dom/event.js", "../intent-bus.js"],
     note: "opt-in subpath, measured next to the core",
   },
   {
     name: "spatial engine",
     entries: ["spatial/spatial.js"],
-    cap: null,
-    external: SIBLINGS_EXTERNAL,
-    note: "opt-in subpath, measured next to the core",
+    cap: 3.25 * KB,
+    external: ["../dom/event.js", "../dom/query.js", "../tabbable.js"],
+    note: "opt-in subpath next to the core; dom/raf.js and dom/platform.js are charged here, no root export reaching them",
   },
   {
     name: "focus ring",
     entries: ["focus-ring/focus-ring.js"],
-    cap: null,
-    external: SIBLINGS_EXTERNAL,
-    note: "opt-in subpath, measured next to the core",
+    cap: 1.75 * KB,
+    external: ["../dom/event.js", "../dom/query.js", "../modality.js"],
+    note: "opt-in subpath next to the core; dom/platform.js is charged here as it is to spatial, which is correct for a marginal cost",
   },
   {
     name: "debug",
     entries: ["debug.js"],
-    cap: null,
-    external: ["./*"],
-    note: "explainMove and the diagnostics, measured next to the spatial engine",
+    cap: 0.5 * KB,
+    // `tabbable.js` is external here for the same reason it is on the spatial line: the
+    // core exports it, and nobody reaches `/debug` without the core. Charging it here
+    // measured a second copy no consumer downloads.
+    external: ["./spatial/spatial.js", "./spatial/geometry.js", "./tabbable.js"],
+    note: "explainMove and the native-select scan, measured next to the spatial engine",
+  },
+  {
+    name: "react adapter",
+    entries: ["react/react.js"],
+    cap: 1.5 * KB,
+    external: ["react", "react/jsx-runtime", "../input-system.js", "../modality.js"],
+    note: "opt-in subpath next to the core; react itself is a peer and never bundled, and internal/{env,equality}.js are charged here as adapter-only helpers",
+  },
+  {
+    name: "keyboard",
+    entries: ["keyboard/keyboard.js"],
+    cap: 3 * KB,
+    // Every module it reaches for is one the core already ships — the keymap for
+    // `isTextEntryTarget`, tabbable for `focusElement` — so all four are external and
+    // the number is what a consumer who already has the core pays to add a keyboard.
+    external: ["../dom/event.js", "../dom/query.js", "../keymap.js", "../tabbable.js"],
+    note: "opt-in subpath next to the core; the on-screen keyboard plugin with its preview row, no layout in it",
+  },
+  {
+    name: "keyboard layout qwerty",
+    entries: ["keyboard/layouts/qwerty.js"],
+    cap: 0.5 * KB,
+    // No externals because a layout imports nothing: its only import is the type, and a
+    // type erases. A layout line that is not tiny is behaviour that leaked into data.
+    note: "data only, one entry per layout so a French application ships no Cyrillic",
+  },
+  {
+    name: "keyboard layout azerty",
+    entries: ["keyboard/layouts/azerty.js"],
+    cap: 0.5 * KB,
+    note: "data only",
+  },
+  {
+    name: "keyboard layout alphabetic",
+    entries: ["keyboard/layouts/alphabetic.js"],
+    cap: 0.5 * KB,
+    note: "data only; the layout a television usually wants",
   },
   {
     name: "whole package",
-    entries: ["index.js", "gamepad/gamepad.js", "spatial/spatial.js", "focus-ring/focus-ring.js"],
-    cap: null,
-    note: "every runtime entry bundled once, nothing external — the debug entry is excluded on purpose",
+    entries: [
+      "index.js",
+      "gamepad/gamepad.js",
+      "spatial/spatial.js",
+      "focus-ring/focus-ring.js",
+      "keyboard/keyboard.js",
+      "keyboard/layouts/qwerty.js",
+      "keyboard/layouts/azerty.js",
+      "keyboard/layouts/alphabetic.js",
+      "react/react.js",
+    ],
+    cap: 12.5 * KB,
+    // The one external on this line, and the only one it may ever carry: react is an
+    // optional peer every consumer of the adapter already has. Bundled instead, the
+    // line reads 21.06 kB and measures React rather than this package.
+    external: ["react", "react/jsx-runtime"],
+    note: "every runtime entry bundled once, only React's peer external — the debug entry is excluded on purpose",
   },
 ];
 
@@ -102,7 +177,7 @@ interface Measurement {
   readonly gzipped: number;
 }
 
-async function measure(line: Line, scratch: string): Promise<Measurement> {
+async function measure(line: Line): Promise<Measurement> {
   const files = line.entries.map((entry) => path.join(distDir, entry));
   for (const file of files) {
     if (!existsSync(file)) {
@@ -110,37 +185,101 @@ async function measure(line: Line, scratch: string): Promise<Measurement> {
     }
   }
 
-  // Several entries are bundled once through a synthetic module that re-exports each of
-  // them: with code splitting off, passing them as separate entrypoints would duplicate
-  // every shared module in every output and overstate the sum.
-  let entrypoint: string;
-  if (files.length === 1) {
-    entrypoint = files[0] as string;
-  } else {
-    entrypoint = path.join(scratch, `${line.name.replace(/\W+/g, "-")}.js`);
-    const source = files.map(
-      (file) => `export * from ${JSON.stringify(pathToFileURL(file).href)};`,
-    );
-    writeFileSync(entrypoint, `${source.join("\n")}\n`);
+  // A named external that matches no built file is silent: the bundle simply keeps the
+  // module, the line measures more than it claims, and nothing ever goes red. Since the
+  // lists above encode a file layout, they have to be checked against it.
+  //
+  // The check resolves each specifier against every entry of the line, and the set of
+  // resolved absolute paths is what the bundler is then told to leave out — see the
+  // plugin below for why the specifier strings themselves are not usable.
+  //
+  // A bare specifier is a peer dependency rather than a file of this package, so it
+  // has nothing to check against and is matched by name. Leaving one out is how the
+  // react line first measured 29 kB: react is never shipped, and a line that bundles
+  // it is reporting a consumer's cost as this package's.
+  const externalPaths = new Set<string>();
+  const externalPackages = new Set<string>();
+  for (const specifier of line.external ?? []) {
+    if (!specifier.startsWith(".")) {
+      externalPackages.add(specifier);
+      continue;
+    }
+    for (const file of files) {
+      const resolved = path.resolve(path.dirname(file), specifier);
+      if (!existsSync(resolved)) {
+        throw new Error(
+          `${line.name}: external \`${specifier}\` resolves to ${path.relative(rootDir, resolved)}, which does not exist — re-derive this line's externals from the built graph`,
+        );
+      }
+      externalPaths.add(resolved);
+    }
   }
 
-  const result = await Bun.build({
-    entrypoints: [entrypoint],
-    target: "browser",
-    format: "esm",
-    minify: true,
-    splitting: false,
-    external: line.external ? [...line.external] : undefined,
-  });
-  if (!result.success) {
-    throw new Error(`bundling ${line.name} failed: ${JSON.stringify(result.logs, null, 2)}`);
-  }
+  // Every line is bundled through a synthetic module, single-entry ones included, and it
+  // imports namespaces into a sink rather than re-exporting.
+  //
+  // Two different traps, one shape. A bare entry is tree-shaken against a package that
+  // declares `sideEffects: false`, so nothing keeps its exports alive: measured that way
+  // `index.js` reported 0.24 kB min+gzip and the bundle was a list of export names whose
+  // declarations had all been dropped — a green line weighing nothing. And an ambiguous
+  // star export is dropped by ES semantics, so a `export * from` shim reads as a fraction
+  // of itself. A namespace import into a value that is exported survives both.
+  //
+  // It also lets several entries share one bundle: with code splitting off, passing them
+  // as separate entrypoints would duplicate every shared module in every output and
+  // overstate the sum. Written inside dist/ so its relative specifiers resolve the way a
+  // consumer's would, and so its own path cannot match one of the external patterns.
+  const entrypoint = path.join(distDir, `__size-${line.name.replace(/\W+/g, "-")}.js`);
+  const names = files.map((_, index) => `entry${index}`);
+  const source = [
+    ...files.map((file, index) => {
+      const specifier = `./${path.relative(distDir, file).split(path.sep).join("/")}`;
+      return `import * as ${names[index]} from ${JSON.stringify(specifier)};`;
+    }),
+    `export const sink = [${names.join(", ")}];`,
+  ];
+  writeFileSync(entrypoint, `${source.join("\n")}\n`);
+  const synthetic: string = entrypoint;
 
-  const chunks: Uint8Array[] = [];
-  for (const output of result.outputs) chunks.push(new TextEncoder().encode(await output.text()));
-  const minified = chunks.reduce((total, chunk) => total + chunk.byteLength, 0);
-  const gzipped = Bun.gzipSync(Buffer.concat(chunks)).byteLength;
-  return { line, minified, gzipped };
+  // Externals go through a resolver, not through `external`. Bun's `external` option
+  // matches bare specifiers and globs; it does not match a relative specifier written
+  // out in full, so `external: ["../dom/event.js"]` is accepted, changes nothing, and
+  // every subpath line silently measures the core along with itself. Resolving each
+  // import against its importer and comparing absolute paths is the only form that
+  // matches what the lists above mean.
+  const markExternal: BuildPlugin = {
+    name: "size-budget-externals",
+    setup(build) {
+      build.onResolve({ filter: /.*/ }, (args) => {
+        if (args.importer === "") return undefined;
+        if (externalPackages.has(args.path)) return { path: args.path, external: true };
+        const resolved = path.resolve(path.dirname(args.importer), args.path);
+        return externalPaths.has(resolved) ? { path: args.path, external: true } : undefined;
+      });
+    },
+  };
+
+  try {
+    const result = await Bun.build({
+      entrypoints: [entrypoint],
+      target: "browser",
+      format: "esm",
+      minify: true,
+      splitting: false,
+      plugins: externalPaths.size + externalPackages.size > 0 ? [markExternal] : [],
+    });
+    if (!result.success) {
+      throw new Error(`bundling ${line.name} failed: ${JSON.stringify(result.logs, null, 2)}`);
+    }
+
+    const chunks: Uint8Array[] = [];
+    for (const output of result.outputs) chunks.push(new TextEncoder().encode(await output.text()));
+    const minified = chunks.reduce((total, chunk) => total + chunk.byteLength, 0);
+    const gzipped = Bun.gzipSync(Buffer.concat(chunks)).byteLength;
+    return { line, minified, gzipped };
+  } finally {
+    rmSync(synthetic, { force: true });
+  }
 }
 
 function kb(bytes: number): string {
@@ -152,34 +291,28 @@ if (!existsSync(distDir)) {
   process.exit(1);
 }
 
-const scratch = mkdtempSync(path.join(tmpdir(), "standarnav-size-"));
 const failures: string[] = [];
 const rows: string[] = [];
 
-try {
-  for (const line of LINES) {
-    const { minified, gzipped } = await measure(line, scratch);
-    let status: string;
-    if (line.cap === null) {
-      status = "UNCAPPED";
-      failures.push(
-        `${line.name}: measured ${kb(gzipped)} min+gzip and has no cap — write the cap in scripts/size-budget.ts (next 0.25 kB above the measurement) and record it in an ADR-0017 amendment`,
-      );
-    } else if (gzipped > line.cap) {
-      status = "OVER";
-      failures.push(`${line.name}: ${kb(gzipped)} exceeds its cap of ${kb(line.cap)}`);
-    } else {
-      status = "ok";
-    }
-    const used =
-      line.cap === null ? "  —" : `${Math.round((gzipped / line.cap) * 100)}%`.padStart(4);
-    const cap = line.cap === null ? "(none)" : kb(line.cap);
-    rows.push(
-      `${line.name.padEnd(16)} ${kb(minified).padStart(10)} ${kb(gzipped).padStart(10)} ${cap.padStart(9)} ${used}  ${status.padEnd(8)} — ${line.note}`,
+for (const line of LINES) {
+  const { minified, gzipped } = await measure(line);
+  let status: string;
+  if (line.cap === null) {
+    status = "UNCAPPED";
+    failures.push(
+      `${line.name}: measured ${kb(gzipped)} min+gzip and has no cap — write the cap in scripts/size-budget.ts (next 0.25 kB above the measurement) and record it in an ADR-0017 amendment`,
     );
+  } else if (gzipped > line.cap) {
+    status = "OVER";
+    failures.push(`${line.name}: ${kb(gzipped)} exceeds its cap of ${kb(line.cap)}`);
+  } else {
+    status = "ok";
   }
-} finally {
-  rmSync(scratch, { recursive: true, force: true });
+  const used = line.cap === null ? "  —" : `${Math.round((gzipped / line.cap) * 100)}%`.padStart(4);
+  const cap = line.cap === null ? "(none)" : kb(line.cap);
+  rows.push(
+    `${line.name.padEnd(16)} ${kb(minified).padStart(10)} ${kb(gzipped).padStart(10)} ${cap.padStart(9)} ${used}  ${status.padEnd(8)} — ${line.note}`,
+  );
 }
 
 console.log(

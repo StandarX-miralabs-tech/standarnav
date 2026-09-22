@@ -25,10 +25,10 @@ hook for it. Declaration means it can, as long as its elements are focusable, an
 the author can refine the result by adding attributes where they matter.
 
 standarnav's value comes from working on pages nobody prepared for it. That points
-at declaration, and the extracted engine is already built that way:
-`packages/core/src/input/spatial/containers.ts` is 46 lines of attribute constants
-and pure parsers (miralabs-ui, commit `289fa607`, read 2026-09-18), and the plugin's
-own header states the intent.
+at declaration, and the engine here is already built that way:
+`src/spatial/containers.ts` is forty-seven lines of attribute constants and three
+pure parsers — `blocksDirection`, `wrapsDirection` and `entryStrategy` — and the
+plugin's own header states the intent (`src/spatial/spatial.ts:9-11`).
 
 ## Decision
 
@@ -70,18 +70,28 @@ Three rules complete the decision.
 
 - Third-party markup is navigable with no application code. A page adds a setup of
   four lines — three imports and one `createInputSystem` call with the two plugins —
-  and nothing else (the equivalent setup in the source repository is
-  `apps/docs/content/foundations/gamepad.md:27-35`, read 2026-09-18).
-- Attribute names become a public contract. Renaming one is a breaking change, so
-  the names are **frozen at v1** and documented as API, not as internals. The
-  rename from the source prefix `data-mira-nav-*` to `data-snav-*` is the last
-  free one, and it is a coordinated breaking change on the miralabs-ui side.
+  and nothing else (the Usage snippet of `README.md`; the playground does the same
+  against the unbuilt modules, with the focus ring added, at
+  `playground/main.ts:128-146` — the two plugins at `:128-129`, the plugin list at
+  `:131-140`, `createInputSystem` at `:142-146`).
+- Attribute names become a public contract. The prefix and the full list of names are
+  decided in [ADR-0001](0001-name-scope-and-attribute-prefix.md), and that decision is
+  what there is to freeze: the markup is written against those names, so they are
+  **frozen at v1** and documented as API, not as internals. Changing one after v1 is a
+  breaking change, which under [ADR-0012](0012-versioning-and-release.md) means a major
+  version — the freeze is a promise about the versioning, not a claim that the names
+  cannot ever move.
 - The engine reads the DOM on every move rather than keeping a cache, which is what
   makes mutated and virtualised trees work without invalidation. That cost is paid
-  on every move and is not measured yet for the full path (`collectNavNodes`,
-  `getBoundingClientRect`, `querySelectorAll`): the inherited benchmark
-  `packages/core/src/input/spatial/geometry.bench.ts` exercises `findBestCandidate`
-  alone (read 2026-09-18).
+  on every move and is **not measured** for the full path (`collectNavNodes`,
+  `getBoundingClientRect`, `querySelectorAll`). The benchmark that exercised
+  `findBestCandidate` alone is inherited from the predecessor implementation
+  ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here; it was not
+  ported, because `vitest` 5 exports no `bench` function. So this repository has no
+  benchmark at all, and the only timing gate is the median-of-51 guard in
+  `src/spatial/geometry.test.ts:156-177` — 200 candidates, 51 samples, the median
+  asserted under a millisecond — which measures the scoring and nothing around it, the
+  same blind spot ([ADR-0018](0018-testing-strategy.md), decision 7).
 - A vanilla auto-mount helper — one call that reads the attributes already on the
   page and starts the system — is a v1 item. Today that setup is written by hand.
 - Framework adapters do not invent a second way to declare things. A React
@@ -94,8 +104,15 @@ Three rules complete the decision.
   configured root. A plugin mounted on a sub-tree can therefore send focus outside
   that sub-tree through an attribute, and two mounted roots can steal from each
   other. Options: resolve within `root`, keep document scope and document it, or
-  make it an option. Not resolved today, which is why this ADR is Accepted on the
-  principle and this paragraph is flagged as pending.
+  make it an option. Still not resolved: the behaviour is unchanged at HEAD
+  (`src/spatial/spatial.ts:414-418`, and `spatial.focus(target)` resolves a selector
+  the same way at `:554`). That is why this ADR is Accepted on
+  the principle and this paragraph is flagged as pending.
+- The attribute constants themselves stay private to the package: they are read
+  from the markup, so the contract is the attribute names of
+  [ADR-0001](0001-name-scope-and-attribute-prefix.md) rather than nine exported
+  strings a consumer could import and a rename would have to keep working
+  ([ADR-0011](0011-package-layout-and-adapters.md)).
 
 ## Alternatives considered
 
@@ -112,37 +129,59 @@ than an invention. See the [competitor comparison](../research/competitors.md).
 
 ## Evidence
 
-- `containers.ts` in full — attribute constants and the three pure parsers, with
-  `entryStrategy` falling back to `last` on any unknown value:
-  `packages/core/src/input/spatial/containers.ts:1-46` (miralabs-ui, commit
-  `289fa607`, read 2026-09-18). Its header states the intent: "Everything a
-  container can say about itself is a data attribute, which is what lets
-  third-party HTML become navigable without a line of application JavaScript".
+- `containers.ts` in full — nine attribute constants and the three pure parsers —
+  `src/spatial/containers.ts:1-47`. Rule 2 is the parser itself: `entryStrategy` at
+  `:41-43` returns `last` for anything that is not `first` or `nearest`, absent and
+  empty included, and `src/spatial/containers.test.ts:38-42` asserts exactly that for
+  `null` and for `"nonsense"`. `blocksDirection` and `wrapsDirection` are pinned the
+  same way, empty string included, at `src/spatial/containers.test.ts:4-36`. The module
+  header states the intent: "Everything a container can say about itself is a data
+  attribute, which is what lets third-party HTML become navigable without a line of
+  application JavaScript" — `src/spatial/containers.ts:2-4`.
 - The plugin header repeats it: "Declarative first: a container is
-  `data-mira-nav="container"` and everything else is an attribute on it ... The
-  imperative surface is for the cases attributes cannot express" —
-  `packages/core/src/input/spatial/spatial.ts:9-11`.
-- `body` is the default root: `rootOf()` returns `options.root ?? document.body`,
-  `packages/core/src/input/spatial/spatial.ts:214-218`; `containerOf()` returns the
-  root when no declared container encloses the element, `:105-108`.
-- The imperative surface is exactly five members:
-  `packages/core/src/input/spatial/spatial.ts:84-91` (interface) and `:486-506`
-  (implementation).
-- Redirection selectors are resolved on the document:
-  `packages/core/src/input/spatial/spatial.ts:362-366`.
-- Proof by an existing site: the miralabs-ui documentation site's own chrome —
-  sidebar, theme and density controls — is emitted by `@standardoc/kit`, a different
-  repository, "as plain anchors and plain buttons with no island and no
-  `data-mira-*` attribute of any kind", and a d-pad walks it anyway:
-  `apps/docs/content/foundations/gamepad.md:14-35` (read 2026-09-18). The same page
-  documents the attribute table at lines 57-76.
-- Design intent of 2026-08-27, in translation: declarative first, everything is
-  driven by data attributes and JavaScript is required only for initialisation and
-  advanced cases — miralabs-ui `docs/research/input.md:142`, a French document
-  deleted by commit `289fa607` and readable with
-  `git show 289fa607^:docs/research/input.md`; and, at `:212`, third-party
-  HTML becomes navigable without a line of JavaScript because registration is
-  automatic and declarative.
+  `data-snav="container"` and everything else is an attribute on it, so plain HTML
+  becomes navigable with no application code. The imperative surface is for the cases
+  attributes cannot express" — `src/spatial/spatial.ts:9-11`.
+- `body` is the default root, which is rule 1: `rootOf()` returns
+  `options.root ?? document.body`, `src/spatial/spatial.ts:265-269`; and `containerOf()`
+  returns that root when no declared container encloses the element, `:148-151`.
+- The imperative surface is exactly five members, and countably so: the
+  `SpatialPlugin` interface at `src/spatial/spatial.ts:89-96` declares `move`, `focus`,
+  `focusFirst`, `onWillMove` and `onBoundsHit` and nothing else, and the returned object
+  at `:547-567` implements those five — `move` and `focusFirst` delegated, the other
+  three inline.
+- Redirection selectors are resolved on the document rather than on the configured
+  root: `src/spatial/spatial.ts:414-418`, and `focus(target)` resolves a string the
+  same way at `:550-557`.
+- The written attributes are output and never read back as configuration: `remember()`
+  clears the stale markers, sets `FOCUSED_ATTRIBUTE` on the element and
+  `ACTIVE_ATTRIBUTE` on every container up the path to it —
+  `src/spatial/spatial.ts:276-292`. Both tables of the Decision are the published
+  contract, and `README.md` carries both under Usage — the attributes read, then the
+  nine written. That second table has grown since this record was accepted: the
+  on-screen keyboard ([ADR-0022](0022-virtual-keyboard.md)) added `data-snav-editing`
+  on 2026-09-20 and then `data-snav-keyboard`, `-keyboard-row`, `-keyboard-preview`
+  and `-keyboard-caret` on 2026-09-21
+  ([ADR-0001](0001-name-scope-and-attribute-prefix.md), amended the same day), so a
+  reader who remembers four should look again.
+- Proof that unprepared markup navigates, executable rather than anecdotal: the fixture
+  at `src/spatial/spatial.browser.test.ts:62` is "a three by three grid of plain
+  buttons, carrying no attributes whatsoever", and the `spatialPlugin — plain HTML`
+  block at `:73-88` walks it down, right, down, left and up in
+  `it("makes an unannotated grid navigable with no application code")`, asserting
+  `document.activeElement` at every step. That a site rendered by a third party was
+  walked the same way is inherited from the predecessor implementation
+  ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here. The file carries
+  seventeen `describe` blocks in all
+  (`grep -c "^describe(" src/spatial/spatial.browser.test.ts` → 17).
+- The principle itself — declarative first, data attributes driving everything,
+  JavaScript needed only for initialisation and the advanced cases, and third-party HTML
+  becoming navigable without a line of application code because the declaration sits in
+  the markup — is inherited from the predecessor implementation
+  ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here. It is adopted,
+  not invented on the spot, and it is independently visible in the code this ADR
+  governs: `src/spatial/containers.ts:2-4`, `src/spatial/spatial.ts:9-11`, and proven
+  executably at `src/spatial/spatial.browser.test.ts:73-88`.
 - Competitor declarativity: the declarative-HTML column of the Norigin, bamlab,
-  WICG, css-nav-1, Tabster and `@bbc/tv-lrud-spatial` sheets, verified 2026-09-18.
+  WICG, css-nav-1, Tabster and `@bbc/tv-lrud-spatial` sheets.
   Committed table: [competitor comparison](../research/competitors.md).

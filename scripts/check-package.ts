@@ -18,11 +18,32 @@ interface Manifest {
   readonly name: string;
   readonly version: string;
   readonly private?: boolean;
+  readonly dependencies?: Readonly<Record<string, string>>;
 }
 
 const manifest = JSON.parse(readFileSync(path.join(rootDir, "package.json"), "utf8")) as Manifest;
 if (manifest.private === true) {
   console.error("package.json is private: there is no tarball to lint");
+  process.exit(1);
+}
+
+// Zero runtime dependencies is a claim the specification makes and nothing enforced.
+// `react` and `react-dom` are optional peers, which a consumer already has or does not
+// want; a `dependencies` entry is something every consumer installs whether they use
+// the subpath it serves or not.
+const runtimeDeps = Object.keys(manifest.dependencies ?? {});
+if (runtimeDeps.length > 0) {
+  console.error(
+    `package.json declares runtime dependencies, and this package ships none: ${runtimeDeps.join(", ")}`,
+  );
+  process.exit(1);
+}
+
+// `files` ships dist, LICENSE and README. Without dist the pack still succeeds and the
+// linters still run, on a tarball with no code in it — a failure whose message says
+// nothing about the package being wrong.
+if (!existsSync(path.join(rootDir, "dist"))) {
+  console.error("dist/ is missing — run `bun run build` before `bun run check:package`");
   process.exit(1);
 }
 
@@ -48,7 +69,9 @@ try {
     if (!existsSync(tarball)) {
       failures.push(`tarball not found at ${tarball}`);
     } else {
-      run("publint", "bun", ["x", "publint", tarball]);
+      // --strict, because publint's warnings are the interesting half: without it the
+      // command prints them and exits 0, which reports rather than gates.
+      run("publint", "bun", ["x", "publint", "--strict", tarball]);
       run("attw", "bun", ["x", "attw", tarball, "--profile", "esm-only"]);
     }
   }

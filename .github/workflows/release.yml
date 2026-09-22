@@ -1,0 +1,131 @@
+name: Release
+
+# One workflow, three jobs, and the reason they are in one workflow rather than two is a
+# trap worth naming. release-please creates its pull request and its tag with the default
+# `GITHUB_TOKEN`, and GitHub deliberately does not trigger workflows on events made with
+# that token — it is how a workflow is stopped from looping on itself. So a tag-triggered
+# publish workflow would never run, and the release pull request carries no checks either.
+# Both follow from the same rule. The answer to the first is to gate the publish on
+# release-please's own output inside this run; the answer to the second is that the verify
+# job below replays the gates on the tag, because the version bump and the CHANGELOG that
+# land on `main` from that pull request were never checked by CI.
+#
+# The filename matters later: npm's trusted publishing matches the workflow by name, so a
+# rename after the first publish breaks it (ADR-0012).
+on:
+  push:
+    branches: [main]
+
+# Never two releases at once, and never cancel one in flight: a half-published version is
+# worse than a slow queue.
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  release-please:
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      released: ${{ steps.release.outputs.release_created }}
+      tag: ${{ steps.release.outputs.tag_name }}
+    steps:
+      - uses: googleapis/release-please-action@v5.0.0
+        id: release
+        with:
+          config-file: release-please-config.json
+          manifest-file: .release-please-manifest.json
+
+  # Every gate script CI runs, on the tag, because the commit that created it never went
+  # through a pull request with checks. A version bump cannot break the browser suite, but
+  # it can break `check:package` — publint reads the manifest — and the build drift gate,
+  # since tsdown rewrites the exports map. The browser engines run anyway: a release is rare
+  # and this is the last gate before bytes reach a registry. Not replayed: `react-floor`.
+  verify:
+    needs: release-please
+    if: needs.release-please.outputs.released == 'true'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.release-please.outputs.tag }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+      - run: bun install --frozen-lockfile
+      - run: bun run lint
+      - run: bun run check:docs
+      - run: bun run typecheck
+      - run: bun run build
+      - name: No build drift
+        run: git diff --exit-code
+      - name: Lint the packed tarball
+        run: bun run check:package
+      - name: Size budgets
+        run: bun run check:size
+      - run: bun run test:unit
+      - name: Resolve the playwright version
+        id: playwright
+        run: echo "version=$(bun pm ls | grep -oP '(?<![-\w])playwright@\K[0-9.]+' | head -1)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ steps.playwright.outputs.version }}-all
+      - run: bun x playwright install --with-deps chromium firefox webkit
+      - run: bun run test:browser
+        env:
+          SNAV_BROWSER: chromium
+      - run: bun run test:browser
+        env:
+          SNAV_BROWSER: firefox
+      - run: bun run test:browser
+        env:
+          SNAV_BROWSER: webkit
+
+  publish:
+    needs: [release-please, verify]
+    runs-on: ubuntu-24.04
+    permissions:
+      # `id-token: write` is what mints the provenance attestation, and `contents: read`
+      # is the rest of what npm asks for. Nothing else: this job writes to a registry, not
+      # to the repository.
+      contents: read
+      id-token: write
+    # A named environment so the owner has somewhere to add a required reviewer or a
+    # deployment branch rule without touching this file. It is created on first use.
+    environment: npm
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.release-please.outputs.tag }}
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+      # The one place this repository uses Node and the npm CLI, and it is a documented
+      # exception to the rule in CONTRIBUTING.md rather than a silent one: `bun publish`
+      # emits no provenance attestation at all (oven-sh/bun#15601, open since 2024-12-05),
+      # and a release without one would be visibly different from every other version.
+      # Node 22 carries an npm well above the 9.5.0 that token-based provenance needs, and
+      # is also the floor for the trusted publishing this is meant to move to.
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          registry-url: https://registry.npmjs.org
+      - run: bun install --frozen-lockfile
+      - run: bun run build
+      - name: Publish with provenance
+        # `publishConfig` in package.json already sets `access` and `provenance`; the flag
+        # is repeated here so the workflow says out loud what it is doing.
+        run: npm publish --provenance --access public
+        env:
+          # A granular token, for the first publish only. Trusted publishing attests
+          # without a token but is configured against an already-published package, so it
+          # cannot be used for 0.1.0. The plan is to switch after it and revoke this
+          # (ADR-0012).
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

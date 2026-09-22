@@ -23,8 +23,8 @@ arrow keys and turns them into free spatial movement silently breaks both of tho
 contracts, and it breaks them on the sites where keyboard users are most likely to
 be.
 
-The extracted engine already resolves this with a mode. This ADR records why the
-default is the conservative one, and what the other mode is for.
+The engine resolves this with a mode. This ADR records why the default is the
+conservative one, and what the other mode is for.
 
 ## Decision
 
@@ -53,7 +53,9 @@ the bug; on a web page, moving focus because the pointer passed over an element
 would steal focus from a form the user is filling in.
 
 Mode is a property of the engine instance, not of a container: it is read once from
-the options at construction (`spatial.ts:192`) and no attribute changes it.
+the options at construction and no attribute changes it
+(`src/spatial/spatial.ts:238-239` — `options.mode ?? "composite"` on one line and
+`options.pointerFollowsFocus ?? mode === "app"` on the next).
 
 ## Consequences
 
@@ -66,15 +68,20 @@ the options at construction (`spatial.ts:192`) and no attribute changes it.
   is the one line a TV integrator can forget, so it belongs in the first paragraph
   of the TV guide, not in an options table at the bottom.
 - `app` mode takes the arrow keys away from prose scrolling. On a content site that
-  is a regression, which is the concrete reason the documentation site of the source
-  repository runs `composite`: in `app` mode, <kbd>Down</kbd> would stop scrolling
-  the article and start moving focus, on the very site whose readers came to learn
-  how the library treats a keyboard.
+  is a regression, which is the concrete reason a documentation site for this library
+  must itself run `composite`: in `app` mode, <kbd>Down</kbd> would stop scrolling the
+  article and start moving focus, on the very site whose readers came to learn how the
+  library treats a keyboard.
 - Two modes mean two paths through the same handler, so the browser test suite has
   to cover both: a keyboard-sourced `moveDown` must move focus in `app` and must not
-  in `composite`. That test does not exist yet.
-- `pointerFollowsFocus` has no test in the source repository either; it is listed as
-  a known gap in [ADR-0018](0018-testing-strategy.md).
+  in `composite`. It does — `src/spatial/spatial.browser.test.ts:138-167`, three
+  cases: the arrow keys are left to the composites by default, the gamepad crosses
+  the page anyway in `composite`, and `app` gives the arrow keys the run of the page.
+- `pointerFollowsFocus` was recorded as a known coverage gap in
+  [ADR-0018](0018-testing-strategy.md) — a default-on path with nothing pinning it.
+  It has three tests now (`src/spatial/spatial.browser.test.ts:512-545`): off in
+  `composite` so a hover changes nothing, on in `app`, and bypassing the `onWillMove`
+  veto — which a hover is not subject to.
 - The gamepad crossing composites in `composite` mode is deliberate, and it means a
   d-pad can leave an APG composite that a keyboard cannot leave with arrows. That
   asymmetry is the point, not an oversight: the pad has no `Tab`.
@@ -92,26 +99,31 @@ the options at construction (`spatial.ts:192`) and no attribute changes it.
 
 - The mechanism, with its comment: "APG-strict by default: arrow keys belong to
   whatever composite has the focus, and only Tab crosses between them. A gamepad has
-  no Tab, so it crosses anyway" — `packages/core/src/input/spatial/spatial.ts:428-439`
-  (miralabs-ui, commit `289fa607`, read 2026-09-18); the mode test is at `:437`.
+  no Tab, so it crosses anyway" — `handleIntent` in `src/spatial/spatial.ts:480-491`;
+  the mode test `if (mode === "composite" && event.source === "keyboard") return
+  false;` is at `:489`, one line, the whole of the filter.
 - Defaults: `mode` is `composite` and `followPointer` is `options.pointerFollowsFocus
-  ?? mode === "app"` — `packages/core/src/input/spatial/spatial.ts:192-193`. The
-  option documentation is at `:68-82`.
-- The pointer handler that `followPointer` installs, and which focuses on
-  `pointerover`: `packages/core/src/input/spatial/spatial.ts:456-472`.
+  ?? mode === "app"` — `src/spatial/spatial.ts:238-239`. `SpatialPluginOptions`
+  documents which world each mode is for at `:73-87`.
+- The pointer handler that `followPointer` installs, which focuses on `pointerover`
+  and checks `isFocusable` and root containment before it does:
+  `src/spatial/spatial.ts:508-524`.
 - Unclaimed intents keep the native default: "The native default survives unless
   someone actually wanted the intent — otherwise arrow keys would stop scrolling a
-  page that has no navigation", `packages/core/src/input/input-system.ts:159-161`.
-- The documentation-site rationale, including the mode table and the sentence about
-  <kbd>Down</kbd> on a prose page: `apps/docs/content/foundations/gamepad.md:42-55`
-  (read 2026-09-18). The same page shows the site's own setup calling
-  `spatialPlugin({ mode: "composite" })` at lines 29-35.
+  page that has no navigation", `src/input-system.ts:179-181`.
 - Same intents from both devices, which is what makes the mode the only place the
-  source matters: `apps/docs/content/foundations/gamepad.md:109-116`, and the
-  `select` fallback in `packages/core/src/input/input-system.ts:98-112`.
+  source matters: `ArrowUp`…`ArrowRight` become `moveUp`…`moveRight` in
+  `src/keymap.ts:48-51`, the stick sectors become the same four intents in
+  `MOVE_INTENTS`, `src/gamepad/gamepad.ts:67-70`, and the d-pad buttons reach them
+  through the `STANDARD` button table, `src/gamepad/mapping.ts:31-34`. The `source`
+  the mode branches on is stamped in `resolveKeyIntent` (`src/keymap.ts:128`), and the
+  `select` fallback that clicks the focused element for a pad but never for a
+  keyboard is `activateFocused`, `src/input-system.ts:118-132`.
 - ARIA Authoring Practices Guide, keyboard interaction conventions for composite
   widgets (arrow keys inside, `Tab` between):
-  https://www.w3.org/WAI/ARIA/apg/practices/keyboard-interface/ — referenced as the
-  rule this ADR follows; not re-fetched on 2026-09-18.
+  https://www.w3.org/WAI/ARIA/apg/practices/keyboard-interface/ — the external rule
+  this ADR follows.
+- Coverage: `src/spatial/spatial.browser.test.ts:138-167` (the two modes) and
+  `:512-545` (`pointerFollowsFocus`).
 - Related: [ADR-0005](0005-real-dom-focus.md) (what "focused" means) and
   [ADR-0006](0006-declarative-first.md) (what the engine reads from the markup).

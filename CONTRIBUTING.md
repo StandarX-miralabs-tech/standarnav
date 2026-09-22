@@ -7,12 +7,18 @@ request, and how to report a bug. Read it before opening a pull request.
 ## Prerequisites
 
 - [bun](https://bun.sh). The repository pins the version in `.bun-version`
-  (`1.4.0`, read 2026-09-18); CI installs that exact version through
-  `oven-sh/setup-bun` (`.github/workflows/ci.yml:17-19`). Use that version or
+  (`1.4.0`); CI installs that exact version through
+  `oven-sh/setup-bun` (`.github/workflows/ci.yml:22-24`). Use that version or
   a newer one. Never use `npm` or `npx` in this repository — every command
-  below is a `bun` command.
+  below is a `bun` command. The release workflow carries the one documented
+  exception: its publish step calls the npm CLI (`npm publish --provenance` in
+  `.github/workflows/release.yml`), because publication has to happen from CI
+  *with* a provenance attestation and the `bun` client emits none. That
+  exception is recorded, with the issue it turns on and the dates, in
+  [ADR-0012](docs/adr/0012-versioning-and-release.md) — nothing else here may
+  reach for npm.
 - A Playwright browser for the browser test project. The default engine is
-  Chromium (`vitest.config.ts:9`):
+  Chromium (`vitest.config.ts`):
 
   ```sh
   bun x playwright install chromium
@@ -31,28 +37,33 @@ bun install
 ## Scripts
 
 The scripts used for contribution checks, read from the `scripts` field of
-`package.json` on 2026-09-18. Run them with `bun run <script>`.
+`package.json` on 2026-09-22. Run them with `bun run <script>`.
 
 | Script | Command | Purpose |
 |---|---|---|
-| `dev` | `vite playground --open` | Serve the fixture page in `playground/`. The engine is not wired into it yet: `src/` does not exist. |
-| `build` | `tsdown` | Build the package (ESM, unbundled, with `.d.ts`). |
+| `dev` | `vite playground --open` | Serve the fixture page in `playground/`. It imports the engine from `src/` directly, so Vite compiles it and a change is on screen on the next reload with no build step between. |
+| `build` | `tsdown` | Build the package (ESM, unbundled, with `.d.ts`). It rewrites the `exports` map of `package.json`, so a build has to leave the tree byte-identical — see the drift gate below. |
 | `typecheck` | `tsc --noEmit` | Type-check without emitting output. |
 | `lint` | `biome check .` | Lint and format-check with Biome. |
 | `lint:fix` | `biome check --write .` | Lint and fix what Biome can fix automatically. |
 | `format` | `biome format --write .` | Format the codebase with Biome. |
 | `test` | `vitest run` | Run every test project (unit and browser). |
 | `test:unit` | `vitest run --project unit` | Run the Node-based unit tests only. |
-| `test:browser` | `vitest run --project browser` | Run the browser tests on one engine, Chromium unless `SNAV_BROWSER` says otherwise (`vitest.config.ts:9`). |
+| `test:browser` | `vitest run --project browser` | Run the browser tests on one engine, Chromium unless `SNAV_BROWSER` says otherwise (`vitest.config.ts`). |
 | `test:watch` | `vitest` | Run tests in watch mode. |
-| `bench` | `vitest bench --project unit --run` | Run the benchmark suite. |
 | `check:size` | `bun run scripts/size-budget.ts` | Measure the min+gzip size of every published entry of `dist/` against its cap. Needs a build first. |
-| `check:package` | `bun run scripts/check-package.ts` | Pack the tarball, then run `publint` and `attw --profile esm-only` on it. |
+| `check:package` | `bun run scripts/check-package.ts` | Refuse any runtime dependency in `package.json`, then pack the tarball and run `publint --strict` and `attw --profile esm-only` on it — the real artifact npm receives, not the source tree. |
+| `check:docs` | `bun run scripts/check-citations.ts` | Resolve every `path:line` citation, bare `:NNN` anchor and link in every tracked `.md` against the tree, and refuse an absolute path or a `.local` reference (see "No documentation claim without its proof"). A required step of the CI lint job, independent of Biome. |
+
+There is no benchmark script. Vitest 5 no longer exports `bench`, and nothing
+in this repository measures throughput; a performance claim in a document needs
+a measurement you took yourself, with its command and date.
 
 Before opening a pull request, run at minimum:
 
 ```sh
 bun run lint
+bun run check:docs
 bun run typecheck
 bun run test
 bun run build
@@ -60,9 +71,15 @@ bun run check:package
 bun run check:size
 ```
 
-`bun run test` and `bun run build` fail today, because `src/` does not exist
-yet: the engine has not been extracted. Until the first extraction commit
-lands, CI is red for that reason and not because of your change.
+All of those were run here on 2026-09-22 and pass. Between them they reproduce
+five of the eight checks CI runs (six jobs, one of them a three-engine matrix);
+the firefox and webkit runs and the React 18.3 floor job only exist in CI, which
+reports them on the pull request. Measured on the same date: `bun run test:unit`
+is 100 tests in 10 files, `bun run test:browser` is 243 passed and 1 skipped in
+12 files — 343 passed and 1 skipped in total. The
+one skip is a documented shadow-DOM fixture
+(`src/spatial/spatial.browser.test.ts:856`, [ADR-0008](docs/adr/0008-shadow-dom.md)),
+not a test someone silenced. A red CI is about your change; treat it that way.
 
 ## Conventional commits
 
@@ -96,11 +113,17 @@ human contributors only.
 ## Release notes
 
 [ADR-0012](docs/adr/0012-versioning-and-release.md) accepts semver starting
-at 0.x and proposes changesets as the changelog tool; that tool choice is
-still a rider the owner has not closed, and nothing is wired into the
-repository — there is no `.changeset/` directory and no release workflow.
+at 0.x, and the release tool is decided: **release-please**. It reads the
+Conventional Commit history of `main` and keeps a release pull request open
+carrying the version bump and the CHANGELOG it writes from those commits,
+which is why the commit rules above are load-bearing rather than cosmetic.
 
-Until one is wired, the release note lives in the pull request description:
+The wiring exists — `release-please-config.json`, `.release-please-manifest.json`
+and `.github/workflows/release.yml` — and has never run, because that workflow
+triggers on a push to `main`. Until it does, and until the publishing account has
+a token and 2FA, no release runs and the rules above are the whole mechanism.
+
+Until it has run, the release note lives in the pull request description:
 a pull request that changes anything a consumer can observe carries one
 sentence saying what changed for that consumer, in English, and names the
 affected subpath rather than the file. That sentence is what the CHANGELOG
@@ -116,9 +139,9 @@ fixes.
 - A change that touches the DOM (focus movement, attribute reads or writes,
   scroll handling, the focus ring overlay) needs a browser test, and it must
   pass on the three engines of the CI matrix: Chromium, Firefox, and WebKit
-  (`.github/workflows/ci.yml:61-83`). Locally, `bun run test:browser` runs
-  one engine at a time; select the other two with the environment variable
-  the configuration reads:
+  (the `browser` job, `.github/workflows/ci.yml:103-129`). Locally,
+  `bun run test:browser` runs one engine at a time; select the other two with
+  the environment variable the configuration reads:
 
   ```sh
   SNAV_BROWSER=firefox bun run test:browser
@@ -128,34 +151,85 @@ fixes.
   A unit test running in Node is not a substitute for a browser test when
   real DOM APIs (`focus()`, `getBoundingClientRect`, `checkVisibility`,
   `document.activeElement`) are involved. Browser tests are named
-  `*.browser.test.ts`; everything else stays in the `unit` project
-  (`vitest.config.ts:18-26`).
+  `*.browser.test.ts` or `*.browser.test.tsx`; everything else stays in the
+  `unit` project (`vitest.config.ts`).
 - Pure functions (geometry scoring, keymap resolution, attribute parsing) are
   covered by unit tests under the `unit` Vitest project.
+- `passWithNoTests` is deliberately **not** set (`vitest.config.ts`). An
+  empty project means the globs stopped matching, which is a discovery
+  breakage, and it has to be as red as a failing assertion rather than a green
+  run of nothing. Do not add the flag to get past a red run.
+- A change to the React adapter is held to the shared adapter suite in
+  `src/adapter-parity.ts`, not to tests of its own invention: one system and
+  not during the first render, LIFO scope order, a scope released when only
+  its own subtree unmounts, a trap that stops the walk, a base scope reached
+  through that trap, and a base re-registered on a rerender. A second adapter
+  implements `ParityAdapter` and runs the same suite. Extend the suite rather
+  than working around it. A separate CI job reinstalls React 18.3 over the
+  lockfile's 19 and typechecks and runs the browser suite against it
+  (the `react-floor` job, `.github/workflows/ci.yml:75-101`): the declared peer
+  range is `>=18.3.0`, and every other job installs `--frozen-lockfile`, so
+  without that job the floor of the range is a promise nothing keeps. A change
+  that needs a React 19 API narrows the peer range in the same pull request.
 - A pull request without a test for the behaviour it changes is not merged.
 
 ## Size budgets are blocking
 
-The build job of CI runs `bun run check:size` after the build and the drift
-gate (`.github/workflows/ci.yml:48-49`). The script is
-`scripts/size-budget.ts`. It measures six lines against the built `dist/`:
-the core (`index.js`), the gamepad engine, the spatial engine and the focus
-ring — each bundled with its sibling entries (`../*`, `../../*`) left
-external, so the number is the marginal cost of adding that subpath next to
-the core — the debug entry with `./*` external, and one "whole package" line
-that bundles the four runtime entries once, through a synthetic re-export
-module, with nothing external. Each line is minified and gzipped at Bun's
-default level; that reads a little heavier than `gzip -9`, so never mix the
-two in one comparison. The script also fails with a clear message when
-`dist/` is missing.
+The build job of CI runs `bun run check:size` after the build, the drift gate
+and `check:package` (`.github/workflows/ci.yml:50-58`). The script is
+`scripts/size-budget.ts`. It measures eleven lines against the built `dist/`:
+the core (`index.js`), the gamepad engine, the spatial engine, the focus ring,
+the debug entry, the React adapter, the on-screen keyboard and one line per keyboard
+layout — each bundled with the sibling entries it
+also imports left external, so the number is the marginal cost of adding that
+subpath next to what it already sits beside. That is usually the core, but not
+always: the debug line externalises `./spatial/spatial.js` and
+`./spatial/geometry.js`, so it is charged against the spatial engine rather than
+against the core (`scripts/size-budget.ts:105-114`), and the core line has no
+externals at all (`scripts/size-budget.ts:78-83`). There is then one "whole
+package" line that bundles the four runtime entries once, with nothing
+external. Every line, single-entry ones
+included, goes through a synthetic module that imports each entry as a
+namespace into an exported sink: a bare entry is tree-shaken against
+`sideEffects: false` and measures a list of export names whose declarations
+have all been dropped, and a `export * from` shim is dropped by ES semantics
+the same way. Each line is minified and gzipped at Bun's default level; that
+reads a little heavier than `gzip -9`, so never mix the two in one comparison.
+The script also fails with a clear message when `dist/` is missing.
 
-Every cap is `null` today. A `null` cap means "measured, not yet capped":
-the line is still built and reported, and the run **fails** printing the
-measurement, because a cap invented before the first measurement would be a
-guess the script then ratifies by staying green
-([ADR-0017](docs/adr/0017-size-budgets.md)). So `bun run check:size` is
-expected to exit non-zero until the first caps are written from real
-numbers, and CI is red for that reason as well.
+**Externals are named file by file. Never write a glob.** `../*` does not
+cross a path separator, so it marks `../modality.js` external and silently
+misses `../dom/query.js`; `./*` on a top-level entry can externalise the
+line's own contents and report a re-export stub as proof. Either way the line
+stops measuring and never goes red again. Derive a line's externals from the
+built graph in `dist/`, not from `src/` — the two disagree, because a
+types-only module emits no `.js` and a type-only import erases. A named
+external that resolves to no file is a hard error rather than a silent
+no-op, which is the check that keeps this honest.
+
+Every line is capped. Measured here with `bun run build && bun run check:size`
+on 2026-09-21, min+gzip against cap:
+
+```
+core            3.13 / 3.25 kB
+gamepad engine  2.49 / 2.50 kB
+spatial engine  3.04 / 3.25 kB
+focus ring      1.51 / 1.75 kB
+debug           0.49 / 0.50 kB
+react adapter   1.30 / 1.50 kB
+keyboard        2.82 / 3.00 kB
+layout qwerty   0.45 / 0.50 kB
+layout azerty   0.49 / 0.50 kB
+layout alphabetic  0.36 / 0.50 kB
+whole package   12.40 / 12.50 kB
+```
+
+The run passes. A `null` cap is still a legal state in the script and still
+fails the run printing the measurement — that is how a newly added line is
+capped from a real number rather than from a guess the script then ratifies by
+staying green ([ADR-0017](docs/adr/0017-size-budgets.md)) — but no line is in
+that state today. If `check:size` exits non-zero, a line is over its cap or a
+new line has no cap yet; either way it is about your change.
 
 A pull request that touches a measured entry pastes the `check:size` lines
 for that entry into its description, so the size change is visible in review
@@ -181,6 +255,32 @@ A claim with none of these is written as "not measured yet" or "to be
 verified" instead of being asserted. This applies to README, ADRs, the
 specification, and the roadmap alike.
 
+Two rules about the paths inside those claims:
+
+- Every cited path is a path in **this** repository, at a real line you have
+  opened. Line anchors go stale; re-read the one you are citing rather than
+  carrying it forward from the paragraph you are editing. A claim this project
+  did not re-derive gets no path at all: it is marked as inherited from the
+  predecessor implementation
+  ([ADR-0002](docs/adr/0002-license-and-copyright.md)) and not re-derived here,
+  so a reader knows there is nothing here to check it against.
+- Never write an absolute filesystem path into a committed file, and never
+  reference the gitignored `.local` scratch directory from one.
+
+`bun run scripts/check-citations.ts` checks the mechanical half of those rules
+across every tracked `.md`: a cited file must exist, the line must be inside
+it, and the first and last line of a range must not be blank — landing on
+whitespace is what a drifted anchor looks like. It also refuses an absolute
+path and a scratch-directory reference outright. What it cannot see is an
+anchor that drifted onto some *other* real line, which is why the prose names
+the symbol it is pointing at: a reader can then see the mismatch.
+
+A path written in full once and then cited as `` `:NNN` `` for the lines around
+it is checked the same way, against the file the prose named last — the reading
+a human already gives it. So name the file again whenever the subject changes,
+and never leave a bare anchor above the first path on the page: with nothing to
+resolve it against, it fails the run rather than pointing somewhere plausible.
+
 ## Code and comments
 
 - Code, identifiers, commit messages, and comments are in English.
@@ -195,6 +295,11 @@ Every committed `.md` file is English. User-facing documentation under
 its strict, file-by-file mirror. A documentation page without its mirror
 does not merge — add the French page in the same pull request, or hold the
 English page until it is ready.
+
+Neither directory exists yet: `docs/` holds `adr/`, `research/`
+and `specification.md` today, all of which are English-only
+by the paragraph below. The rule applies to the first page that lands under
+`docs/en`.
 
 This mirror rule applies to user-facing documentation only. Governance files
 (this one, the code of conduct, the security policy), ADRs, the
@@ -237,6 +342,11 @@ Before requesting review, confirm:
       Chromium, Firefox and WebKit.
 - [ ] `bun run lint`, `bun run typecheck`, `bun run test`, and `bun run build`
       pass locally.
+- [ ] `bun run build` left the tree clean, or the rewritten `exports` map in
+      `package.json` is committed with the change (`git diff --exit-code` is a
+      CI gate).
+- [ ] `bun run check:package` passes: no runtime dependency, and the packed
+      tarball is clean under `publint --strict` and `attw`.
 - [ ] The `bun run check:size` lines for every entry the change touches are
       pasted in the description, and no cap is exceeded — or the pull request
       links an ADR amendment proposing the new cap.
