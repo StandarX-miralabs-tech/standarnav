@@ -1,10 +1,11 @@
 # Roadmap
 
-Status: unreleased. Nothing is published on npm, nothing has been run on a television, and no demo
-exists yet.
+Status: `@standarx/nav@0.1.0` is on npm since 2026-09-22
+([ADR-0012](docs/adr/0012-versioning-and-release.md), sixth amendment). Nothing has been run on a
+television, and no demo exists yet.
 
-This file lists what is still open. What is done is in the git history, and will be in the CHANGELOG
-once a release has actually run.
+This file lists what is still open. What is done is in the git history and, from `0.1.0` on, in the
+CHANGELOG release-please writes.
 
 ## How this file is maintained
 
@@ -12,18 +13,15 @@ once a release has actually run.
 - New work is added to the section it belongs to, never silently retitled.
 - An item is removed when it ships, not ticked — the commit is the record.
 
-## v0: what is left before the first publication
+## v0: what is still open
 
 The engine navigates between focusable elements, the five controls that hold a value are wired, the
-`<select>` question is answered and the on-screen keyboard is built. **One thing blocks the first
-publication**: the release tooling is wired and ran once, on 2026-09-22, stopping at an organisation
-setting before it could open the release pull request; and the account it would publish from has
-neither a token nor 2FA.
+`<select>` question is answered, the on-screen keyboard is built, and the first version is
+published. What follows is what v0 still owes, and none of it blocks the next release: the
+keyboard's open items are limitations of a shipped module, documented rather than discovered, and
+the release section is a switch that is wired and has not run.
 
-The two sections below are not blockers. The keyboard's open items are limitations of a shipped
-module, documented rather than discovered; the release section is the blocker.
-
-Controls that hold a value were the last gap to close before this one. The grammar was always public —
+Controls that hold a value were the last gap to close before the first publication. The grammar was always public —
 `pushEngageScope` takes hold of a control, the directional intents become adjustments, confirm
 commits and back restores the entry value (`src/engage.ts:49`) — and nothing used it. The four
 controls it was written for are now wired in the playground — the listbox beside them takes a
@@ -91,11 +89,10 @@ playground rule that stretched the box over the field.
 
 The wiring is in place: `release-please-config.json`, `.release-please-manifest.json` and
 [.github/workflows/release.yml](.github/workflows/release.yml), three jobs — release-please, a
-verify that replays every gate on the tag, then a publish that calls the npm CLI with
-`--provenance`. It ran for the first time on 2026-09-22, when the extraction branch reached `main`,
-and stopped at the organisation setting that lets Actions open a pull request
-([ADR-0012](docs/adr/0012-versioning-and-release.md), fifth amendment); the first version it will
-propose is pinned to `0.1.0` there.
+verify that replays every gate on the tag, then a publish that calls the npm CLI, the one
+documented exception to the no-`npm` rule. It released `0.1.0` on 2026-09-22 with a signed
+provenance statement, 116.6 kB packed and 99 files by its own log
+([ADR-0012](docs/adr/0012-versioning-and-release.md), sixth amendment).
 
 Two things about its shape are worth knowing before reading it. The publish job lives in the
 **same run** as release-please rather than in a tag-triggered workflow, because GitHub does not
@@ -104,12 +101,10 @@ pull request with no checks would have left a tag-triggered publish never runnin
 verify job exists precisely because of that missing-checks half: the version bump and the CHANGELOG
 that land on `main` were never seen by CI.
 
-- [ ] First npm publication of a 0.x version with provenance. Needs the organisation to allow
-      Actions to open the release pull request, a granular `NPM_TOKEN` secret, 2FA on the
-      publishing account, and the owner's hand on the merge of that pull request
-- [ ] Record the published size from the registry after that publication — measure first
-- [ ] Move to npm trusted publishing and revoke the token. A trusted publisher is configured on an
-      existing package, so this can only happen after the first publication
+- [ ] First release through npm trusted publishing. The publish job authenticates with the run's
+      OIDC token and reads no secret since 2026-09-22; nothing has run through it, and the next
+      `feat`, `fix` or `perf` on `main` is what proves it. Needs the trusted publisher registered
+      on npmjs.com first — the owner's action, listed below
 
 ### Test fixtures still missing
 
@@ -214,12 +209,15 @@ These are decisions nobody else can make.
       installation reads it yet
 - [ ] Reserve the brand on the third-party `standarx` GitHub organisation
       ([ADR-0001](docs/adr/0001-name-scope-and-attribute-prefix.md))
-- [ ] Enable 2FA on the npm publishing account before the first release
-      ([ADR-0012](docs/adr/0012-versioning-and-release.md))
+- [ ] Register the trusted publisher on npmjs.com for `@standarx/nav`: organisation
+      `StandarX-miralabs-tech`, repository `standarnav`, workflow `release.yml`, environment `npm`,
+      direct `npm publish` allowed. Then revoke the granular token that published `0.1.0` and
+      delete the `NPM_TOKEN` secret, which the workflow no longer reads
+      ([ADR-0012](docs/adr/0012-versioning-and-release.md), sixth amendment)
 
 ## Success metrics
 
 - [ ] Record the first external user, with the issue or repository link
 - [ ] Record the first third-party issue that is not from the owner
-- [ ] Record weekly downloads with the command and date used to read them, once published — measure
-      first; before the first publication this number does not exist
+- [ ] Record weekly downloads with the command and date used to read them — measure first; the
+      number exists since 2026-09-22 and nothing has read it yet

@@ -42,7 +42,7 @@ One package, subpath exports: `@standarx/nav` (core), `/gamepad`, `/spatial`,
 ([ADR-0011](0011-package-layout-and-adapters.md)). The `/vue`, `/svelte` and
 `/angular` names are reserved by this decision for adapters that are planned and
 not built: this repository has no `src/vue`, `src/svelte` or `src/angular`.
-`vanilla` is the core itself. The package is unreleased; v0 is in progress.
+`vanilla` is the core itself. `0.1.0` is on npm since 2026-09-22; v0 is in progress.
 
 Attributes read from the markup: `data-snav="container"`, `data-snav-enter`,
 `data-snav-wrap`, `data-snav-block`, `data-snav-trap`, `data-snav-scroll`,

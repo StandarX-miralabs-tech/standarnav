@@ -19,10 +19,9 @@ change that would introduce a network call needs an ADR.
 
 ## Supported versions
 
-Nothing is published on npm on 2026-09-18: the table below states the policy
-that applies from the first release onwards, not a list of existing
-releases. The project has not reached v1. Until then, only the latest 0.x
-minor release is supported with security fixes.
+The first release, `0.1.0`, reached npm on 2026-09-22; the table below is the
+policy, not a list of releases. The project has not reached v1. Until then,
+only the latest 0.x minor release is supported with security fixes.
 
 | Version | Supported |
 |---|---|
@@ -41,9 +40,9 @@ If private vulnerability reporting is unavailable to you for any reason,
 contact the maintainer directly on GitHub (@SUP2Ak) instead. Do not use
 email for a security report.
 
-Include, where you can: the affected version or, while the package is
-unreleased, the commit hash you built from; a minimal reproduction; and the
-potential impact as you understand it.
+Include, where you can: the affected version, or the commit hash if you built
+from the tree; a minimal reproduction; and the potential impact as you
+understand it.
 
 ## Response targets
 

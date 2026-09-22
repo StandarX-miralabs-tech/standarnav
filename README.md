@@ -2,7 +2,7 @@
 
 Spatial navigation for the web: d-pad, gamepad sticks, TV remotes and arrow keys drive real DOM focus, declared in data attributes.
 
-**Status:** unreleased. The engine has landed in this repository under `src/`; the public API is not frozen, the `data-snav-*` attribute names are not final ([ADR-0001](docs/adr/0001-name-scope-and-attribute-prefix.md)), and nothing is published on npm. See [ROADMAP.md](ROADMAP.md).
+**Status:** `0.1.0` is on npm since 2026-09-22. The public API is not frozen and the `data-snav-*` attribute names are not final ([ADR-0001](docs/adr/0001-name-scope-and-attribute-prefix.md)); while the major is 0, a minor may break. See [ROADMAP.md](ROADMAP.md).
 
 ## What it does
 
@@ -20,13 +20,9 @@ Spatial navigation for the web: d-pad, gamepad sticks, TV remotes and arrow keys
 
 ## Install
 
-Not published yet. Once it is published, the intended form is:
-
 ```sh
 bun add @standarx/nav
 ```
-
-The name is free as of 2026-09-18: a GET on `https://registry.npmjs.org/@standarx%2Fnav` answered 404 that day.
 
 While the major stays 0, a minor may break: the snippet above pins an exact minor once a 0.x exists ([ADR-0012](docs/adr/0012-versioning-and-release.md)).
 
@@ -195,7 +191,7 @@ Twenty fact sheets were built source-first on 2026-09-18, covering 18 distinct p
 
 | Library | Real DOM focus | Attributes on plain HTML | Gamepad API | Framework-agnostic core |
 |---|---|---|---|---|
-| standarnav (this repository, unreleased) | yes | yes | yes | yes |
+| standarnav (this repository, `0.1.0`) | yes | yes | yes | yes |
 | Norigin `norigin-spatial-navigation` 3.3.0 / core 4.1.1 | optional (virtual by default) | no (`useFocusable` hook) | no | yes (depends on lodash-es) |
 | BBC `@bbc/tv-lrud-spatial` 0.0.18 | yes (the app calls `focus()`) | yes (`nav`, `section`, `.lrud-container`, `data-block-exit`, `data-focus`) | no | yes |
 | WICG `spatial-navigation-polyfill` 1.3.1 | yes | no (CSS custom properties) | no | yes |
