@@ -116,7 +116,11 @@ Constraints to know before writing one:
 
 ## Documentation
 
-- [README](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/README.md): install, usage, the attribute tables, React, how a move is decided, browser support.
+- [README](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/README.md): status, install, the minimal setup, the attribute table the engine reads, the subpaths, the frameworks line.
+- [Attributes](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/docs/en/attributes.md): both attribute tables, read and written.
+- [Navigation](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/docs/en/navigation.md): how a move is decided, and what makes an element navigable.
+- [React](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/docs/en/react.md): the provider, the hooks, the `useMemo` contract, the parity suite the next adapters run.
+- [Focus ring](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/docs/en/focus-ring.md): the six custom properties and the two limits of an inline paint. Every `docs/en` page has a French mirror at the same path under `docs/fr`.
 - [Specification](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/docs/specification.md): the problem, the non-goals, the user contract and the numbered requirements.
 - [Roadmap](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/ROADMAP.md): what is still open in v0, and what v1 freezes.
 - [Decision records index](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/docs/adr/README.md): every ADR with what it decides.

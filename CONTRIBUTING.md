@@ -302,10 +302,12 @@ its strict, file-by-file mirror. A documentation page without its mirror
 does not merge — add the French page in the same pull request, or hold the
 English page until it is ready.
 
-Neither directory exists yet: `docs/` holds `adr/`, `research/`
-and `specification.md` today, all of which are English-only
-by the paragraph below. The rule applies to the first page that lands under
-`docs/en`.
+Both directories exist since 2026-09-22, four pages each: `attributes.md`,
+`navigation.md`, `react.md` and `focus-ring.md`. `docs/` also holds `adr/`,
+`research/` and `specification.md`, all of which are English-only by the
+paragraph below. In a mirror, the prose is translated and everything that is
+the contract — code blocks, attribute and property names, cited paths, table
+cells holding code — is identical on both sides.
 
 This mirror rule applies to user-facing documentation only. Governance files
 (this one, the code of conduct, the security policy), ADRs, the
