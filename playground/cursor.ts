@@ -22,9 +22,31 @@
 
 import { applyDeadZone } from "../src/gamepad/dead-zone";
 import type { GamepadPlugin } from "../src/gamepad/gamepad";
+import type { InputSystem } from "../src/index";
+import { ENGAGED_ATTRIBUTE } from "./widgets";
 
 export interface PadCursor {
   dispose(): void;
+}
+
+/**
+ * The four the dot answers itself. Everything else — A, B, paging — has to reach the
+ * bus, and an assigned route is a *total* override: `emit` calls the route and returns
+ * without ever calling `context.emit` (`src/gamepad/gamepad.ts:183-187`), so an intent
+ * this handler does not forward is not deferred, it is destroyed. The first version of
+ * this file swallowed the lot and claimed A still worked as a click, which was wrong
+ * twice over: no engageable widget has a click listener to receive it, and losing B
+ * meant a control held from the keyboard could never be let go with the pad.
+ */
+const POINTER_INTENTS: ReadonlySet<string> = new Set([
+  "moveUp",
+  "moveDown",
+  "moveLeft",
+  "moveRight",
+]);
+
+function somethingIsHeld(): boolean {
+  return document.querySelector(`[${ENGAGED_ATTRIBUTE}]`) !== null;
 }
 
 /** Pixels per second at full stick deflection — a screen's width in about two seconds. */
@@ -49,7 +71,7 @@ function readPads(): readonly (Gamepad | null)[] {
   }
 }
 
-export function attachPadCursor(pad: GamepadPlugin, padIndex = 0): PadCursor {
+export function attachPadCursor(pad: GamepadPlugin, bus: InputSystem, padIndex = 0): PadCursor {
   const dot = document.createElement("div");
   dot.className = "pad-cursor";
   // The dot is decoration for a pointer the user is already looking at, and naming it
@@ -93,6 +115,11 @@ export function attachPadCursor(pad: GamepadPlugin, padIndex = 0): PadCursor {
     const delta = last === 0 ? 0 : Math.min(MAX_FRAME, (now - last) / 1000);
     last = now;
 
+    // A held control owns the stick, and the route above is already forwarding its
+    // directions. Without this the same deflection would adjust the value *and* drag
+    // the dot off the control being adjusted.
+    if (somethingIsHeld()) return;
+
     const pads = readPads();
     const it = pads[padIndex];
     if (!it) return;
@@ -114,11 +141,20 @@ export function attachPadCursor(pad: GamepadPlugin, padIndex = 0): PadCursor {
   place();
   frame = requestAnimationFrame(step);
 
-  // Every intent this pad would emit is taken here instead of reaching the bus: the
-  // stick is a pointer now, and leaving the directional intents on would move the focus
-  // a second time, away from whatever the dot is over. A stays useful as the click.
+  // The directions are the dot's, and only while nothing is held: leaving them on the
+  // bus would move the focus a second time, away from whatever the dot is over. While a
+  // control *is* held they belong to it, because adjusting a held value is what a stick
+  // is for once A has taken hold. Everything else is forwarded verbatim — A reaches the
+  // widget the dot put the focus on, and B lets go of it.
   pad.assign(padIndex, (event) => {
-    if (event.intent === "select") under()?.click();
+    if (!somethingIsHeld() && POINTER_INTENTS.has(event.intent)) return true;
+    bus.emit({
+      intent: event.intent,
+      source: "gamepad",
+      repeat: event.repeat,
+      ...(event.value === undefined ? {} : { value: event.value }),
+      originalEvent: null,
+    });
     return true;
   });
 

@@ -280,10 +280,12 @@
       </div>
     </section>
 
-    <!-- The native select and its replacement, side by side. Open the first one with a
-         pad on a television and the focus is gone into a platform popup the engine
-         cannot see; the second is real markup it navigates like anything else. The
-         console prints what `scanNativeSelects` finds on this page. -->
+    <!-- The native select and its replacement, side by side. The first is never opened:
+         a recipe takes hold of it instead, so the platform popup the engine cannot see
+         stays shut and the directions move the option in place. The second is real markup
+         it navigates like anything else, and stays the better control for a list long
+         enough to want a scroll. `scanNativeSelects` prints nothing here now — this page
+         has one select and it has a recipe, so main.ts filters it out of the scan. -->
     <section class="widgets" data-snav="container" aria-label="Select on a television">
       <label class="widget">
         <span>A native <code>&lt;select&gt;</code>, made to work rather than labelled as a trap.

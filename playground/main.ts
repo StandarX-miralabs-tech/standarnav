@@ -147,7 +147,7 @@ function mount(): void {
   disposers.push(() => input.destroy());
 
   if (gamepad !== null && options.padCursor) {
-    const cursor = attachPadCursor(gamepad);
+    const cursor = attachPadCursor(gamepad, input);
     disposers.push(() => cursor.dispose());
   }
 
