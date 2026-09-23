@@ -58,16 +58,16 @@ Rules that go with that skeleton:
   in the prose so the mismatch is visible when it does.
 - Related records are linked by file name, relative to this directory:
   `[ADR-0003](0003-package-boundaries.md)`.
-- Length: 60 to 150 lines is the target **for a new record**. The twenty-two below
-  run from 74 to 544 lines (`wc -l docs/adr/0*.md`, 2026-09-22), because an
+- Length: 60 to 150 lines is the target **for a new record**. The twenty-three below
+  run from 74 to 573 lines (`wc -l docs/adr/0*.md`, 2026-09-23), because an
   accepted record grows by amendment. The target governs the first draft; an
   amendment is judged on whether it says something the record did not, not on the
   line count it adds.
 
 ## Adding one
 
-1. Take the next free number. The highest in use is ADR-0023, so the next is
-   ADR-0024. Numbers are never reused, and a superseded record keeps its number.
+1. Take the next free number. The highest in use is ADR-0024, so the next is
+   ADR-0025. Numbers are never reused, and a superseded record keeps its number.
    ADR-0004 is the one gap: it recorded a migration plan for the private
    predecessor rather than a decision of this repository, so it was withdrawn on
    2026-09-20 instead of superseded, its one design decision — the focus ring's
@@ -122,4 +122,5 @@ dated amendment in its record.
 | [0020](0020-focus-ring-defaults.md) | Focus ring defaults, and why no stylesheet ships | Accepted | The plugin paints itself inline; six custom properties override every value, with the contrast figures and the two limits the choice carries. |
 | [0021](0021-native-select-on-television.md) | A native `<select>` on a television, and what the package offers instead | Accepted | A closed `<select>` opens a platform popup the engine cannot see, and the trap is invisible on a desktop. A `scanNativeSelects` diagnostic in the debug subpath names it; a trigger-and-list recipe replaces it. Why no runtime warning, and the two bus mechanics the recipe depends on. |
 | [0022](0022-virtual-keyboard.md) | The virtual keyboard — layout data, insertion, and what closes it | Accepted | Keys take real focus; a layout is data in its own module with no registry; insertion is `beforeinput`, mutate, `input`, with the framework-tracking risk named; `back` closes and keeps, deliberately unlike engage mode; composition deferred to its own ADR. Built, then amended three times against a real page: `activate` opens it, the box paints and places itself, and a preview row at its bottom draws the caret the field cannot show and moves it with the directions — decision 9 reversed on 2026-09-21. |
+| [0024](0024-download-counter.md) | One cumulated download counter, and what it may not claim | Accepted | The README's downloads badge sums npm installs, release asset downloads and the clones that are not this repository's own CI. Release assets measure 0 structurally and clones are mostly `actions/checkout`, so the script subtracts two clones per CI job — the ratio measured here — accumulates whole days against GitHub's fourteen-day traffic window, and keeps its state on an orphan `badges` branch. The residual is an upper bound on human clones, never a user count. |
 | [0023](0023-vanilla-auto-mount.md) | The vanilla auto-mount helper is `@standarx/nav/auto` | Accepted | Closes ADR-0011's rider on the subpath name. `autoMount()` is a factory, never a side-effecting import, and adds exactly two things to `createInputSystem`: it waits for `DOMContentLoaded` when the document is still parsing, and it lets the page pick the navigation mode through a new `data-snav-mode` attribute read once off the root. `plugins` takes a factory so that attribute can reach an engine at all. No engine is imported, and the adapter parity suite is not run — there is no render pass to satisfy it with. |
