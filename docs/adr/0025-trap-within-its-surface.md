@@ -63,10 +63,10 @@ today, and adding one would be API with nothing to fix. Pinned by "adjusts insid
 with no `within`, because A opens it above the trap" in `src/engage.test.ts`.
 
 **7. React.** `useIntent` accepts `within` as an element, a getter or a ref
-(`UseIntentOptions`, `src/react/react.tsx:313`). It is read through one getter held for the life
-of the component (`:341`), so a new arrow per render, or a ref filled after the first commit,
+(`UseIntentOptions`, `src/react/react.tsx:258`). It is read through one getter held for the life
+of the component (`:286`), so a new arrow per render, or a ref filled after the first commit,
 never re-opens the scope; a change of `trapped` or `base` re-opens in place as #13 made it, carrying
-that getter (`:379`). `useIntentScopeHost().pushScope` forwards options as given, so a machine
+that getter (`:324`). `useIntentScopeHost().pushScope` forwards options as given, so a machine
 passes `() => ref.current`.
 
 **8. The parity suite.** `ParityTree` gains `outerTrapped`, `nested` and `within`
@@ -106,7 +106,7 @@ element" (`:207`) and "keeps silencing that composite when neither scope passes 
 
 - Code: `src/intent-bus.ts:66` (`within`), `:136-138` (`resolve`), `:169` (`surface`), `:177`
   (the skip), `:190-193` (every trap asked sets the surface); the `base` comment at `:53-59` and
-  the header paragraph at `:28-36`. React: `src/react/react.tsx:313-322`, `:341-348`, `:379`.
+  the header paragraph at `:28-36`. React: `src/react/react.tsx:258-267`, `:286-293`, `:324`.
 - Tests: `src/intent-bus.browser.test.ts`, thirteen cases from `:37` — contained, claiming, the
   surface itself, outside, trap without `within`, scope without it, getter read at dispatch,
   getter answering null, `base`, the escapes, and three for nested traps (`:183`, `:200`, `:218`).

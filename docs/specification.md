@@ -216,8 +216,8 @@ this working tree, run 2026-09-20.
   places, both documented: the unclaimed `select` that a keyboard must not double-fire
   (R6, `src/input-system.ts:127`) and the composite-mode arrow rule (R29,
   `src/spatial/spatial.ts:493`). `grep -rn "source ===" src` on 2026-09-20 returns five hits: those
-  two, one assertion in `src/input-system.browser.test.ts`, and two in `src/react/react.tsx` (`:151`,
-  `:160`) that are an unrelated local of the same name in the adapter's value-or-thunk helper.
+  two, one assertion in `src/input-system.browser.test.ts`, and two in `src/react/react.tsx` (`:96`,
+  `:105`) that are an unrelated local of the same name in the adapter's value-or-thunk helper.
 - **R4.** Dispatch is a LIFO scope stack (`src/intent-bus.ts`);
   returning `true` ends the walk. A `trapped` scope swallows everything except `back`, `tabNext` and
   `tabPrev`. Scopes marked `base` are still asked past a trap — the only user is the spatial plugin,

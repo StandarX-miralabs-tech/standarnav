@@ -101,7 +101,7 @@ development only when there is genuinely no provider above it.
 scope opened through `useIntent` or `useIntentScopeHost().pushScope` is registered with the
 provider, in the order it was opened, and the provider re-opens all of them on the new system in
 that order, above the scopes its plugins push, before any component sees the new system
-(`NavProvider`'s effect, `src/react/react.tsx:243-245`). The components do not re-push anything
+(`NavProvider`'s effect, `src/react/react.tsx:188-190`). The components do not re-push anything
 themselves: their effects would run in tree order, children before parents, and a trap opened last
 could come back beneath the scope it was covering. A new `trapped` or `base` on `useIntent` keeps
 the scope in its place too — it is re-opened there, with every scope opened after it re-opened

@@ -105,7 +105,7 @@ son système au fournisseur, qui en construit un autre. Chaque portée ouverte p
 `useIntentScopeHost().pushScope` est enregistrée auprès du fournisseur, dans l'ordre de son
 ouverture, et le fournisseur les rouvre toutes sur le nouveau système dans cet ordre, au-dessus des
 portées que ses plugins empilent, avant qu'aucun composant ne voie le nouveau système (l'effet de
-`NavProvider`, `src/react/react.tsx:243-245`). Les composants ne réempilent rien eux-mêmes : leurs
+`NavProvider`, `src/react/react.tsx:188-190`). Les composants ne réempilent rien eux-mêmes : leurs
 effets tourneraient dans l'ordre de l'arbre, les enfants avant les parents, et un piège ouvert en
 dernier pourrait revenir sous la portée qu'il recouvrait. Un nouveau `trapped` ou `base` sur
 `useIntent` laisse lui aussi la portée à sa place — elle y est rouverte, et chaque portée ouverte
