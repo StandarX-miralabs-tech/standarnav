@@ -9,7 +9,8 @@ The versioning scheme, the publication channel and the changelog tool are all de
 and wired as of the third; its first run, on 2026-09-22, stopped at an organisation setting (fifth
 amendment), and its second put `@standarx/nav@0.1.0` on npm the same day, with a provenance
 attestation (sixth amendment). From that amendment on, the publish step authenticates through npm
-trusted publishing and the token that published `0.1.0` is to be revoked.
+trusted publishing; `0.2.0` went out through it on 2026-09-23, and the token that published `0.1.0`
+is revoked (seventh amendment).
 
 ## Context
 
@@ -336,6 +337,59 @@ package is not published yet, and a `docs` commit correcting the tree does not c
 The owner decided on 2026-09-22 to let the next feature carry the corrected README rather than cut
 a `0.1.1` for it.
 
+## Amendment, 2026-09-23: `0.2.0` proves trusted publishing, after two refusals the log could not tell apart
+
+**The first release through the trusted publisher.** `0.2.0` was tagged by run `35796937190` on
+2026-09-22, at `1d95b94`: release-please and `verify` went green, and `publish` failed at 23:22 UTC
+with `404 Not Found - PUT https://registry.npmjs.org/@standarx%2fnav`. It was re-run on 2026-09-23
+at 18:10 UTC, once the owner had registered the trusted publisher, and failed with the same line.
+The owner then corrected the configuration on npmjs.com — which field was wrong, this tree cannot
+show — and the third attempt went green, `publish` from 18:16:17 to 18:16:31 UTC; the tag and the
+GitHub release of the first attempt stood, as the amendment above said they would. The step's own
+log: package size 113.7 kB, unpacked size 362.9 kB, 103 files, shasum
+`6ad1bc99bf2db63448e3c48068c9c64362ee4e68`, then "Your package is being processed and may take a
+few minutes to become available." and `+ @standarx/nav@0.2.0`. The registry agrees: `curl -s
+https://registry.npmjs.org/@standarx/nav` on 2026-09-23 answers `dist-tags.latest` `0.2.0`,
+`time.0.2.0` `2026-09-23T18:18:07.205Z`, `dist.fileCount` 103, `dist.unpackedSize` 362913, a
+`dist.attestations.provenance` of predicate type `https://slsa.dev/provenance/v1`, and an
+`_npmUser` named "GitHub Actions" carrying `trustedPublisher.id` `github`. The tarball URL answered
+404 until 18:21:52 UTC and 200 from then on, with the shasum above: a version the metadata lists
+while its tarball is still a 404 is being processed, not lost.
+
+**Why the two failures could not be told apart.** All three attempts print "Signed provenance
+statement with source and build information from GitHub Actions" before their outcome, the two 404s
+included. `publishConfig` sets `"provenance": true` (Context), so npm signs an attestation whether
+or not the OIDC exchange with the registry took place: the line proves the run could mint an OIDC
+token for Sigstore, not that npm accepted one. The Decision's "the attestation comes with the
+registry exchange" holds for a package without that setting; here it is not the evidence it looks
+like. In npm 11.19.0 (`https://github.com/npm/cli/blob/v11.19.0/lib/utils/oidc.js`, fetched
+2026-09-23) a refused exchange is logged at the `verbose` level only, with the registry's message,
+and the function returns without a token; `npm publish` carries on with whatever credentials its
+configuration holds, and at the default level the log shows nothing but the `PUT` that fails after
+it. Which step refused on 2026-09-22 and at 18:10 on 2026-09-23 is therefore not in the logs. Nor
+could it be read from here: the configuration is visible to the package's owner only, and
+`https://registry.npmjs.org/-/package/@standarx%2fnav/trust` answers 401 "Bearer token
+authorization is required" without a login (2026-09-23).
+
+**The publish step logs at `verbose`, from the next commit.** `npm publish --access public
+--loglevel verbose`, so the next refused exchange prints its `oidc` line with the registry's reason,
+and an accepted one prints "Successfully retrieved and set token" (same source). The level adds the
+`http` request lines, one of which is the GitHub ID-token request URL; that URL carries no
+credential, the bearer being sent as a header, and the exchanged token is never passed to the log
+(same source). It is not proven until the next release runs, and it could not have helped this one:
+a re-run of a workflow uses "the same `GITHUB_SHA` (commit SHA) and `GITHUB_REF`" as the original
+run (`https://docs.github.com/en/actions/how-tos/manage-workflow-runs/re-run-workflows-and-jobs`,
+fetched 2026-09-23), so it replays the workflow file of the commit it started on — which is why the
+diagnosis of 2026-09-23 had to go through the owner's view of npmjs.com.
+
+**The token is gone.** On 2026-09-23 the owner revoked the granular token that published `0.1.0`,
+set the package's publishing access to require two-factor authentication and disallow tokens, and
+deleted the `NPM_TOKEN` secret — the owner's statement of that day. What this tree's tooling can
+show is the last of the three: `gh secret list` on 2026-09-23 lists no secret for the repository
+and none for the `npm` environment, and the organisation exposes none to it. From here the trusted
+publisher is the only way CI publishes; a rename of `release.yml` or of the `npm` environment stops
+it until npmjs.com is told, and the recovery is there, not in a secret.
+
 ## Alternatives considered
 
 **Manual publish from the maintainer's laptop**, after a local build. Rejected: no
@@ -369,21 +423,27 @@ first outside pull request arrives.
 
 ## Evidence
 
-- `package.json` in this repository: `"version": "0.1.0"`, written by release-please in the release
-  commit `da0b65a`, and a `publishConfig` block with `"access": "public"` and `"provenance": true`.
+- `package.json` in this repository: `"version": "0.2.0"`, written by release-please in the release
+  commit `7d8dab5` (`0.1.0` in `da0b65a` before it), and a `publishConfig` block with
+  `"access": "public"` and `"provenance": true`.
   The declared scripts are listed in the first amendment above; its `devDependencies` carry
   `publint` `^0.3.24` and `@arethetypeswrong/cli` `^0.18.5`, the two linters `check:package` runs.
 - `@standarx/nav@0.1.0` is on the registry: `curl -s https://registry.npmjs.org/@standarx/nav` on
   2026-09-22 answers `dist-tags.latest` `0.1.0`, `time.0.1.0` `2026-09-22T19:38:52.994Z`,
   `dist.unpackedSize` 369907 and `dist.fileCount` 99. The name probes that preceded it are
   recorded in [ADR-0001](0001-name-scope-and-attribute-prefix.md).
+- `@standarx/nav@0.2.0` is on the registry, published through the trusted publisher: `curl -s
+  https://registry.npmjs.org/@standarx/nav` on 2026-09-23 answers `dist-tags.latest` `0.2.0` and
+  `time.0.2.0` `2026-09-23T18:18:07.205Z`, with the provenance and publisher fields the seventh
+  amendment lists.
 - No TV device test has ever been run, for want of the hardware and of an emulator.
 - Release tooling: `.github/workflows/` holds `ci.yml`, `release.yml` and `pages.yml`;
-  `release-please-config.json` and `.release-please-manifest.json` exist, the manifest at `0.1.0`.
+  `release-please-config.json` and `.release-please-manifest.json` exist, the manifest at `0.2.0`.
   There is no `.changeset/` directory, and `package.json` declares neither release-please nor
   changesets among its `devDependencies` — release-please is a GitHub Action, not a dependency.
-  The workflow has run end to end once, run `35774862381` on `68bb0c3`, three jobs green
-  (sixth amendment).
+  The workflow has run end to end twice: run `35774862381` on `68bb0c3` for `0.1.0`, three jobs
+  green (sixth amendment), and run `35796937190` on `1d95b94` for `0.2.0`, green on its third
+  attempt (seventh amendment).
 - `check:package` is wired and green: `scripts/check-package.ts` packs the tarball
   (`scripts/check-package.ts:68`), runs `publint --strict` on it (`scripts/check-package.ts:74`)
   and `attw --profile esm-only` (`scripts/check-package.ts:75`), and fails when `package.json`

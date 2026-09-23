@@ -1,8 +1,8 @@
 # Roadmap
 
-Status: `@standarx/nav@0.1.0` is on npm since 2026-09-22
-([ADR-0012](docs/adr/0012-versioning-and-release.md), sixth amendment). Nothing has been run on a
-television, and no demo exists yet.
+Status: `@standarx/nav@0.2.0` is on npm since 2026-09-23, after `0.1.0` on 2026-09-22
+([ADR-0012](docs/adr/0012-versioning-and-release.md), sixth and seventh amendments). Nothing has
+been run on a television, and no demo exists yet.
 
 This file lists what is still open. What is done is in the git history and, from `0.1.0` on, in the
 CHANGELOG release-please writes.
@@ -19,7 +19,7 @@ The engine navigates between focusable elements, the five controls that hold a v
 `<select>` question is answered, the on-screen keyboard is built, and the first version is
 published. What follows is what v0 still owes, and none of it blocks the next release: the
 keyboard's open items are limitations of a shipped module, documented rather than discovered, and
-the release section is a switch that is wired and has not run.
+the release section has no open item since `0.2.0` went out through the trusted publisher.
 
 Controls that hold a value were the last gap to close before the first publication. The grammar was always public —
 `pushEngageScope` takes hold of a control, the directional intents become adjustments, confirm
@@ -92,7 +92,9 @@ The wiring is in place: `release-please-config.json`, `.release-please-manifest.
 verify that replays every gate on the tag, then a publish that calls the npm CLI, the one
 documented exception to the no-`npm` rule. It released `0.1.0` on 2026-09-22 with a signed
 provenance statement, 116.6 kB packed and 99 files by its own log
-([ADR-0012](docs/adr/0012-versioning-and-release.md), sixth amendment).
+([ADR-0012](docs/adr/0012-versioning-and-release.md), sixth amendment), and `0.2.0` on 2026-09-23
+through the trusted publisher with no secret in the run, 113.7 kB packed and 103 files (seventh
+amendment).
 
 Two things about its shape are worth knowing before reading it. The publish job lives in the
 **same run** as release-please rather than in a tag-triggered workflow, because GitHub does not
@@ -100,11 +102,6 @@ trigger workflows on events made with the default token — the same rule that l
 pull request with no checks would have left a tag-triggered publish never running at all. And the
 verify job exists precisely because of that missing-checks half: the version bump and the CHANGELOG
 that land on `main` were never seen by CI.
-
-- [ ] First release through npm trusted publishing. The publish job authenticates with the run's
-      OIDC token and reads no secret since 2026-09-22; nothing has run through it, and the next
-      `feat`, `fix` or `perf` on `main` is what proves it. Needs the trusted publisher registered
-      on npmjs.com first — the owner's action, listed below
 
 ### Test fixtures still missing
 
@@ -208,11 +205,6 @@ These are decisions nobody else can make.
       installation reads it yet
 - [ ] Reserve the brand on the third-party `standarx` GitHub organisation
       ([ADR-0001](docs/adr/0001-name-scope-and-attribute-prefix.md))
-- [ ] Register the trusted publisher on npmjs.com for `@standarx/nav`: organisation
-      `StandarX-miralabs-tech`, repository `standarnav`, workflow `release.yml`, environment `npm`,
-      direct `npm publish` allowed. Then revoke the granular token that published `0.1.0` and
-      delete the `NPM_TOKEN` secret, which the workflow no longer reads
-      ([ADR-0012](docs/adr/0012-versioning-and-release.md), sixth amendment)
 
 ## Success metrics
 

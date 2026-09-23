@@ -128,5 +128,7 @@ jobs:
         # this environment, and attests provenance on its own, so the `--provenance` flag
         # is gone with the token. `0.1.0` went out with a granular token, the only way to
         # publish a package that does not exist yet; the switch is the amendment of
-        # 2026-09-22 in ADR-0012.
-        run: npm publish --access public
+        # 2026-09-22 in ADR-0012. Verbose because npm reports a refused OIDC exchange at that
+        # level only, with the registry's reason; at the default level the one trace is the
+        # 404 of the PUT that follows, and it names nothing (seventh amendment of 2026-09-23).
+        run: npm publish --access public --loglevel verbose
