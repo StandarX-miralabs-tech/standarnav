@@ -25,15 +25,68 @@ import { arrayEquals, recordEquals } from "../internal/equality";
 import type { KeymapOverrides } from "../keymap";
 import { getInputModality, trackInputModality } from "../modality";
 import type { InputModality } from "../types";
-import { useSafeLayoutEffect } from "./use-safe-layout-effect";
 
 /**
- * A slot rather than the system itself, so `null` from "no provider" stays
- * distinguishable from `null` from "the provider's effect has not run yet" — the
- * difference between a mistake worth warning about and the first render.
+ * One scope opened through the adapter. `dispose` belongs to whichever system the
+ * scope currently sits on, and is `null` while there is none.
  */
-interface InputSystemSlot {
-  readonly system: InputSystem | null;
+interface Registration {
+  readonly handler: IntentHandler;
+  options: IntentScopeOptions | undefined;
+  dispose: VoidFunction | null;
+}
+
+/**
+ * Every scope opened through one provider, in the order it was opened, and the system
+ * they currently sit on. A rebuilt system gets them from here, oldest first, rather
+ * than from each component re-pushing in an effect of its own: those effects run in
+ * tree order, children before parents, so the stack would come back in the order the
+ * scopes are *declared*, and a trap opened last could land beneath what it covers.
+ *
+ * Owned by the provider instance, never by the module — two providers on one page keep
+ * two orders.
+ */
+interface ScopeRegistry {
+  system: InputSystem | null;
+  readonly entries: Registration[];
+}
+
+function openOn(registry: ScopeRegistry, entry: Registration): void {
+  entry.dispose = registry.system?.pushScope(entry.handler, entry.options) ?? null;
+}
+
+function register(
+  registry: ScopeRegistry,
+  handler: IntentHandler,
+  options: IntentScopeOptions | undefined,
+): Registration {
+  const entry: Registration = { handler, options, dispose: null };
+  registry.entries.push(entry);
+  openOn(registry, entry);
+  return entry;
+}
+
+function release(registry: ScopeRegistry, entry: Registration): void {
+  const index = registry.entries.indexOf(entry);
+  if (index === -1) return;
+  registry.entries.splice(index, 1);
+  entry.dispose?.();
+  entry.dispose = null;
+}
+
+/**
+ * New options for a scope that stays where it was opened. The bus only pushes on top,
+ * so the scope and everything opened after it are re-pushed, in order: re-pushing the
+ * one scope alone would lift it over every scope opened since it, and a page scope
+ * that turns `base` would climb over the dialog trap it exists to sit under.
+ */
+function reopen(registry: ScopeRegistry, entry: Registration, options: IntentScopeOptions): void {
+  const index = registry.entries.indexOf(entry);
+  if (index === -1) return;
+  const moved = registry.entries.slice(index);
+  for (const each of moved) each.dispose?.();
+  entry.options = options;
+  for (const each of moved) openOn(registry, each);
 }
 
 // The types a consumer of this entry point needs to name what it passes in and what
@@ -44,7 +97,15 @@ export type { IntentHandler, IntentScopeHost, IntentScopeOptions } from "../inte
 export type { KeymapOverrides } from "../keymap";
 export type { InputModality } from "../types";
 
-const InputSystemContext = createContext<InputSystemSlot | null>(null);
+const InputSystemContext = createContext<InputSystem | null>(null);
+
+/**
+ * Apart from the system so that a rebuild re-renders what reads the system and nothing
+ * else: the hooks that open scopes depend on this one, which keeps its identity for the
+ * life of the provider. It is also what tells "no provider above me" apart from "the
+ * provider's effect has not run yet".
+ */
+const ScopeRegistryContext = createContext<ScopeRegistry | null>(null);
 
 const NO_PLUGINS: readonly InputPlugin[] = [];
 
@@ -164,10 +225,12 @@ export function NavProvider(props: NavProviderProps): ReactNode {
   const keymap = useStableKeymap(props.keymap);
   const getDocument = useDocument();
   const [system, setSystem] = useState<InputSystem | null>(null);
+  const [registry] = useState<ScopeRegistry>(() => ({ system: null, entries: [] }));
 
   // An effect, not a render: `createInputSystem` needs a document and installs
   // capture-phase listeners. Children render once with `null`, which is also the
-  // server's answer.
+  // server's answer. Their effects run before this one, so on the first commit the
+  // scopes they open are only recorded, and pushed from here.
   useEffect(() => {
     const instance = createInputSystem({
       doc: getDocument(),
@@ -175,27 +238,29 @@ export function NavProvider(props: NavProviderProps): ReactNode {
       keymap,
       allowVerticalInText,
     });
+    // Above what the plugins pushed while the system was built, and before any child
+    // can see the new system.
+    registry.system = instance;
+    for (const entry of registry.entries) openOn(registry, entry);
     setSystem(instance);
     return () => {
+      registry.system = null;
+      for (const entry of registry.entries) entry.dispose = null;
       setSystem(null);
       instance.destroy();
     };
-  }, [getDocument, plugins, keymap, allowVerticalInText]);
+  }, [registry, getDocument, plugins, keymap, allowVerticalInText]);
 
-  const slot = useMemo<InputSystemSlot>(() => ({ system }), [system]);
-  return <InputSystemContext.Provider value={slot}>{children}</InputSystemContext.Provider>;
+  return (
+    <ScopeRegistryContext.Provider value={registry}>
+      <InputSystemContext.Provider value={system}>{children}</InputSystemContext.Provider>
+    </ScopeRegistryContext.Provider>
+  );
 }
 
 /** `null` until the provider's effect has run, and always `null` without one. */
 export function useInputSystem(): InputSystem | null {
-  return useContext(InputSystemContext)?.system ?? null;
-}
-
-interface TrackedScope {
-  readonly handler: IntentHandler;
-  readonly options: IntentScopeOptions | undefined;
-  dispose: VoidFunction | null;
-  disposed: boolean;
+  return useContext(InputSystemContext);
 }
 
 /**
@@ -203,55 +268,28 @@ interface TrackedScope {
  * instead of the system itself.
  *
  * The provider builds its system in an effect, so `useInputSystem()` answers `null` on
- * the first commit and a system from the second. A component that pushes its scope from
- * an effect of its own is fine: `useIntent` has `system` in its dependencies and simply
- * re-runs. A *machine* has no such thing. An interpreter installs a state's effects on
- * entering that state and offers no dependency mechanism, so a dialog that is open on
- * its first commit reads `null`, returns early, and answers no gamepad for as long as
- * it stays open — a route-level modal with a dead B button.
+ * the first commit and a system from the second. A *machine* cannot wait for that. An
+ * interpreter installs a state's effects on entering that state and offers no
+ * dependency mechanism, so a dialog open on its first commit that pushed onto `null`
+ * would answer no gamepad for as long as it stays open — a route-level modal with a
+ * dead B button.
  *
- * So: one object, stable for the life of the component, that remembers what was pushed
- * through it and re-opens it on whichever system is current. `null` still means "no
- * provider above me".
+ * So: one object, stable for the life of the provider, whose scopes go into the
+ * provider's registry and follow it onto every system it builds, in the order they
+ * were opened. `null` still means "no provider above me".
  */
 export function useIntentScopeHost(): IntentScopeHost | null {
-  const slot = useContext(InputSystemContext);
-  const system = slot?.system ?? null;
-  const live = useRef<InputSystem | null>(system);
-  live.current = system;
-  const scopes = useRef<TrackedScope[]>([]);
-
-  const host = useMemo<IntentScopeHost>(
-    () => ({
-      pushScope(handler, options): VoidFunction {
-        const scope: TrackedScope = { handler, options, dispose: null, disposed: false };
-        scopes.current.push(scope);
-        scope.dispose = live.current?.pushScope(handler, options) ?? null;
-
-        return () => {
-          if (scope.disposed) return;
-          scope.disposed = true;
-          scope.dispose?.();
-          scope.dispose = null;
-          const index = scopes.current.indexOf(scope);
-          if (index !== -1) scopes.current.splice(index, 1);
-        };
+  const registry = useContext(ScopeRegistryContext);
+  return useMemo<IntentScopeHost | null>(
+    () =>
+      registry && {
+        pushScope(handler, options): VoidFunction {
+          const entry = register(registry, handler, options);
+          return () => release(registry, entry);
+        },
       },
-    }),
-    [],
+    [registry],
   );
-
-  // Layout rather than passive: the machine opened its scope in the layout effect of a
-  // commit that has already happened, and the order the scopes were opened in is the
-  // order the stack has to see them re-opened.
-  useSafeLayoutEffect(() => {
-    for (const scope of scopes.current) {
-      scope.dispose?.();
-      scope.dispose = system === null ? null : system.pushScope(scope.handler, scope.options);
-    }
-  }, [system]);
-
-  return slot === null ? null : host;
 }
 
 /**
@@ -273,13 +311,14 @@ export function useInputModality(): InputModality {
 }
 
 /**
- * Pushes an intent scope for the lifetime of the component. The handler is read
+ * Opens an intent scope for the lifetime of the component. The handler is read
  * from a ref, so an inline arrow does not pop and re-push the scope on every
- * render — which would silently reorder it under any scope pushed since.
+ * render — which would silently reorder it under any scope pushed since. A new
+ * `trapped` or `base` keeps the scope where it was opened, and so does a rebuilt
+ * system: the provider re-opens every scope itself, in open order.
  */
 export function useIntent(handler: IntentHandler, options?: IntentScopeOptions | undefined): void {
-  const slot = useContext(InputSystemContext);
-  const system = slot?.system ?? null;
+  const registry = useContext(ScopeRegistryContext);
   const latest = useRef(handler);
   latest.current = handler;
   // Read field by field rather than passing `options` through: the object is
@@ -289,16 +328,29 @@ export function useIntent(handler: IntentHandler, options?: IntentScopeOptions |
   // someone will pass it.
   const trapped = options?.trapped;
   const base = options?.base;
+  const shape = useRef<IntentScopeOptions>({ trapped, base });
+  shape.current = { trapped, base };
+  const opened = useRef<Registration | null>(null);
 
   useEffect(() => {
-    if (system === null) {
-      // Only the missing provider is worth a word; a system that simply has not
-      // been built yet arrives on the very next commit.
-      if (isDev() && slot === null && typeof console !== "undefined") {
+    if (registry === null) {
+      if (isDev() && typeof console !== "undefined") {
         console.warn("useIntent needs a <NavProvider> above it — the scope was not pushed.");
       }
       return;
     }
-    return system.pushScope((event) => latest.current(event), { trapped, base });
-  }, [system, slot, trapped, base]);
+    const entry = register(registry, (event) => latest.current(event), shape.current);
+    opened.current = entry;
+    return () => {
+      opened.current = null;
+      release(registry, entry);
+    };
+  }, [registry]);
+
+  useEffect(() => {
+    const entry = opened.current;
+    if (registry === null || entry === null) return;
+    if (entry.options?.trapped === trapped && entry.options?.base === base) return;
+    reopen(registry, entry, { trapped, base });
+  }, [registry, trapped, base]);
 }

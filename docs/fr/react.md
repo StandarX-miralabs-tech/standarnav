@@ -46,18 +46,45 @@ niveau de profondeur sur ses valeurs chaîne, donc `keymap={{ keys: { … } }}` 
 | Export | Ce que c'est |
 |---|---|
 | `NavProvider` | Construit un système d'entrée pour l'arbre et le détruit au démontage. |
-| `useIntent(handler, options?)` | Empile une portée d'intention pour la durée de vie du composant. Le gestionnaire est lu à travers une ref, donc une fonction fléchée inline ne dépile pas et ne réempile pas la portée — ce qui la réordonnerait silencieusement sous tout ce qui a été empilé depuis. |
+| `useIntent(handler, options?)` | Ouvre une portée d'intention pour la durée de vie du composant. Le gestionnaire est lu à travers une ref, donc une fonction fléchée inline ne dépile pas et ne réempile pas la portée — ce qui la réordonnerait silencieusement sous tout ce qui a été empilé depuis. Un nouveau `trapped` ou `base` laisse la portée là où elle a été ouverte. |
 | `useInputSystem()` | Le système, ou `null`. |
-| `useIntentScopeHost()` | Un hôte stable pour toute la vie du composant, pour une machine à états qui installe ses effets en entrant dans un état et n'a pas de tableau de dépendances pour se relancer. |
+| `useIntentScopeHost()` | Un hôte stable pour toute la vie du fournisseur, pour une machine à états qui installe ses effets en entrant dans un état et n'a pas de tableau de dépendances pour se relancer. Une portée empilée par lui avant que le système existe est ouverte dès qu'il existe. `null` sans fournisseur. |
 | `useInputModality()` | `keyboard` \| `pointer` \| `touch` \| `gamepad`. Fonctionne sans fournisseur au-dessus : le magasin de modalité est compté par référence par document, donc un composant qui veut seulement savoir s'il doit dessiner un anneau paie un traqueur, pas un système d'entrée. |
 | `NavDocumentProvider` | Nécessaire seulement quand l'arbre ne vit pas dans le document de la page elle-même — une iframe, une popup, une fixture de test. |
 
 `useInputSystem()` répond `null` tant que l'effet du fournisseur n'a pas tourné, et `null` est
 aussi ce qu'il répond côté serveur et sans fournisseur : `createInputSystem` a besoin d'un document
 et installe des écouteurs en phase de capture, donc cela ne peut pas se produire pendant le rendu,
-et les enfants sont rendus une fois avec `null`. `useIntent` s'en charge lui-même — il se relance
-quand le système arrive — et n'avertit en développement que lorsqu'il n'y a réellement aucun
-fournisseur au-dessus.
+et les enfants sont rendus une fois avec `null`. `useIntent` et `useIntentScopeHost` s'en chargent
+eux-mêmes : une portée ouverte avant que le système existe est enregistrée par le fournisseur et
+empilée quand le système est construit. `useIntent` n'avertit en développement que lorsqu'il n'y a
+réellement aucun fournisseur au-dessus.
+
+**Les portées gardent l'ordre dans lequel elles ont été ouvertes, y compris à travers une
+reconstruction.** Un nouveau `plugins`, `keymap`, `allowVerticalInText` ou document fait détruire
+son système au fournisseur, qui en construit un autre. Chaque portée ouverte par `useIntent` ou par
+`useIntentScopeHost().pushScope` est enregistrée auprès du fournisseur, dans l'ordre de son
+ouverture, et le fournisseur les rouvre toutes sur le nouveau système dans cet ordre, au-dessus des
+portées que ses plugins empilent, avant qu'aucun composant ne voie le nouveau système (l'effet de
+`NavProvider`, `src/react/react.tsx:243-245`). Les composants ne réempilent rien eux-mêmes : leurs
+effets tourneraient dans l'ordre de l'arbre, les enfants avant les parents, et un piège ouvert en
+dernier pourrait revenir sous la portée qu'il recouvrait. Un nouveau `trapped` ou `base` sur
+`useIntent` laisse lui aussi la portée à sa place — elle y est rouverte, et chaque portée ouverte
+après elle est rouverte au-dessus d'elle. Chaque `NavProvider` garde son propre ordre, donc deux
+fournisseurs sur une même page n'en partagent jamais un. Épinglé dans
+`src/react/react.browser.test.tsx` par « keeps sibling host scopes in the order they were opened »,
+« keeps a host trap above a hook scope opened before it », « keeps a nested composite under the
+trap of the dialog around it » et « leaves one registration per scope under StrictMode, across a
+rebuild too », et dans la suite partagée par les trois cas « across a system rebuild » et par
+« re-registers a scope when its base changes on a rerender » ; `bun run test:browser` les a passés
+sur chromium, firefox et webkit le 2026-09-23.
+
+Ce que cela ne change pas, c'est l'ordre du premier commit, qui est celui de React : l'effet d'un
+enfant tourne avant celui de son parent, donc la portée qu'ouvre un composant est ouverte avant
+celle qu'ouvre son parent dans le même commit — le cas imbriqué ci-dessus affirme cet ordre pour un
+composite et l'élément qu'il contient. Un composite à l'intérieur d'un dialogue qui piège, et
+lequel des deux la pile doit interroger en premier, c'est
+l'[issue #14](https://github.com/StandarX-miralabs-tech/standarnav/issues/14) et une décision à part.
 
 `react` et `react-dom` sont des dépendances pair **optionnelles** en `>=18.3.0` ; rien en dehors de
 `src/react/` ne les importe, et l'adaptateur est mesuré avec React en externe. Le plancher de cette
@@ -69,7 +96,8 @@ L'adaptateur est tenu à une suite partagée plutôt qu'à des tests de sa propr
 `src/adapter-parity.ts` est le contrat que tout adaptateur de framework doit satisfaire — un seul
 système et pas pendant le premier rendu, un ordre de portées LIFO, une portée libérée quand seul son
 propre sous-arbre est démonté, un piège qui arrête le parcours, une portée de base atteinte à
-travers ce piège, et une base réenregistrée à un nouveau rendu. Les adaptateurs qui suivent — Vue,
+travers ce piège, une base réenregistrée à un nouveau rendu sans quitter sa place, et l'ordre
+d'ouverture des portées conservé à travers une reconstruction du système. Les adaptateurs qui suivent — Vue,
 Svelte et Angular, dans l'ordre
 d'[ADR-0011](../adr/0011-package-layout-and-adapters.md) — passent la même suite avant d'être
 livrés. L'utilitaire d'auto-montage vanilla livré avant eux, non, et
