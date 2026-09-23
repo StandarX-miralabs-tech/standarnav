@@ -1,7 +1,7 @@
 # standarnav
 
 [![npm](https://img.shields.io/npm/v/@standarx/nav?color=blue)](https://www.npmjs.com/package/@standarx/nav)
-[![downloads](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FStandarX-miralabs-tech%2Fstandarnav%2Fbadges%2Fdownloads.json)](docs/adr/0024-download-counter.md)
+[![downloads](https://img.shields.io/npm/dt/@standarx/nav?color=blue)](https://www.npmjs.com/package/@standarx/nav)
 [![CI](https://github.com/StandarX-miralabs-tech/standarnav/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/StandarX-miralabs-tech/standarnav/actions/workflows/ci.yml)
 [![core size](https://img.shields.io/badge/core-3.13%20kB%20min%2Bgzip-blue)](docs/adr/0017-size-budgets.md)
 [![dependencies](https://img.shields.io/badge/runtime%20deps-0-blue)](docs/adr/0011-package-layout-and-adapters.md)
@@ -10,8 +10,6 @@
 Spatial navigation for the web: d-pad, gamepad sticks, TV remotes and arrow keys drive real DOM focus, declared in data attributes.
 
 **Status:** `0.2.0` is tagged; `0.1.0` is the version on npm, because the 0.2.0 publish did not authenticate ([#6](https://github.com/StandarX-miralabs-tech/standarnav/actions/runs/35796937190)) and is waiting to be re-run. The public API is not frozen and the `data-snav-*` attribute names are not final ([ADR-0001](docs/adr/0001-name-scope-and-attribute-prefix.md)); while the major is 0, a minor may break. See [ROADMAP.md](ROADMAP.md).
-
-The downloads badge is one cumulated counter — npm installs, release asset downloads, and clones that are not this repository's own CI. What it can and cannot claim is [ADR-0024](docs/adr/0024-download-counter.md).
 
 ## What it does
 

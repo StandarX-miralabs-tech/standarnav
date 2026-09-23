@@ -48,7 +48,7 @@ One badge, fed by a counter this repository accumulates itself:
 
 **1. The counter is a state file, not a query.** `scripts/download-counts.ts` folds whole
 days into a running total and records how far it has counted, per source
-(`Tally` at `:38-42`, `fold` at `:93-103`). Fourteen days of history cannot be re-derived
+(`Tally`, `fold`). Fourteen days of history cannot be re-derived
 later, so the total is only as good as the runs that built it. `fold` refuses a day it has
 already seen and a day that is not over, which is what makes a re-run add nothing —
 verified three times in a row against the live APIs on 2026-09-23, total unchanged at 65.
@@ -56,19 +56,19 @@ verified three times in a row against the live APIs on 2026-09-23, total unchang
 **2. CI is subtracted, because it cannot be excluded.** A clone carries no identity: the
 API reports counts, never who. So the script measures what this repository's own CI cost
 that day — the number of **jobs**, not runs, since each job checks out — and takes it off
-(`residualClones` at `:77-87`). This is a subtraction, not an attribution, and the ADR says
+(`residualClones`). This is a subtraction, not an attribution, and the ADR says
 so where the README cannot.
 
 **3. The constant is 2, and it is measured, not assumed.** A checkout registers about two
 clones, not one: 294 against 143 jobs and 363 against 182, on the two days whose volume is
-dominated by CI (2.06 and 1.99). `CHECKOUTS_PER_JOB` is that 2 (`:31`). Subtracting one per
+dominated by CI (2.06 and 1.99). `CHECKOUTS_PER_JOB` is that 2. Subtracting one per
 job would leave roughly 430 clones standing on the days above that are almost certainly
 still CI; subtracting two leaves 65. The constant is one line and the run is idempotent, so
 a better measurement can replace it without rebuilding the history.
 
 **4. Days clamp at zero.** On a heavy CI day the subtraction overshoots — 09-22 goes
 negative before the clamp. A negative day would silently pay for a later one, so
-`Math.max(0, …)` ends it there (`:85`).
+`Math.max(0, …)` ends it there.
 
 **5. The state lives on an orphan `badges` branch.** A daily commit does not belong in the
 history of `main`, and a counter is not source. `.github/workflows/badges.yml` adds that
@@ -99,6 +99,42 @@ outage. Past thirteen days of silence, days are lost and no error says so.
 - Seventeen unit cases cover the arithmetic (`scripts/download-counts.test.ts`), because a
   counter that double-counts or forgets a day fails silently and forever.
 
+## Amendment, 2026-09-23: the counter is withdrawn — CI cannot read the clones it was built on
+
+Decision 1 through 6 are dead. `.github/workflows/badges.yml`,
+`scripts/download-counts.ts`, its seventeen tests and the orphan `badges` branch are
+deleted, and the README's downloads badge is `shields.io/npm/dt` — the alternative this
+record listed first and rejected only because it answered one source out of three.
+
+**What killed it, measured the same day it shipped.** The first scheduled run went green
+and published `downloads | 0`. It was not zero: `GET /repos/.../traffic/clones` answered
+**403 Forbidden** to the Actions `GITHUB_TOKEN`, and the script's `json()` turned every
+non-ok response into `null`, which read as a day with no clones. A counter that cannot
+tell a refusal from an absence reports silence as data, behind a green check.
+
+**And it cannot be fixed inside Actions.** The traffic API is documented as needing push
+access, but `contents: write` is not what it means: it wants `Administration: read`, and
+`administration` is **not a valid key** in a workflow `permissions` block — GitHub rejects
+the file with `Unexpected value 'administration'` (HTTP 422, tried 2026-09-23). There is
+no permission an Actions token can be granted for that endpoint. The only route left was a
+fine-grained personal access token kept as a repository secret.
+
+**Why that price was refused.** The token would be a second long-lived credential, kept
+running, for a number this record had already measured as a badly inflated upper bound:
+802 clones over fourteen days against 344 CI jobs over the same days, leaving 65 after the
+subtraction — and that 65 is still bots and mirrors as much as people. Paying a permanent
+secret for it is not a trade worth making.
+
+**What is left, and why it no longer needs any of this.** Without clones the counter is npm
+installs plus release asset downloads, and release assets are structurally 0. npm's total is
+one shields.io URL. The machinery existed only to accumulate a fourteen-day window that no
+longer reaches us.
+
+**What the record keeps.** The measurements above stand and are the reason this is not
+reopened cheaply: release assets cannot count generated tarballs, and clones are dominated
+by `actions/checkout`. Anyone proposing a "total downloads" badge here should read the
+clone-to-job table before writing the workflow.
+
 ## Alternatives considered
 
 | Option | Why not |
@@ -123,9 +159,10 @@ outage. Past thirteen days of silence, days are lost and no error says so.
 - The counter, run against the live APIs on 2026-09-23 with a push-scoped token:
   `npm 0 + clones 65 + release assets 0 = 65 through 2026-09-22`, and the same line on a
   second and third run — the idempotence decision 1 claims.
-- `scripts/download-counts.ts`: `CHECKOUTS_PER_JOB` (`:31`), `lastCompleteDay` (`:67-70`),
-  `residualClones` (`:77-87`), `fold` (`:93-103`), `badgeFor` (`:109-116`),
-  `pendingDays` (`:196-201`).
+- The script that held all of this — `CHECKOUTS_PER_JOB`, `lastCompleteDay`,
+  `residualClones`, `fold`, `badgeFor`, `pendingDays` — was deleted by the amendment of
+  2026-09-23, so no line of it is cited here: a path in this repository has to be a path a
+  reader can open. It is in the history of this pull request and nowhere else.
 - Coverage: `scripts/download-counts.test.ts`, seventeen cases by `grep -c "^  it(" ` on
   2026-09-23 — the day boundary, the subtraction and its clamp, four on folding without
   double-counting, and the repair of a corrupt state file.
