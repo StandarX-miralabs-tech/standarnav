@@ -6,7 +6,7 @@ mentionne jamais de manette ne paie pas un octet pour elle — vous construisez 
 les passez.
 
 ```tsx
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { NavProvider, useIntent } from "@standarx/nav/react";
 import { gamepadPlugin } from "@standarx/nav/gamepad";
 import { spatialPlugin } from "@standarx/nav/spatial";
@@ -22,18 +22,57 @@ export function App() {
 }
 
 function Dialog({ onClose }: { onClose: () => void }) {
+  const surface = useRef<HTMLDivElement>(null);
   useIntent(
     (event) => {
       if (event.intent !== "back") return false;
       onClose();
       return true;
     },
-    { trapped: true },
+    { trapped: true, within: surface },
   );
 
-  return <div data-snav="container" data-snav-trap>…</div>;
+  return (
+    <div ref={surface} data-snav="container" data-snav-trap>
+      <Level />
+    </div>
+  );
+}
+
+function Level() {
+  const group = useRef<HTMLDivElement>(null);
+  const [level, setLevel] = useState(0);
+  useIntent(
+    (event) => {
+      if (event.intent !== "moveDown" && event.intent !== "moveUp") return false;
+      const step = event.intent === "moveDown" ? 1 : -1;
+      setLevel((at) => Math.max(0, Math.min(2, at + step)));
+      return true;
+    },
+    { within: group },
+  );
+
+  return <div ref={group} role="radiogroup">…</div>;
 }
 ```
+
+**Un piège nomme sa surface, et un composite à l'intérieur nomme son propre élément.** `Level` est
+monté dans le même commit que `Dialog`, et React exécute l'effet d'un enfant avant celui de son
+parent : la portée du groupe radio est donc ouverte la première et se retrouve *sous* le piège du
+dialogue. Un piège fait taire ce qui est sous lui, et sans `within` le dialogue faisait taire son
+propre groupe radio ([issue #14](https://github.com/StandarX-miralabs-tech/standarnav/issues/14)).
+Avec `within` des deux côtés, une portée sous le piège dont l'élément se trouve dans la surface du
+piège est quand même interrogée — après le piège, parce que l'inclusion ne réordonne pas la pile ;
+le dialogue ne revendique donc que ce qui lui appartient (`back` ici) et laisse passer les flèches.
+Un piège ou une portée sans `within` se comporte exactement comme avant ; le raisonnement est
+[ADR-0025](../adr/0025-trap-within-its-surface.md). `within` accepte une ref, un élément ou un
+accesseur, lu à chaque dispatch, donc une ref remplie après le premier commit ou une nouvelle
+fonction fléchée à chaque rendu ne rouvre jamais la portée. C'est toujours `data-snav-trap` qui
+garde le moteur spatial à l'intérieur du dialogue. Épinglé dans `src/react/react.browser.test.tsx`
+par « moves a radio group mounted with its dialog, its within given as ref » (et ses variantes
+« as getter » et « as element »), « keeps a radio group that names no element silenced, as
+before » et « does not open the scope again for a within that is a new arrow on every render » ;
+`bun run test:browser` les a passés sur chromium, firefox et webkit le 2026-09-23.
 
 **Le `useMemo` est le contrat, pas une décoration.** Le fournisseur compare la liste `plugins`
 élément par élément avec `Object.is`, donc un nouveau littéral de tableau autour d'instances stables
@@ -46,9 +85,9 @@ niveau de profondeur sur ses valeurs chaîne, donc `keymap={{ keys: { … } }}` 
 | Export | Ce que c'est |
 |---|---|
 | `NavProvider` | Construit un système d'entrée pour l'arbre et le détruit au démontage. |
-| `useIntent(handler, options?)` | Ouvre une portée d'intention pour la durée de vie du composant. Le gestionnaire est lu à travers une ref, donc une fonction fléchée inline ne dépile pas et ne réempile pas la portée — ce qui la réordonnerait silencieusement sous tout ce qui a été empilé depuis. Un nouveau `trapped` ou `base` laisse la portée là où elle a été ouverte. |
+| `useIntent(handler, options?)` | Ouvre une portée d'intention pour la durée de vie du composant. Le gestionnaire est lu à travers une ref, donc une fonction fléchée inline ne dépile pas et ne réempile pas la portée — ce qui la réordonnerait silencieusement sous tout ce qui a été empilé depuis. Un nouveau `trapped` ou `base` laisse la portée là où elle a été ouverte. `within` — une ref, un élément ou un accesseur — est lu au dispatch et ne la rouvre jamais. |
 | `useInputSystem()` | Le système, ou `null`. |
-| `useIntentScopeHost()` | Un hôte stable pour toute la vie du fournisseur, pour une machine à états qui installe ses effets en entrant dans un état et n'a pas de tableau de dépendances pour se relancer. Une portée empilée par lui avant que le système existe est ouverte dès qu'il existe. `null` sans fournisseur. |
+| `useIntentScopeHost()` | Un hôte stable pour toute la vie du fournisseur, pour une machine à états qui installe ses effets en entrant dans un état et n'a pas de tableau de dépendances pour se relancer. Une portée empilée par lui avant que le système existe est ouverte dès qu'il existe. Son `pushScope` transmet les options telles quelles, donc `within` y est un élément ou un accesseur comme `() => ref.current`, pas une ref. `null` sans fournisseur. |
 | `useInputModality()` | `keyboard` \| `pointer` \| `touch` \| `gamepad`. Fonctionne sans fournisseur au-dessus : le magasin de modalité est compté par référence par document, donc un composant qui veut seulement savoir s'il doit dessiner un anneau paie un traqueur, pas un système d'entrée. |
 | `NavDocumentProvider` | Nécessaire seulement quand l'arbre ne vit pas dans le document de la page elle-même — une iframe, une popup, une fixture de test. |
 
@@ -82,9 +121,8 @@ sur chromium, firefox et webkit le 2026-09-23.
 Ce que cela ne change pas, c'est l'ordre du premier commit, qui est celui de React : l'effet d'un
 enfant tourne avant celui de son parent, donc la portée qu'ouvre un composant est ouverte avant
 celle qu'ouvre son parent dans le même commit — le cas imbriqué ci-dessus affirme cet ordre pour un
-composite et l'élément qu'il contient. Un composite à l'intérieur d'un dialogue qui piège, et
-lequel des deux la pile doit interroger en premier, c'est
-l'[issue #14](https://github.com/StandarX-miralabs-tech/standarnav/issues/14) et une décision à part.
+composite et l'élément qu'il contient. C'est cet ordre qui fait passer `within` à la recette du
+dialogue en haut de cette page.
 
 `react` et `react-dom` sont des dépendances pair **optionnelles** en `>=18.3.0` ; rien en dehors de
 `src/react/` ne les importe, et l'adaptateur est mesuré avec React en externe. Le plancher de cette
@@ -96,7 +134,9 @@ L'adaptateur est tenu à une suite partagée plutôt qu'à des tests de sa propr
 `src/adapter-parity.ts` est le contrat que tout adaptateur de framework doit satisfaire — un seul
 système et pas pendant le premier rendu, un ordre de portées LIFO, une portée libérée quand seul son
 propre sous-arbre est démonté, un piège qui arrête le parcours, une portée de base atteinte à
-travers ce piège, une base réenregistrée à un nouveau rendu sans quitter sa place, et l'ordre
+travers ce piège, un composite imbriqué dans une surface qui piège atteint quand les deux passent
+`within` et réduit au silence quand aucun ne le fait, une base réenregistrée à un nouveau rendu
+sans quitter sa place, et l'ordre
 d'ouverture des portées conservé à travers une reconstruction du système. Les adaptateurs qui suivent — Vue,
 Svelte et Angular, dans l'ordre
 d'[ADR-0011](../adr/0011-package-layout-and-adapters.md) — passent la même suite avant d'être

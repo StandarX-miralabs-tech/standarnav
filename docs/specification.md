@@ -221,7 +221,12 @@ this working tree, run 2026-09-20.
 - **R4.** Dispatch is a LIFO scope stack (`src/intent-bus.ts`);
   returning `true` ends the walk. A `trapped` scope swallows everything except `back`, `tabNext` and
   `tabPrev`. Scopes marked `base` are still asked past a trap — the only user is the spatial plugin,
-  so a d-pad still moves inside a modal.
+  so a d-pad still moves inside a modal. Amended by [ADR-0025](adr/0025-trap-within-its-surface.md):
+  a trap that names its surface through `within` (an element, or a getter read at dispatch) still
+  asks a scope beneath it whose own `within` lies inside that surface — after the trap, never
+  before it, since containment does not reorder the stack. A trap or a scope without `within` is
+  unchanged, and every trap asked sets the surface, so a dialog nested in another narrows it
+  (`src/intent-bus.browser.test.ts`).
 - **R5.** `createInputSystem({ doc, plugins, keymap, allowVerticalInText })` is an instance, never a
   global singleton (`InputSystemOptions`, `src/input-system.ts:50-56`): two coexist in one page,
   and no `document` or `window` access happens outside initialisation, so hydration is safe.
@@ -458,7 +463,9 @@ this working tree, run 2026-09-20.
   ([ADR-0023](adr/0023-vanilla-auto-mount.md)).
 - **R36.** No adapter ships until it passes the shared suite of `src/adapter-parity.ts`, the same one
   React passes (parity gate, §6). Among what it asserts: a provider that builds a new system under
-  mounted scopes gives them back in the order they were opened, not the order they are declared. `/auto` is not an adapter and does not run it: the suite asserts
+  mounted scopes gives them back in the order they were opened, not the order they are declared,
+  and a composite nested in a trapping surface and mounted in the same commit is still asked when
+  both pass their element as `within`. `/auto` is not an adapter and does not run it: the suite asserts
   what a provider does across a render, and that helper has neither. It carries fourteen browser
   cases of its own.
 
