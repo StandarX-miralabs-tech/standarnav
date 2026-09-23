@@ -60,6 +60,23 @@ export interface ParityTree {
   /** `base` on the outer scope. Defaults to `false`. */
   readonly base?: boolean | undefined;
   /**
+   * `trapped` on the outer scope. Defaults to `false`. With `nested`, this is the dialog
+   * and "inner" the composite inside it.
+   */
+  readonly outerTrapped?: boolean | undefined;
+  /**
+   * Whether the inner scope's component is rendered inside the outer scope's component
+   * rather than beside it. Defaults to `false`. Nested, both mount in one commit and a
+   * framework runs the child's effect first, so "inner" is opened first and sits under
+   * "outer" — the order a composite inside a dialog really gets.
+   */
+  readonly nested?: boolean | undefined;
+  /**
+   * Whether each scope passes its own element as `within`. Defaults to `false`, which is
+   * how every scope was opened before ADR-0025, and has to keep behaving that way.
+   */
+  readonly within?: boolean | undefined;
+  /**
    * Forwarded to the provider. Defaults to none. A different value is the portable way
    * to make the provider build a new system under scopes that stay mounted.
    */
@@ -69,9 +86,11 @@ export interface ParityTree {
 export interface ParityAdapter {
   readonly name: string;
   /**
-   * Mounts a provider with two nested scopes named "outer" and "inner", pushing
-   * them in that order, and returns a probe over the result. Both handlers record
-   * what they are asked and then decline it.
+   * Mounts a provider with two scopes named "outer" and "inner" and returns a probe over
+   * the result. Both handlers record what they are asked and then decline it. Each scope
+   * has an element of its own, inner's inside outer's, whatever the shape: that nesting
+   * is what `within` is answered against. Unless `nested`, the two scope components are
+   * siblings and push "outer" then "inner".
    */
   mount(tree?: ParityTree | undefined): ParityProbe;
   /**
@@ -182,6 +201,31 @@ export function runAdapterParitySuite(adapter: ParityAdapter): void {
       // surface is still asked. An adapter that accepts `base` and drops it on the
       // floor passes every other case in this file.
       expect(probe.intents()).toEqual(["inner:moveDown", "outer:moveDown"]);
+      adapter.unmount();
+    });
+
+    it("asks a composite nested in a trapping surface when both pass their element", async () => {
+      const probe = adapter.mount({ nested: true, outerTrapped: true, within: true });
+      await adapter.settle();
+
+      adapter.act(() => press("ArrowDown"));
+
+      // Mounted in one commit, "inner" was opened first and sits under the trap. Its
+      // element is inside the trap's, so it is asked — after the trap, because
+      // containment does not reorder the stack (ADR-0025).
+      expect(probe.intents()).toEqual(["outer:moveDown", "inner:moveDown"]);
+      adapter.unmount();
+    });
+
+    it("keeps silencing that composite when neither scope passes its element", async () => {
+      const probe = adapter.mount({ nested: true, outerTrapped: true });
+      await adapter.settle();
+
+      adapter.act(() => press("ArrowDown"));
+
+      // `within` is opt-in. An adapter that confined every trap to its component's
+      // element on its own would pass the case above and change every existing dialog.
+      expect(probe.intents()).toEqual(["outer:moveDown"]);
       adapter.unmount();
     });
 

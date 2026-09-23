@@ -143,14 +143,14 @@ wrapping. Those differences are now the interesting thing to assert, because the
 shared and can no longer drift.
 
 **The adapter parity suite of decision 5 grew.** `src/adapter-parity.ts` is the shared suite and
-React passes it (`src/react/react.browser.test.tsx:692`). It now exposes a `ParityTree` shape and an
-`update(tree)` capability on `ParityAdapter` (`src/adapter-parity.ts:49-67`, `:82`), which is what
+React passes it (`src/react/react.browser.test.tsx:894`). It now exposes a `ParityTree` shape and an
+`update(tree)` capability on `ParityAdapter` (`src/adapter-parity.ts:49-84`, `:101`), which is what
 lets a case re-render the tree rather than only mount and unmount it. The behaviours it asserts
 beyond the original list: LIFO dispatch order, a scope released when only its own subtree unmounts
 while the tree stays up, a trap stopping the walk before the scope beneath it, a base scope still
 asked through that trap, and a base scope re-registering when it changes on a rerender — the last
 being the shape of bug where a prop is honoured on mount and ignored on update
-(`src/adapter-parity.ts:132`, `:147`, `:164`, `:175`, `:188`).
+(`src/adapter-parity.ts:151`, `:166`, `:183`, `:194`, `:232`).
 
 **A composition test was added, which decision 6 did not ask for.**
 `src/composition.browser.test.ts` mounts the gamepad plugin, the spatial plugin and the focus ring
@@ -179,9 +179,9 @@ amendment above records that the suite grew from six to eleven cases. `@standarx
 rather than leaving a subpath that quietly skipped the gate.
 
 **The suite's first case is the one that cannot be met.** "Builds exactly one system, and not
-during the first render" (`src/adapter-parity.ts:98`) asserts over `ParityProbe.renders()` — what
+during the first render" (`src/adapter-parity.ts:117`) asserts over `ParityProbe.renders()` — what
 the system was on each render pass — and the `ParityAdapter` contract asks for `mount`, `update`,
-`settle` and `act` around a provider with two nested scope components (`:69-88`). A vanilla
+`settle` and `act` around a provider with two nested scope components (`:86-107`). A vanilla
 helper has no render pass, no provider and no components. Satisfying the suite would mean
 inventing all three for the fixture, and a test that asserts its own fixture is not a gate.
 
