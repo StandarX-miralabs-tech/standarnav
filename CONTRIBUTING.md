@@ -73,8 +73,8 @@ bun run check:size
 ```
 
 All of those were run here on 2026-09-22 and pass. Between them they reproduce
-five of the eight checks CI runs (six jobs, one of them a three-engine matrix);
-the firefox and webkit runs and the React 18.3 floor job only exist in CI, which
+five of the nine checks CI runs (seven jobs, one of them a three-engine matrix);
+the firefox and webkit runs and the React 18.3 and Vue 3.3.0 floor jobs only exist in CI, which
 reports them on the pull request. Measured on the same date: `bun run test:unit`
 is 110 tests in 11 files, `bun run test:browser` is 257 passed and 1 skipped in
 13 files — 367 passed and 1 skipped in total. The
@@ -180,6 +180,9 @@ fixes.
   range is `>=18.3.0`, and every other job installs `--frozen-lockfile`, so
   without that job the floor of the range is a promise nothing keeps. A change
   that needs a React 19 API narrows the peer range in the same pull request.
+  The Vue adapter has the same guard, the `vue-floor` job
+  (`.github/workflows/ci.yml:136-161`), which installs exactly `vue@3.3.0`: a change
+  that needs a later Vue API raises the `>=3.3.0` peer range in the same pull request.
 - A pull request without a test for the behaviour it changes is not merged.
 
 ## Size budgets are blocking

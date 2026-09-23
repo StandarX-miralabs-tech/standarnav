@@ -11,7 +11,7 @@ concurrency:
 
 # The runner is pinned rather than tracking `ubuntu-latest`, which migrates to Ubuntu 26
 # on 2026-10-19. Every other form of drift here is already barred — build output, size
-# budgets, the React floor, the citation anchors — and an operating system that changes
+# budgets, the React and Vue floors, the citation anchors — and an operating system that changes
 # under the browser matrix with no commit to point at is the same class of problem.
 # Moving it is a deliberate bump, reviewed like any other.
 jobs:
@@ -127,3 +127,35 @@ jobs:
       - run: bun run test:browser
         env:
           SNAV_BROWSER: ${{ matrix.browser }}
+
+  # The same promise for the Vue adapter, kept the same way. `vue` is an optional peer at
+  # `>=3.3.0` while the lockfile pins 3.5: this job installs exactly 3.3.0, the release that
+  # ships `toValue`, `MaybeRefOrGetter` and the function form of `defineComponent` the
+  # adapter is written with (ADR-0027). Below the jobs it copies so that adding it moved no
+  # line anything cites.
+  vue-floor:
+    name: vue 3.3.0 (the declared peer floor)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+      - run: bun install --frozen-lockfile
+      - name: Install the declared floor
+        run: bun add --dev vue@3.3.0
+      # The adapter's exported types are written against what 3.3 declares, which is where
+      # `defineComponent` over a setup function returned a plain function type.
+      - run: bun run typecheck
+      - name: Resolve the playwright version
+        id: playwright
+        run: echo "version=$(bun pm ls | grep -oP '(?<![-\w])playwright@\K[0-9.]+' | head -1)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ steps.playwright.outputs.version }}-chromium
+      - run: bun x playwright install --with-deps chromium
+      # One engine: what is under test is the Vue version, as in `react-floor`.
+      - run: bun run test:browser
+        env:
+          SNAV_BROWSER: chromium
