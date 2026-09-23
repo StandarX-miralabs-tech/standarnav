@@ -40,7 +40,7 @@ en plus du glissement. C'est l'interrupteur du réglage « pas d'animation » pr
 application ; toute autre durée garde le fondu de 150 ms
 (`src/focus-ring/focus-ring.browser.test.ts:197-235`, sur chromium, firefox et webkit ;
 [ADR-0020](../adr/0020-focus-ring-defaults.md), amendement du 2026-09-23). Deux choses que le
-style en ligne ne peut pas faire sont écrites dans `src/focus-ring/focus-ring.ts` : une propriété personnalisée du mauvais type rend
-toute la déclaration invalide sans déclaration antérieure sur laquelle se replier, et
-`forced-colors: active` supprime `box-shadow`, donc l'anneau disparaît dans un thème à couleurs
-forcées — un point v1 de [ROADMAP.md](../../ROADMAP.md), pas un correctif v0.
+style en ligne ne peut pas faire sont écrites dans `src/focus-ring/focus-ring.ts` : une propriété
+personnalisée du mauvais type rend toute la déclaration invalide sans déclaration antérieure sur
+laquelle se replier, et `forced-colors: active` supprime `box-shadow`, donc l'anneau disparaît
+dans un thème à couleurs forcées — un point v1 de [ROADMAP.md](../../ROADMAP.md), pas un correctif v0.

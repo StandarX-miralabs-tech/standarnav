@@ -90,13 +90,14 @@ Evidence, 2026-09-23, in this repository:
 - `src/focus-ring/focus-ring.browser.test.ts:197-208`, "fades out and back in over 150 ms by
   default", is the guard the other way: with no duration set, the hide and the return each start
   one opacity animation whose timing reports `duration` 150, on all three engines.
-- `SNAV_BROWSER=chromium`, `firefox` and `webkit bun run test:browser src/focus-ring` → 17 passed
-  on each.
+- `bun run test:browser src/focus-ring`, with `SNAV_BROWSER` set to chromium, firefox and webkit
+  in turn → 17 passed on each.
 - On the playground (`bun run dev`), a Playwright script recording every `animate` call on the
   overlay, with `--snav-focus-ring-duration` set on the root element: at `0ms` and at `0s` a
   pointer click that hides the ring and a Tab that brings it back start no opacity animation on
-  chromium, firefox or webkit; on `main` before the fix the same run recorded a 150 ms fade for
-  each, and with the property unset it still does.
+  chromium, firefox or webkit. The same script against `main` before the fix recorded a 150 ms
+  fade for each at `0ms`, and after the fix it still records one for each when the property is
+  unset.
 
 ## Alternatives considered
 
