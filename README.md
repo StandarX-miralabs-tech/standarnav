@@ -1,8 +1,17 @@
 # standarnav
 
+[![npm](https://img.shields.io/npm/v/@standarx/nav?color=blue)](https://www.npmjs.com/package/@standarx/nav)
+[![downloads](https://img.shields.io/endpoint?url=https%3A%2F%2Fraw.githubusercontent.com%2FStandarX-miralabs-tech%2Fstandarnav%2Fbadges%2Fdownloads.json)](docs/adr/0024-download-counter.md)
+[![CI](https://github.com/StandarX-miralabs-tech/standarnav/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/StandarX-miralabs-tech/standarnav/actions/workflows/ci.yml)
+[![install size](https://img.shields.io/badge/min%2Bgzip-12.63%20kB-blue)](docs/adr/0017-size-budgets.md)
+[![dependencies](https://img.shields.io/badge/runtime%20deps-0-blue)](docs/adr/0011-package-layout-and-adapters.md)
+[![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
+
 Spatial navigation for the web: d-pad, gamepad sticks, TV remotes and arrow keys drive real DOM focus, declared in data attributes.
 
-**Status:** `0.1.0` is on npm since 2026-09-22. The public API is not frozen and the `data-snav-*` attribute names are not final ([ADR-0001](docs/adr/0001-name-scope-and-attribute-prefix.md)); while the major is 0, a minor may break. See [ROADMAP.md](ROADMAP.md).
+**Status:** `0.2.0` is tagged; `0.1.0` is the version on npm, because the 0.2.0 publish did not authenticate ([#6](https://github.com/StandarX-miralabs-tech/standarnav/actions/runs/35796937190)) and is waiting to be re-run. The public API is not frozen and the `data-snav-*` attribute names are not final ([ADR-0001](docs/adr/0001-name-scope-and-attribute-prefix.md)); while the major is 0, a minor may break. See [ROADMAP.md](ROADMAP.md).
+
+The downloads badge is one cumulated counter — npm installs, release asset downloads, and clones that are not this repository's own CI. What it can and cannot claim is [ADR-0024](docs/adr/0024-download-counter.md).
 
 ## What it does
 
@@ -11,7 +20,7 @@ Spatial navigation for the web: d-pad, gamepad sticks, TV remotes and arrow keys
 - Arrow keys, d-pad buttons, the left stick and TV remote keys produce the same intent, so no move logic branches per device. The right stick scrolls.
 - Containers nest and remember the element last focused in them. A container can wrap in one axis, block a direction, trap every exit, or redirect a direction to a CSS selector; when nothing is found, the engine scrolls one step and rescans once, which is how a virtualised list keeps producing rows.
 - Two modes: `composite` (arrow keys stay inside composites, a gamepad crosses the page) and `app` (arrow keys navigate the whole page). `onWillMove` can veto a move; `onBoundsHit` fires when a direction has nowhere left to go.
-- Zero runtime dependencies, ESM only, and every subpath sits under a size cap CI enforces: 3.13 kB min+gzip for the core and 12.40 kB for the whole package, by `bun run check:size` on 2026-09-22 ([ADR-0017](docs/adr/0017-size-budgets.md)).
+- Zero runtime dependencies, ESM only, and every subpath sits under a size cap CI enforces: 3.13 kB min+gzip for the core and 12.63 kB for the whole package, by `bun run check:size` on 2026-09-22 ([ADR-0017](docs/adr/0017-size-budgets.md)).
 
 ## Usage
 
