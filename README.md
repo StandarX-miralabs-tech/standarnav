@@ -1,7 +1,7 @@
 # standarnav
 
 [![npm](https://img.shields.io/npm/v/@standarx/nav?color=blue)](https://www.npmjs.com/package/@standarx/nav)
-[![downloads](https://img.shields.io/npm/dt/@standarx/nav?color=blue)](https://www.npmjs.com/package/@standarx/nav)
+[![downloads](https://img.shields.io/npm/dm/@standarx/nav?color=blue)](https://www.npmjs.com/package/@standarx/nav)
 [![CI](https://github.com/StandarX-miralabs-tech/standarnav/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/StandarX-miralabs-tech/standarnav/actions/workflows/ci.yml)
 [![core size](https://img.shields.io/badge/core-3.13%20kB%20min%2Bgzip-blue)](docs/adr/0017-size-budgets.md)
 [![dependencies](https://img.shields.io/badge/runtime%20deps-0-blue)](docs/adr/0011-package-layout-and-adapters.md)
