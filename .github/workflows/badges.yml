@@ -1,0 +1,71 @@
+name: Badges
+
+# The download counter of the README, refreshed once a day.
+#
+# Daily is not a style choice. GitHub's traffic API keeps **fourteen days** and nothing
+# before that: a day this workflow does not read before it falls off the window is gone
+# from the total for good. A daily run leaves thirteen days of slack for an outage; a
+# failure left unattended for longer than that quietly loses days, which is why the run
+# is scheduled rather than triggered by pushes, and why `workflow_dispatch` is here to
+# catch up by hand. See ADR-0024.
+on:
+  schedule:
+    # 04:17 UTC. A few minutes past the hour because GitHub queues everything scheduled
+    # on the hour, and after midnight UTC because the script only ever folds whole days.
+    - cron: "17 4 * * *"
+  workflow_dispatch:
+
+# Never two writers on the `badges` branch, and never cancel one mid-push: the state file
+# is a running total, so a half-written one loses the days it had already counted.
+concurrency:
+  group: badges
+  cancel-in-progress: false
+
+permissions: {}
+
+jobs:
+  count:
+    runs-on: ubuntu-24.04
+    permissions:
+      # `contents: write` twice over: the traffic API is documented as needing push
+      # access, and the orphan `badges` branch is pushed from here. Nothing else — this
+      # job writes one JSON file and never touches `main`.
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+
+      # An orphan branch, so the counter's daily commits never land in the history of
+      # `main` and never appear in a `git log` of the source. A worktree rather than a
+      # second checkout because the script lives on `main` and the state lives here.
+      - name: Check out the badges branch, creating it the first time
+        run: |
+          git fetch origin badges --depth=1 || true
+          if git show-ref --verify --quiet refs/remotes/origin/badges; then
+            git worktree add badges origin/badges
+          else
+            git worktree add --orphan -b badges badges
+          fi
+
+      - name: Fold yesterday into the counter
+        run: bun run scripts/download-counts.ts badges
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+
+      # Nothing to commit is the normal answer on a day the numbers did not move, and it
+      # must not fail the run: `git commit` exits non-zero on an empty index.
+      - name: Publish the counter
+        working-directory: badges
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add state.json downloads.json
+          if git diff --cached --quiet; then
+            echo "the counter did not move"
+            exit 0
+          fi
+          git commit -m "chore(badges): counter through $(date -u +%F)"
+          git push origin HEAD:badges
