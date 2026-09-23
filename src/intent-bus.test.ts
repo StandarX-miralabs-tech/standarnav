@@ -157,3 +157,97 @@ describe("createIntentBus", () => {
     expect(seen).toEqual([-0.42]);
   });
 });
+
+describe("createIntentBus — the native answer (ADR-0026)", () => {
+  it("answers true and false exactly as before a third answer existed", () => {
+    const bus = createIntentBus();
+    const answer = vi.fn<() => boolean | undefined>(() => true);
+    bus.pushScope(answer);
+
+    expect(bus.dispatch({ intent: "moveDown", source: "keyboard" })).toMatchObject({
+      consumed: true,
+      defaultPrevented: true,
+    });
+    answer.mockReturnValue(false);
+    expect(bus.dispatch({ intent: "moveDown", source: "keyboard" })).toMatchObject({
+      consumed: false,
+      defaultPrevented: false,
+    });
+    answer.mockReturnValue(undefined);
+    expect(bus.dispatch({ intent: "moveDown", source: "keyboard" })).toMatchObject({
+      consumed: false,
+      defaultPrevented: false,
+    });
+  });
+
+  it("stops the walk, the base scope included, and leaves the default", () => {
+    const bus = createIntentBus();
+    const engine = vi.fn(() => true);
+    const page = vi.fn(() => true);
+    bus.pushScope(engine, { base: true });
+    bus.pushScope(page);
+    bus.pushScope(() => "native");
+
+    const result = bus.dispatch({ intent: "moveDown", source: "keyboard" });
+
+    expect(page).not.toHaveBeenCalled();
+    expect(engine).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ consumed: false, defaultPrevented: false });
+  });
+
+  it("does not undo a preventDefault made by a scope asked before it", () => {
+    const bus = createIntentBus();
+    const engine = vi.fn(() => true);
+    bus.pushScope(engine, { base: true });
+    bus.pushScope(() => "native");
+    bus.pushScope((event: IntentEvent) => {
+      event.preventDefault();
+      return false;
+    });
+
+    const result = bus.dispatch({ intent: "moveDown", source: "keyboard" });
+
+    expect(engine).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ consumed: false, defaultPrevented: true });
+  });
+
+  it("ends a trapped walk with the default kept when a base scope answers native", () => {
+    const bus = createIntentBus();
+    const page = vi.fn(() => true);
+    bus.pushScope(() => "native", { base: true });
+    bus.pushScope(page);
+    bus.pushScope(() => false, { trapped: true });
+
+    const result = bus.dispatch({ intent: "moveDown", source: "keyboard" });
+
+    expect(page).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ consumed: false, defaultPrevented: false });
+  });
+
+  it("ends the walk with the default kept when the trap itself answers native", () => {
+    const bus = createIntentBus();
+    const engine = vi.fn(() => true);
+    bus.pushScope(engine, { base: true });
+    bus.pushScope(() => "native", { trapped: true });
+
+    const result = bus.dispatch({ intent: "moveDown", source: "keyboard" });
+
+    expect(engine).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ consumed: false, defaultPrevented: false });
+  });
+
+  it("still swallows through a trap when the only native answer is one it silenced", () => {
+    const bus = createIntentBus();
+    const page = vi.fn(() => "native" as const);
+    const engine = vi.fn(() => false);
+    bus.pushScope(engine, { base: true });
+    bus.pushScope(page);
+    bus.pushScope(() => false, { trapped: true });
+
+    const result = bus.dispatch({ intent: "moveDown", source: "keyboard" });
+
+    expect(page).not.toHaveBeenCalled();
+    expect(engine).toHaveBeenCalledOnce();
+    expect(result).toMatchObject({ consumed: true, defaultPrevented: true });
+  });
+});

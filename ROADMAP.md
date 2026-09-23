@@ -79,7 +79,7 @@ playground rule that stretched the box over the field.
 - [ ] Selection in the preview row. A range the application set is drawn as a caret at its start and
       the next key edits the range; the keyboard never creates one
 - [ ] A CJK layout, and the composition ADR it needs first. The package stands aside from IME today
-      (`src/input-system.ts:158-160`), and a layout that composes would have to own it
+      (`src/input-system.ts:159-161`), and a layout that composes would have to own it
 - [ ] `contenteditable`. The keyboard declines it deliberately — inserting into a range is easy and
       erasing one character backward across element boundaries is not — and the refusal is pinned by
       a test. Closing it means choosing between `selection.modify`, which is not a standard, and a

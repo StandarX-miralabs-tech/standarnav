@@ -144,7 +144,7 @@ the price of keeping the engine free of it, and it is named here rather than dis
   `src/spatial/spatial.ts:512-528`.
 - Unclaimed intents keep the native default: "The native default survives unless
   someone actually wanted the intent — otherwise arrow keys would stop scrolling a
-  page that has no navigation", `src/input-system.ts:179-181`.
+  page that has no navigation", `src/input-system.ts:180-183`.
 - Same intents from both devices, which is what makes the mode the only place the
   source matters: `ArrowUp`…`ArrowRight` become `moveUp`…`moveRight` in
   `src/keymap.ts:48-51`, the stick sectors become the same four intents in
@@ -152,7 +152,7 @@ the price of keeping the engine free of it, and it is named here rather than dis
   through the `STANDARD` button table, `src/gamepad/mapping.ts:31-34`. The `source`
   the mode branches on is stamped in `resolveKeyIntent` (`src/keymap.ts:128`), and the
   `select` fallback that clicks the focused element for a pad but never for a
-  keyboard is `activateFocused`, `src/input-system.ts:118-132`.
+  keyboard is `activateFocused`, `src/input-system.ts:119-133`.
 - ARIA Authoring Practices Guide, keyboard interaction conventions for composite
   widgets (arrow keys inside, `Tab` between):
   https://www.w3.org/WAI/ARIA/apg/practices/keyboard-interface/ — the external rule

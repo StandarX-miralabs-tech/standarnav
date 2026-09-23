@@ -76,7 +76,7 @@ adapter order this repository adopted. An adapter that does not pass the suite d
 Amended 2026-09-19, when the suite was written and React ran it: this originally required scopes to
 be *released in LIFO order* on unmount. React tears a tree down parent-first, so its outer scope is
 released before its inner one — and it makes no difference, because `createIntentBus` removes a
-scope by identity (`indexOf` then `splice`, `src/intent-bus.ts:143-144`) rather than by position.
+scope by identity (`indexOf` then `splice`, `src/intent-bus.ts:157-158`) rather than by position.
 The requirement would have failed every adapter for something unobservable while saying nothing
 about a real leak, so the suite asserts that every scope pushed is released and that nothing reaches
 a handler afterwards. Dispatch order, which *is* observable, is asserted separately and still LIFO.
@@ -143,7 +143,7 @@ wrapping. Those differences are now the interesting thing to assert, because the
 shared and can no longer drift.
 
 **The adapter parity suite of decision 5 grew.** `src/adapter-parity.ts` is the shared suite and
-React passes it (`src/react/react.browser.test.tsx:894`). It now exposes a `ParityTree` shape and an
+React passes it (`src/react/react.browser.test.tsx:895`). It now exposes a `ParityTree` shape and an
 `update(tree)` capability on `ParityAdapter` (`src/adapter-parity.ts:49-84`, `:101`), which is what
 lets a case re-render the tree rather than only mount and unmount it. The behaviours it asserts
 beyond the original list: LIFO dispatch order, a scope released when only its own subtree unmounts

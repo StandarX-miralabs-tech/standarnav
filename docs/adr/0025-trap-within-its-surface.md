@@ -28,19 +28,19 @@ The issue offered two orders, containment in the DOM or open order. Neither is w
 
 ## Decision
 
-**1. `within`, an opt-in option on `IntentScopeOptions`** (`src/intent-bus.ts:57`). It is an
+**1. `within`, an opt-in option on `IntentScopeOptions`** (`src/intent-bus.ts:66`). It is an
 `Element`, or a getter `() => Element | null | undefined` read at every dispatch, because every
 adapter only has its element after its first commit — a React ref, a Vue template ref, Svelte's
 `bind:this`, Angular's `ElementRef`. A getter answering nothing means no element.
 
 **2. The rule.** When a trapped scope that declined names its surface through `within`, a
 non-`base` scope beneath it whose own `within` lies inside that surface (`Node.contains`, so the
-surface itself counts) is still asked (`src/intent-bus.ts:163`). A scope with no `within`, or one
+surface itself counts) is still asked (`src/intent-bus.ts:177`). A scope with no `within`, or one
 outside the surface, stays silenced. A trap with no `within` is the trap it always was. `base`
 scopes are asked as before, and the three escapes — `back`, `tabNext`, `tabPrev` — are unchanged.
 
 **3. Several traps.** Every trap the walk asks sets the surface to its own `within`
-(`src/intent-bus.ts:171`). The first trap met defines it; beneath it, another trap is only asked
+(`src/intent-bus.ts:192`). The first trap met defines it; beneath it, another trap is only asked
 when it lies inside that surface, and then it narrows the surface to its own. So a dialog opened
 over another, portalled or nested in its DOM, confines to itself and silences the first one's
 content; and a dialog nested in another and opened in the same commit — the outer on top — lets
@@ -104,15 +104,15 @@ element" (`:207`) and "keeps silencing that composite when neither scope passes 
 
 ## Evidence
 
-- Code: `src/intent-bus.ts:57` (`within`), `:122-124` (`resolve`), `:155` (`surface`), `:163`
-  (the skip), `:169-172` (every trap asked sets the surface); the `base` comment at `:44-50` and
-  the header paragraph at `:24-32`. React: `src/react/react.tsx:313-322`, `:341-348`, `:379`.
+- Code: `src/intent-bus.ts:66` (`within`), `:136-138` (`resolve`), `:169` (`surface`), `:177`
+  (the skip), `:190-193` (every trap asked sets the surface); the `base` comment at `:53-59` and
+  the header paragraph at `:28-36`. React: `src/react/react.tsx:313-322`, `:341-348`, `:379`.
 - Tests: `src/intent-bus.browser.test.ts`, thirteen cases from `:37` — contained, claiming, the
   surface itself, outside, trap without `within`, scope without it, getter read at dispatch,
   getter answering null, `base`, the escapes, and three for nested traps (`:183`, `:200`, `:218`).
-  `src/react/react.browser.test.tsx:618` onwards: a radio group mounted with its dialog, its
-  `within` as a ref, a getter and an element (`:722`), silenced without one (`:738`), and no
-  re-open for a new arrow per render (`:747`). `bun run test` → 415 passed, 1 skipped in 25 files
+  `src/react/react.browser.test.tsx:619` onwards: a radio group mounted with its dialog, its
+  `within` as a ref, a getter and an element (`:723`), silenced without one (`:739`), and no
+  re-open for a new arrow per render (`:748`). `bun run test` → 415 passed, 1 skipped in 25 files
   on 2026-09-23; `SNAV_BROWSER=firefox bun run test:browser`, and the same with `webkit`, → 304
   passed, 1 skipped in 14 files each, the same day. The React peer floor, reproduced on a copy of
   the tree with `bun add --dev react@^18.3.1 react-dom@^18.3.1 @types/react@^18.3

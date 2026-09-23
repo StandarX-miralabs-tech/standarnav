@@ -3,7 +3,7 @@
 [![npm](https://img.shields.io/npm/v/@standarx/nav?color=blue)](https://www.npmjs.com/package/@standarx/nav)
 [![downloads](https://img.shields.io/npm/dm/@standarx/nav?color=blue)](https://www.npmjs.com/package/@standarx/nav)
 [![CI](https://github.com/StandarX-miralabs-tech/standarnav/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/StandarX-miralabs-tech/standarnav/actions/workflows/ci.yml)
-[![core size](https://img.shields.io/badge/core-3.21%20kB%20min%2Bgzip-blue)](docs/adr/0017-size-budgets.md)
+[![core size](https://img.shields.io/badge/core-3.23%20kB%20min%2Bgzip-blue)](docs/adr/0017-size-budgets.md)
 [![dependencies](https://img.shields.io/badge/runtime%20deps-0-blue)](docs/adr/0011-package-layout-and-adapters.md)
 [![license](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 
@@ -18,7 +18,7 @@ Spatial navigation for the web: d-pad, gamepad sticks, TV remotes and arrow keys
 - Arrow keys, d-pad buttons, the left stick and TV remote keys produce the same intent, so no move logic branches per device. The right stick scrolls.
 - Containers nest and remember the element last focused in them. A container can wrap in one axis, block a direction, trap every exit, or redirect a direction to a CSS selector; when nothing is found, the engine scrolls one step and rescans once, which is how a virtualised list keeps producing rows.
 - Two modes: `composite` (arrow keys stay inside composites, a gamepad crosses the page) and `app` (arrow keys navigate the whole page). `onWillMove` can veto a move; `onBoundsHit` fires when a direction has nowhere left to go.
-- Zero runtime dependencies, ESM only, and every subpath sits under a size cap CI enforces: 3.21 kB min+gzip for the core, 1.42 kB to add the React adapter next to it, 3.07 kB for the spatial engine, by `bun run check:size` on 2026-09-23 ([ADR-0017](docs/adr/0017-size-budgets.md)). You pay for what you import and nothing else.
+- Zero runtime dependencies, ESM only, and every subpath sits under a size cap CI enforces: 3.23 kB min+gzip for the core, 1.42 kB to add the React adapter next to it, 3.07 kB for the spatial engine, by `bun run check:size` on 2026-09-23 ([ADR-0017](docs/adr/0017-size-budgets.md)). You pay for what you import and nothing else.
 
 ## Usage
 

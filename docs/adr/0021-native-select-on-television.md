@@ -8,7 +8,7 @@ Deciders: Wesley Cormier
 
 `select:not([disabled])` is in `FOCUSABLE_SELECTOR` (`src/tabbable.ts:19`), so the engine treats a
 native `<select>` as an ordinary candidate and focuses it like a button. Then A arrives: nothing in
-a scope claims it, so `activateFocused` clicks the focused element (`src/input-system.ts:118-132`),
+a scope claims it, so `activateFocused` clicks the focused element (`src/input-system.ts:119-133`),
 and a closed `<select>` answers a click by opening its options.
 
 On a desktop that is fine — the popup is the browser's own widget and the browser navigates it. On
@@ -54,8 +54,8 @@ Two mechanics of the bus make that work, and both are easy to get wrong:
   `base` exists for. Confinement comes from `data-snav-trap` on the container. The scope silences
   the components in between; the attribute is what keeps the engine inside.
 - **Inside a trap, A does not click the focused element.** `select` is not one of the three intents
-  allowed to escape a trap (`src/intent-bus.ts:108-112`), so a trap that handles nothing still makes
-  the dispatch report the intent consumed (`:169-175`), and `activateFocused` stands down. A
+  allowed to escape a trap (`src/intent-bus.ts:122-126`), so a trap that handles nothing still makes
+  the dispatch report the intent consumed (`:190-196`), and `activateFocused` stands down. A
   trapped surface has to claim `select` and activate its own focused element. This is pinned by a
   test in `src/input-system.browser.test.ts` rather than left as a comment, because the listbox was
   written assuming the opposite and silently picked nothing.
@@ -122,8 +122,8 @@ is exactly what opens the surface the engine then loses.
 control is unreachable", and the step between them does not hold. The popup is only reached
 because something opens it. A scope that claims `select` while the element is focused means
 nothing opens it: `activateFocused` runs only for an unconsumed `select`
-(`src/input-system.ts:118-132`), and the keydown handler calls `preventDefault` on the key that
-carried a consumed intent, in capture, before the browser acts (`src/input-system.ts:181`). So A
+(`src/input-system.ts:119-133`), and the keydown handler calls `preventDefault` on the key that
+carried a consumed intent, in capture, before the browser acts (`src/input-system.ts:183`). So A
 takes hold of the `<select>` the way it takes hold of a slider, the directions move
 `selectedIndex` in place, B restores the entry value and A keeps it. A closed `<select>` paints
 its own selected option, so the feedback the popup would have given is already on screen.
