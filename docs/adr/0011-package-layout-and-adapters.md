@@ -71,7 +71,7 @@ entry, no file and no budget line.
 from `@standarx/nav/spatial` must be able to name what it returns and what it takes without
 reaching into the core entry, so `./gamepad`, `./spatial` and `./react` each re-export those types
 from their own module (`src/spatial/spatial.ts:46`, `src/gamepad/gamepad.ts:48-56`,
-`src/react/react.tsx:42-45`). That is a rule about the public surface, not a convenience: a type a
+`src/react/react.tsx:95-98`). That is a rule about the public surface, not a convenience: a type a
 public signature names and the subpath does not export is a type the consumer cannot write down.
 
 `./spatial` also publishes `containerOf` and `collectNavNodes`
@@ -120,13 +120,13 @@ Adapter order, each shipping only once it passes the same browser suite as the c
    The first is why React goes first rather than by popularity; the second is why the port note said
    the context dependency had to go, that context being out of scope. This adapter takes the
    document explicitly instead — `NavDocumentProvider` accepts a `Document` or a `() => Document`
-   (`DocumentSource` at `src/react/react.tsx:51`, `NavDocumentProviderProps` through the local
-   `useDocument` at `:64-110`) — and `useDocument()` here reads nothing but this module's own
-   `DocumentContext` (`src/react/react.tsx:62`, consumed at `:108-110`), so the adapter depends on
+   (`DocumentSource` at `src/react/react.tsx:112`, `NavDocumentProviderProps` through the local
+   `useDocument` at `:125-171`) — and `useDocument()` here reads nothing but this module's own
+   `DocumentContext` (`src/react/react.tsx:123`, consumed at `:169-171`), so the adapter depends on
    React and nothing else. It also carries a test file of its own, which the predecessor's adapter
-   did not: `src/react/react.browser.test.tsx`, 465 lines, twelve direct cases by
-   `grep -cE "^\s*(it|test)\("`, ending in `runAdapterParitySuite(parity)` at `:342` on the adapter
-   object built at `:262-340` — the shared parity suite that is the ship condition below.
+   did not: `src/react/react.browser.test.tsx`, 815 lines, twenty-two direct cases by
+   `grep -cE "^\s*(it|test)\("`, ending in `runAdapterParitySuite(parity)` at `:692` on the adapter
+   object built at `:610-690` — the shared parity suite that is the ship condition below.
 2. **vanilla auto-mount helper — shipped**, `@standarx/nav/auto`, no framework
    ([ADR-0023](0023-vanilla-auto-mount.md)). See the amendment below for what
    "attribute-driven start-up" turned out to mean.

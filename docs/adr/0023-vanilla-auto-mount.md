@@ -81,9 +81,9 @@ at load is a regression on an ordinary web page, and a television that wants it 
 `spatial.focusFirst()` on the plugin the caller already holds.
 
 **7. It does not run the adapter parity suite.** The suite of
-[ADR-0018](0018-testing-strategy.md) decision 5 asserts eleven behaviours of a framework
+[ADR-0018](0018-testing-strategy.md) decision 5 asserts fourteen behaviours of a framework
 provider, and its first one is "builds exactly one system, and not during the first render"
-(`src/adapter-parity.ts:84`). There is no render here, and no provider: `ParityAdapter` would
+(`src/adapter-parity.ts:98`). There is no render here, and no provider: `ParityAdapter` would
 have to be given an invented render pass to satisfy. The helper takes fourteen browser cases of
 its own instead (`src/auto/auto.browser.test.ts`). Vue, Svelte and Angular are adapters and do
 run the suite; this is the record of why the one thing that is not an adapter does not.
@@ -127,7 +127,7 @@ in the Evidence below are what was measured on the day they name.
 | **`autoMount()` with no arguments, constructing `spatialPlugin` itself** | The most convenient form, and the one that breaks the layout: `/auto` would import `/spatial`, so ADR-0011's "an entry the consumer never imports is never bundled" (`:41-43`) would stop holding, and the line would stop being about the helper: it would carry the spatial engine, measured at 3.04 kB min+gzip on its own line the same day, on top of the helper's 0.60. Rejected on that alone. |
 | **No attribute at all, `mode` as an option** | Honest and smaller, and it leaves the helper with one behaviour — the `DOMContentLoaded` wait — which does not earn a public subpath. It would also make ADR-0011's "attribute-driven start-up" (`0011-package-layout-and-adapters.md:130`) a description of nothing. |
 | **Per-container `data-snav-mode`, the form ADR-0007 rejected** | Still rejected, for ADR-0007's own reason (`0007-navigation-modes.md:129`): the mode would depend on where the focus is and could change mid-move. The attribute here is read once, on one element, before the engine exists. |
-| **Running the adapter parity suite against it** | The suite's contract is a provider with a render pass and two nested scope components (`src/adapter-parity.ts:57-76`). Satisfying it would mean inventing that shape for an API that has none, which is a test asserting the fixture rather than the helper. |
+| **Running the adapter parity suite against it** | The suite's contract is a provider with a render pass and two nested scope components (`src/adapter-parity.ts:69-88`). Satisfying it would mean inventing that shape for an API that has none, which is a test asserting the fixture rather than the helper. |
 
 ## Evidence
 
@@ -156,8 +156,8 @@ in the Evidence below are what was measured on the day they name.
   0.60 kB min+gzip, cap 0.75 kB, 80 % used; `whole package` 12.63 of 12.75 kB.
   [ADR-0017](0017-size-budgets.md), two amendments of 2026-09-22, the second correcting the
   first by the two hundredths of a kB that `MODE_ATTRIBUTE` going private cost.
-- Why the parity suite is not run here: its eleven cases and the `ParityAdapter` contract,
-  `src/adapter-parity.ts:57-76` and `:84`; the suite's growth from six behaviours is recorded at
+- Why the parity suite is not run here: its fourteen cases and the `ParityAdapter` contract,
+  `src/adapter-parity.ts:69-88` and `:98`; the suite's growth from six behaviours is recorded at
   `0018-testing-strategy.md:145-153`.
 - Related: [ADR-0001](0001-name-scope-and-attribute-prefix.md) (the attribute prefix and the
   reserved subpaths), [ADR-0007](0007-navigation-modes.md) (what `composite` and `app` mean),

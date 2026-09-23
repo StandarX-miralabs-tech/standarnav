@@ -20,7 +20,7 @@ is a design system with an engine inside it, which is the thing this package exi
 a framework context. A pull request that adds such an import is rejected. The React adapter is the
 one place a framework is named, and it takes what it needs explicitly rather than reading an
 ambient context — `NavDocumentProvider` accepts a `Document` or a `() => Document`
-(`src/react/react.tsx:51`).
+(`src/react/react.tsx:112`).
 
 **2. The layout.**
 
@@ -32,7 +32,7 @@ src/  index.ts  intent-bus.ts  input-system.ts  keymap.ts  engage.ts
       gamepad/     gamepad.ts  mapping.ts  dead-zone.ts  repeat.ts
       spatial/     spatial.ts  geometry.ts  containers.ts
       focus-ring/  focus-ring.ts
-      react/       react.tsx  react-harness.tsx  use-safe-layout-effect.ts
+      react/       react.tsx  react-harness.tsx
       keyboard/    keyboard.ts
                    layouts/  qwerty.ts  azerty.ts  alphabetic.ts
 ```

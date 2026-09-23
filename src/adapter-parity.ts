@@ -16,6 +16,7 @@
 import { describe, expect, it, vi } from "vitest";
 import type { InputSystem } from "./input-system";
 import type { IntentHandler } from "./intent-bus";
+import type { KeymapOverrides } from "./keymap";
 import type { InputModality } from "./types";
 
 export interface ParityProbe {
@@ -46,12 +47,23 @@ export interface ParityProbe {
  * only ever renders the default shape still satisfies the older cases.
  */
 export interface ParityTree {
+  /**
+   * Whether the outer scope's component is mounted at all. Defaults to `true`. Mounting
+   * it after "inner" is the one way this tree has to open its scopes in an order other
+   * than the order they are declared in.
+   */
+  readonly outer?: boolean | undefined;
   /** Whether the inner scope's component is mounted at all. Defaults to `true`. */
   readonly inner?: boolean | undefined;
   /** `trapped` on the inner scope. Defaults to `false`. */
   readonly trapped?: boolean | undefined;
   /** `base` on the outer scope. Defaults to `false`. */
   readonly base?: boolean | undefined;
+  /**
+   * Forwarded to the provider. Defaults to none. A different value is the portable way
+   * to make the provider build a new system under scopes that stay mounted.
+   */
+  readonly keymap?: KeymapOverrides | undefined;
 }
 
 export interface ParityAdapter {
@@ -63,9 +75,9 @@ export interface ParityAdapter {
    */
   mount(tree?: ParityTree | undefined): ParityProbe;
   /**
-   * Re-renders the tree already mounted with a different shape — no remount, no
-   * new provider, no new system. This is what makes "the scope was re-registered"
-   * and "the scope left the bus" observable at all.
+   * Re-renders the tree already mounted with a different shape — no remount, no new
+   * provider, and a new system only when `keymap` changed. This is what makes "the
+   * scope was re-registered" and "the scope left the bus" observable at all.
    */
   update(tree: ParityTree): void;
   unmount(): void;
@@ -74,6 +86,8 @@ export interface ParityAdapter {
   /** Runs `action` inside whatever batching the framework needs. */
   act(action: VoidFunction): void;
 }
+
+const REMAPPED: KeymapOverrides = { keys: { w: "moveUp" } };
 
 function press(key: string): void {
   document.dispatchEvent(new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }));
@@ -184,6 +198,81 @@ export function runAdapterParitySuite(adapter: ParityAdapter): void {
       // Forwarding `base` on mount and ignoring it on update is the shape of bug
       // that only shows up once a dialog changes its mind.
       expect(probe.intents()).toEqual(["inner:moveDown", "inner:moveDown", "outer:moveDown"]);
+      adapter.unmount();
+    });
+
+    it("keeps open order across a system rebuild", async () => {
+      const probe = adapter.mount();
+      await adapter.settle();
+      adapter.act(() => press("ArrowDown"));
+      expect(probe.intents()).toEqual(["inner:moveDown", "outer:moveDown"]);
+      const before = probe.system();
+
+      adapter.update({ keymap: REMAPPED });
+      await adapter.settle();
+
+      // A new system, or this case proves nothing: what answers below is what the
+      // adapter re-opened on it.
+      expect(probe.system()).not.toBeNull();
+      expect(probe.system()).not.toBe(before);
+      adapter.act(() => press("ArrowDown"));
+      expect(probe.intents()).toEqual([
+        "inner:moveDown",
+        "outer:moveDown",
+        "inner:moveDown",
+        "outer:moveDown",
+      ]);
+      adapter.unmount();
+    });
+
+    it("keeps a scope opened late above one declared after it, across a system rebuild", async () => {
+      const probe = adapter.mount({ outer: false });
+      await adapter.settle();
+      adapter.update({});
+      await adapter.settle();
+      adapter.act(() => press("ArrowDown"));
+      // "outer" is declared first and opened last, so it is asked first.
+      expect(probe.intents()).toEqual(["outer:moveDown", "inner:moveDown"]);
+      const before = probe.system();
+
+      adapter.update({ keymap: REMAPPED });
+      await adapter.settle();
+
+      // An adapter that re-opens its scopes in the order they are declared, rather than
+      // the order they were opened in, puts "inner" back on top here.
+      expect(probe.system()).not.toBe(before);
+      adapter.act(() => press("ArrowDown"));
+      expect(probe.intents()).toEqual([
+        "outer:moveDown",
+        "inner:moveDown",
+        "outer:moveDown",
+        "inner:moveDown",
+      ]);
+      adapter.unmount();
+    });
+
+    it("keeps a scope opened above a trap above it, across a system rebuild", async () => {
+      const probe = adapter.mount({ outer: false, trapped: true });
+      await adapter.settle();
+      adapter.update({ trapped: true });
+      await adapter.settle();
+      adapter.act(() => press("ArrowDown"));
+      expect(probe.intents()).toEqual(["outer:moveDown", "inner:moveDown"]);
+      const before = probe.system();
+
+      adapter.update({ trapped: true, keymap: REMAPPED });
+      await adapter.settle();
+
+      // Re-opened in declaration order, the trap lands on top and silences the scope
+      // that was opened over it — a menu opened over a dialog, dead after a rebuild.
+      expect(probe.system()).not.toBe(before);
+      adapter.act(() => press("ArrowDown"));
+      expect(probe.intents()).toEqual([
+        "outer:moveDown",
+        "inner:moveDown",
+        "outer:moveDown",
+        "inner:moveDown",
+      ]);
       adapter.unmount();
     });
 

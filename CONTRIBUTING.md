@@ -169,7 +169,8 @@ fixes.
   `src/adapter-parity.ts`, not to tests of its own invention: one system and
   not during the first render, LIFO scope order, a scope released when only
   its own subtree unmounts, a trap that stops the walk, a base scope reached
-  through that trap, and a base re-registered on a rerender. A second adapter
+  through that trap, a base re-registered in its place on a rerender, and the
+  order scopes were opened in kept across a system rebuild. A second adapter
   implements `ParityAdapter` and runs the same suite. Extend the suite rather
   than working around it. A separate CI job reinstalls React 18.3 over the
   lockfile's 19 and typechecks and runs the browser suite against it
