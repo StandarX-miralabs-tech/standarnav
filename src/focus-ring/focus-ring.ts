@@ -141,12 +141,12 @@ export function focusRingPlugin(options: FocusRingOptions = {}): FocusRingPlugin
   /**
    * The appearing and disappearing the source stylesheet carried as
    * `transition: opacity`. Nothing transitions an inline style that is assigned in
-   * the same task, so without this the ring cuts in and out. The source zeroed its
-   * duration token under reduced motion, and so does this.
+   * the same task, so without this the ring cuts in and out. It is skipped under
+   * reduced motion, as the source's zeroed token did, and at a duration of zero (#12).
    */
   function fade(from: number, to: number): void {
-    if (ring === null) return;
-    if (win !== null && prefersReducedMotion(win)) return;
+    const { duration, reduced } = motion();
+    if (ring === null || reduced || duration <= 0) return;
     ring.animate([{ opacity: from }, { opacity: to }], {
       duration: FADE_DURATION,
       easing: FALLBACK_EASING,

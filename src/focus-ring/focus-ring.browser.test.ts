@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { createInputSystem, type InputSystem } from "../input-system";
 import { setInputModality } from "../modality";
-import { focusRingPlugin, RING_ATTRIBUTE } from "./focus-ring";
+import { type FocusRingOptions, focusRingPlugin, RING_ATTRIBUTE } from "./focus-ring";
 
 const cleanups: VoidFunction[] = [];
 
@@ -15,7 +15,7 @@ interface Scene {
   button(id: string): HTMLElement;
 }
 
-function scene(): Scene {
+function scene(options?: FocusRingOptions): Scene {
   const host = document.createElement("div");
   host.style.cssText = "position:fixed;left:0;top:0";
   host.innerHTML = `
@@ -24,7 +24,7 @@ function scene(): Scene {
   `;
   document.body.append(host);
 
-  const input = createInputSystem({ plugins: [focusRingPlugin()] });
+  const input = createInputSystem({ plugins: [focusRingPlugin(options)] });
   cleanups.push(() => {
     input.destroy();
     host.remove();
@@ -194,6 +194,46 @@ describe("focusRingPlugin", () => {
     expect(view.ring.getAnimations().length).toBeGreaterThan(0);
   });
 
+  it("fades out and back in over 150 ms by default", () => {
+    const view = scene();
+    setInputModality(document, "gamepad");
+    view.button("one").focus();
+
+    view.input.pause();
+    expect(fades(view.ring)).toEqual([150]);
+    for (const animation of view.ring.getAnimations()) animation.cancel();
+
+    view.input.resume();
+    expect(fades(view.ring)).toEqual([150]);
+  });
+
+  it.each([
+    ["the duration option at 0", { duration: 0 }, null],
+    ["--snav-focus-ring-duration at 0ms", {}, "0ms"],
+    ["--snav-focus-ring-duration at 0s", {}, "0s"],
+  ] as const)("neither fades in nor out with %s", (_, options, property) => {
+    const view = scene(options);
+    if (property !== null) view.ring.style.setProperty("--snav-focus-ring-duration", property);
+    setInputModality(document, "gamepad");
+    view.button("one").focus();
+
+    view.input.pause();
+    expect(view.ring.style.opacity).toBe("0");
+    expect(view.ring.getAnimations()).toHaveLength(0);
+
+    view.input.resume();
+    expect(view.ring.style.opacity).toBe("1");
+    expect(view.ring.getAnimations()).toHaveLength(0);
+
+    setInputModality(document, "pointer");
+    expect(view.ring.style.opacity).toBe("0");
+    expect(view.ring.getAnimations()).toHaveLength(0);
+
+    setInputModality(document, "keyboard");
+    expect(view.ring.style.opacity).toBe("1");
+    expect(view.ring.getAnimations()).toHaveLength(0);
+  });
+
   it("animates between targets rather than jumping", () => {
     const view = scene();
     setInputModality(document, "gamepad");
@@ -206,3 +246,15 @@ describe("focusRingPlugin", () => {
     expect(view.ring.getAnimations().length).toBeGreaterThan(0);
   });
 });
+
+function fades(ring: HTMLElement): unknown[] {
+  return ring
+    .getAnimations()
+    .map((animation) => animation.effect)
+    .filter(
+      (effect): effect is KeyframeEffect =>
+        effect instanceof KeyframeEffect &&
+        effect.getKeyframes().some((frame) => "opacity" in frame),
+    )
+    .map((effect) => effect.getTiming().duration);
+}
