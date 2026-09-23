@@ -17,7 +17,7 @@ does.
 | `data-snav-trap` | a container | bare | A move never leaves this container. |
 | `data-snav-scroll` | a container | `center` | Scrolls a newly focused element to the centre instead of `nearest`. |
 | `data-snav-ignore` | any element | bare | Excludes the element from the candidate list. |
-| `data-snav-up` / `-down` / `-left` / `-right` | a focusable | a CSS selector | Sends that direction to the first match in the document, before any geometry runs. |
+| `data-snav-up` / `-down` / `-left` / `-right` | a focusable | a CSS selector | Sends that direction to the first match in the document, before any geometry runs. A match that cannot take the focus, or no match, is ignored and the geometry runs as if the attribute were absent. |
 
 A container is any element carrying `data-snav="container"`, and `body` is the default container
 when no ancestor declares one ([ADR-0006](../adr/0006-declarative-first.md)). A nested container

@@ -27,7 +27,9 @@ export const FOCUSABLE_SELECTOR: string = [
   "audio[controls]",
   "video[controls]",
   "summary",
-  "[contenteditable]:not([contenteditable='false'])",
+  // `:read-write`, not a list of values: `false`, `inherit` under a plain parent and an
+  // invalid value all leave the element uneditable and unfocusable, in any letter case.
+  "[contenteditable]:read-write",
   "[tabindex]",
 ].join(",");
 
@@ -56,14 +58,27 @@ export function isInert(node: HTMLElement): boolean {
 export function isFocusable(node: HTMLElement | null | undefined): boolean {
   if (node === null || node === undefined) return false;
   if (!node.matches(FOCUSABLE_SELECTOR)) return false;
-  if (node.hasAttribute("disabled")) return false;
+  // `:disabled` reaches a control through a disabled `<fieldset>`; `[disabled]` keeps
+  // the attribute an opt-out on elements the browser would still focus (ADR-0009, rule 6).
+  if (node.matches(":disabled,[disabled]")) return false;
   // `aria-disabled` stays focusable on purpose: APG wants disabled menu items and
   // toolbar buttons reachable, unlike natively disabled form controls.
   return !isHidden(node) && !isInert(node);
 }
 
+// An editing host reports `tabIndex` -1 and is a Tab stop anyway; what is editable
+// inside it is not.
+function inTabOrder(node: HTMLElement): boolean {
+  return (
+    node.tabIndex >= 0 ||
+    (node.isContentEditable &&
+      !node.hasAttribute("tabindex") &&
+      !node.parentElement?.isContentEditable)
+  );
+}
+
 export function isTabbable(node: HTMLElement | null | undefined): boolean {
-  return isFocusable(node) && (node as HTMLElement).tabIndex >= 0;
+  return isFocusable(node) && inTabOrder(node as HTMLElement);
 }
 
 export function getFocusables(
@@ -79,7 +94,7 @@ export function getTabbables(
   root: HTMLElement | Document | null | undefined,
   includeRoot = false,
 ): HTMLElement[] {
-  return getFocusables(root, includeRoot).filter((node) => node.tabIndex >= 0);
+  return getFocusables(root, includeRoot).filter(inTabOrder);
 }
 
 export function getTabbableEdges(

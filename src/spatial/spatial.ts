@@ -327,6 +327,10 @@ export function spatialPlugin(options: SpatialPluginOptions = {}): SpatialPlugin
     }
 
     focusElement(to, { preventScroll: true });
+    // The browser has the last word: a control it refuses keeps `document.activeElement`
+    // where it was, and marking it would draw a focus that is not there. Its own root,
+    // not the document, so a root inside a shadow tree still sees the landing (ADR-0008).
+    if ((to.getRootNode() as Document | ShadowRoot).activeElement !== to) return false;
     remember(to, root);
     scrollFocusIntoView(to, root);
     return true;
@@ -414,7 +418,7 @@ export function spatialPlugin(options: SpatialPluginOptions = {}): SpatialPlugin
     const redirect = active.getAttribute(directionAttribute(direction));
     if (redirect !== null) {
       const target = root.ownerDocument.querySelector<HTMLElement>(redirect);
-      if (target !== null) return commit(active, target, direction);
+      if (isFocusable(target)) return commit(active, target as HTMLElement, direction);
     }
 
     const origin = active.getBoundingClientRect();

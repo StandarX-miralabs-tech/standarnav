@@ -5,7 +5,10 @@
 For one direction, starting from `document.activeElement` (`src/spatial/spatial.ts`):
 
 1. **Redirect.** If the focused element carries `data-snav-<direction>`, the selector is resolved
-   on the whole document and the move ends there.
+   on the whole document and the move ends there. A selector that matches nothing, or whose first
+   match is not focusable — disabled, hidden, inert — is ignored, and the move goes on to step 2
+   as if the attribute were absent. Test: "ignores a redirection to a target that cannot take the
+   focus" (`src/spatial/spatial.browser.test.ts`).
 2. **Geometry.** Candidates are collected in the nearest declared container. A nested container
    counts as one candidate, scored as a single rectangle, not as all of its children. The
    best-aligned candidate wins; ties go to DOM order, because candidates are collected in document
@@ -19,6 +22,13 @@ For one direction, starting from `document.activeElement` (`src/spatial/spatial.
 
 When the walk ends with nothing, `onBoundsHit(direction)` fires and the move returns `false`.
 
+The browser has the last word on the landing. If the chosen element does not become the active
+element after `focus()` — a second `<summary>` in a `<details>` is one such element on chromium,
+firefox and webkit (Playwright, 2026-09-23) — the move returns `false` and writes nothing:
+`data-snav-focused` stays where it was, and no container remembers the refused element. Tests:
+"writes nothing when the focus does not land" and "reports a move whose target refused the focus
+as not made" (`src/spatial/spatial.browser.test.ts`).
+
 `@standarx/nav/spatial` publishes the two functions that walk that list — `containerOf` and
 `collectNavNodes` — so a diagnostic can score exactly what the engine scores rather than something
 that looks like it. The attributes the walk reads are in [attributes.md](attributes.md).
@@ -30,9 +40,27 @@ that looks like it. The attributes the walk reads are in [attributes.md](attribu
   `audio[controls]`, `video[controls]`, `summary`, `[contenteditable]`, `[tabindex]`
   (`src/tabbable.ts`).
 - A `div` with an `onclick` is not focusable. Give it `tabindex="0"`, or use a real `button`.
+- `[contenteditable]` counts only when it makes the element editable: `contenteditable="false"`,
+  and `inherit` or an invalid value under a parent that is not editable, are not candidates, since
+  the browser does not focus them either. An editing host — an editable element whose parent is
+  not editable — is a Tab stop for `isTabbable` although its `tabIndex` reads -1, unless it
+  carries `tabindex="-1"`; what is editable inside a host is not. Tests: "drops a contenteditable
+  attribute that does not make its element editable" and "counts an editing host as a Tab stop,
+  and not what is editable inside it" (`src/tabbable.browser.test.ts`).
 - `aria-hidden` is deliberately **not** filtered: it hides an element from a screen reader, not
-  from the d-pad. `isFocusable` rejects a non-matching selector, a `disabled` attribute, a hidden
+  from the d-pad. `isFocusable` rejects a non-matching selector, a disabled element, a hidden
   element and an inert one, and nothing else. Use `data-snav-ignore`, `inert`, or `display: none`.
+- Disabled means what the browser means: a form control with `disabled`, or one inside a
+  `<fieldset disabled>` anywhere but in its first `<legend>`. A link or a `tabindex` element
+  inside that fieldset stays a candidate, as it stays focusable in the browser. Tests: "drops what
+  a disabled fieldset disables, and keeps its first legend and its links"
+  (`src/tabbable.browser.test.ts`) and "steps over the controls of a disabled fieldset"
+  (`src/spatial/spatial.browser.test.ts`).
+- One exception goes further than the browser: `disabled` on an element that is not a form
+  control, such as `<div tabindex="0" disabled>` or `<a href disabled>`, drops it although the
+  browser still focuses it. It is the opt-out for an `aria-disabled` item
+  ([ADR-0009](../adr/0009-hidden-candidates.md), rule 6). Test: "still rejects disabled on an
+  element the browser would focus, ADR-0009 rule 6" (`src/tabbable.browser.test.ts`).
 - `aria-disabled` stays a candidate, on purpose, because the APG wants disabled items reachable.
   `inert` ancestors and elements hidden per `checkVisibility` are dropped.
 - An element with **either** dimension at zero is dropped — the candidate filter tests

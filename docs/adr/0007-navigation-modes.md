@@ -74,12 +74,12 @@ the options at construction and no attribute changes it
   library treats a keyboard.
 - Two modes mean two paths through the same handler, so the browser test suite has
   to cover both: a keyboard-sourced `moveDown` must move focus in `app` and must not
-  in `composite`. It does — `src/spatial/spatial.browser.test.ts:138-167`, three
+  in `composite`. It does — `src/spatial/spatial.browser.test.ts:203-232`, three
   cases: the arrow keys are left to the composites by default, the gamepad crosses
   the page anyway in `composite`, and `app` gives the arrow keys the run of the page.
 - `pointerFollowsFocus` was recorded as a known coverage gap in
   [ADR-0018](0018-testing-strategy.md) — a default-on path with nothing pinning it.
-  It has three tests now (`src/spatial/spatial.browser.test.ts:512-545`): off in
+  It has three tests now (`src/spatial/spatial.browser.test.ts:577-610`): off in
   `composite` so a hover changes nothing, on in `app`, and bypassing the `onWillMove`
   veto — which a hover is not subject to.
 - The gamepad crossing composites in `composite` mode is deliberate, and it means a
@@ -133,15 +133,15 @@ the price of keeping the engine free of it, and it is named here rather than dis
 
 - The mechanism, with its comment: "APG-strict by default: arrow keys belong to
   whatever composite has the focus, and only Tab crosses between them. A gamepad has
-  no Tab, so it crosses anyway" — `handleIntent` in `src/spatial/spatial.ts:480-491`;
+  no Tab, so it crosses anyway" — `handleIntent` in `src/spatial/spatial.ts:484-495`;
   the mode test `if (mode === "composite" && event.source === "keyboard") return
-  false;` is at `:489`, one line, the whole of the filter.
+  false;` is at `:493`, one line, the whole of the filter.
 - Defaults: `mode` is `composite` and `followPointer` is `options.pointerFollowsFocus
   ?? mode === "app"` — `src/spatial/spatial.ts:238-239`. `SpatialPluginOptions`
   documents which world each mode is for at `:73-87`.
 - The pointer handler that `followPointer` installs, which focuses on `pointerover`
   and checks `isFocusable` and root containment before it does:
-  `src/spatial/spatial.ts:508-524`.
+  `src/spatial/spatial.ts:512-528`.
 - Unclaimed intents keep the native default: "The native default survives unless
   someone actually wanted the intent — otherwise arrow keys would stop scrolling a
   page that has no navigation", `src/input-system.ts:179-181`.
@@ -157,7 +157,7 @@ the price of keeping the engine free of it, and it is named here rather than dis
   widgets (arrow keys inside, `Tab` between):
   https://www.w3.org/WAI/ARIA/apg/practices/keyboard-interface/ — the external rule
   this ADR follows.
-- Coverage: `src/spatial/spatial.browser.test.ts:138-167` (the two modes) and
-  `:512-545` (`pointerFollowsFocus`).
+- Coverage: `src/spatial/spatial.browser.test.ts:203-232` (the two modes) and
+  `:577-610` (`pointerFollowsFocus`).
 - Related: [ADR-0005](0005-real-dom-focus.md) (what "focused" means) and
   [ADR-0006](0006-declarative-first.md) (what the engine reads from the markup).

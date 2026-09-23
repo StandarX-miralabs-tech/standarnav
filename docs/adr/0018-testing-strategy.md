@@ -87,11 +87,11 @@ not cover:
 
 | Test to add | Why |
 |---|---|
-| Scroll-and-rescan on a virtualised scroller | `scrollAndRescan` (`src/spatial/spatial.ts:378-403`) re-enters the move one frame of `raf` later, behind a `rescanning` lock, untested |
+| Scroll-and-rescan on a virtualised scroller | `scrollAndRescan` (`src/spatial/spatial.ts:382-407`) re-enters the move one frame of `raf` later, behind a `rescanning` lock, untested |
 | `pointerFollowsFocus` in `app` mode | default-on path, `followPointer` at `src/spatial/spatial.ts:239`, untested |
 | `data-snav-scroll="center"` | rail centring, the `SCROLL_ATTRIBUTE` read at `src/spatial/spatial.ts:300`, untested |
 | `explainMove` parity with the real winner | the diagnostic re-implemented the winner rule instead of sharing it, inherited from the predecessor implementation ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here |
-| The spatial plugin's handling of `scrollX` | `scrollY` is covered by four cases (`src/spatial/spatial.browser.test.ts:333-383`); no case emits `scrollX` into the plugin |
+| The spatial plugin's handling of `scrollX` | `scrollY` is covered by four cases (`src/spatial/spatial.browser.test.ts:398-448`); no case emits `scrollX` into the plugin |
 | Zero-size filter with one zero dimension | the filter tested both dimensions, `width === 0 && height === 0` — inherited from the predecessor implementation ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here — so a 0x40 element stayed a candidate; [ADR-0009](0009-hidden-candidates.md) requires this fixture before the filter changes |
 | `WeakRef` fallback path | the strong reference validated with `isConnected`, the fallback the browser baseline requires, needs its own run |
 | The inherited hard limits | `MAX_CONTAINER_DEPTH = 16` (`src/spatial/spatial.ts:60`), `MAX_PADS = 4` (`src/gamepad/gamepad.ts:43`) and `MAX_BUTTONS = 20` (`:58`) are asserted nowhere; one fixture each pins the behaviour at the boundary |
@@ -121,14 +121,14 @@ the file that covers it.
 
 | Row of decision 6 | Covered by |
 |---|---|
-| Scroll-and-rescan on a virtualised scroller | `src/spatial/spatial.browser.test.ts:713-771` — two cases: it scrolls when nothing is reachable and lands a frame later (`:740`), and it scrolls four fifths of the viewport rather than a whole one (`:760`) |
-| `pointerFollowsFocus` in `app` mode | `src/spatial/spatial.browser.test.ts:512-545` — three cases, including that it is off in `composite` and that it bypasses the `onWillMove` veto |
-| `data-snav-scroll="center"` | `src/spatial/spatial.browser.test.ts:547-581` — centres when the container asks, stays at `nearest` when it does not |
+| Scroll-and-rescan on a virtualised scroller | `src/spatial/spatial.browser.test.ts:778-836` — two cases: it scrolls when nothing is reachable and lands a frame later (`:805`), and it scrolls four fifths of the viewport rather than a whole one (`:825`) |
+| `pointerFollowsFocus` in `app` mode | `src/spatial/spatial.browser.test.ts:577-610` — three cases, including that it is off in `composite` and that it bypasses the `onWillMove` veto |
+| `data-snav-scroll="center"` | `src/spatial/spatial.browser.test.ts:612-646` — centres when the container asks, stays at `nearest` when it does not |
 | `explainMove` parity with the real winner | `src/debug.browser.test.ts:56-111` and `:113-180` — see the reversal below |
-| The spatial plugin's handling of `scrollX` | `src/spatial/spatial.browser.test.ts:645-711` — five cases: both signs, a zero value, the 24-pixel rate at full and half deflection, and silence when scrolling is off |
-| Zero-size filter with one zero dimension | `src/spatial/spatial.browser.test.ts:583-631` — three cases pinning the `||` filter [ADR-0009](0009-hidden-candidates.md) C1 shipped in this pull request: no size at all (`:598`), flat on a single axis (`:607`), and a 1px hairline kept (`:621`), which is the bound that stops the rule reaching a real target |
-| `WeakRef` fallback path | `src/spatial/spatial.browser.test.ts:794-826` — the property is deleted from `globalThis` for the duration of the case, so the strong-reference branch actually runs |
-| The inherited hard limits | depth 16 at `src/spatial/spatial.browser.test.ts:773-792`; `MAX_PADS = 4` and `MAX_BUTTONS = 20` at `src/gamepad/gamepad.browser.test.ts:303-325`, driven by a harness offering six slots and a settable button count so the engine's own bound is what the assertion reads |
+| The spatial plugin's handling of `scrollX` | `src/spatial/spatial.browser.test.ts:710-776` — five cases: both signs, a zero value, the 24-pixel rate at full and half deflection, and silence when scrolling is off |
+| Zero-size filter with one zero dimension | `src/spatial/spatial.browser.test.ts:648-696` — three cases pinning the `||` filter [ADR-0009](0009-hidden-candidates.md) C1 shipped in this pull request: no size at all (`:663`), flat on a single axis (`:672`), and a 1px hairline kept (`:686`), which is the bound that stops the rule reaching a real target |
+| `WeakRef` fallback path | `src/spatial/spatial.browser.test.ts:859-891` — the property is deleted from `globalThis` for the duration of the case, so the strong-reference branch actually runs |
+| The inherited hard limits | depth 16 at `src/spatial/spatial.browser.test.ts:838-857`; `MAX_PADS = 4` and `MAX_BUTTONS = 20` at `src/gamepad/gamepad.browser.test.ts:303-325`, driven by a harness offering six slots and a settable button count so the engine's own bound is what the assertion reads |
 
 **The `explainMove` row is reversed, not filled.** Decision 6 recorded that the diagnostic
 re-implemented the winner rule instead of sharing it. That is no longer true: `src/debug.ts` imports
@@ -163,7 +163,7 @@ this is that decision taken one level further up than a single plugin.
 **Suite state on the day of this amendment.** `bun run test:unit` → 100 passed in 10 files.
 `bun run test:browser` → 243 passed and 1 skipped in 12 files. 343 passed, 1 skipped in total,
 across 22 test files. The single skip is the shadow-DOM fixture of
-[ADR-0008](0008-shadow-dom.md) (`src/spatial/spatial.browser.test.ts:855-877`), which ships skipped
+[ADR-0008](0008-shadow-dom.md) (`src/spatial/spatial.browser.test.ts:920-942`), which ships skipped
 on purpose. Both commands run in this repository on 2026-09-21, vitest 5.0.1, the browser project
 on chromium.
 
@@ -239,7 +239,7 @@ across 23 test files. The single skip is still the shadow-DOM fixture of
   `package.json` advertises is a range something actually runs.
 - Suite counts, this repository, 2026-09-21: `bun run test:unit` → 100 passed in 10 files;
   `bun run test:browser` → 243 passed, 1 skipped, in 12 files. The skip is
-  `src/spatial/spatial.browser.test.ts:856` ([ADR-0008](0008-shadow-dom.md)).
+  `src/spatial/spatial.browser.test.ts:921` ([ADR-0008](0008-shadow-dom.md)).
 - Port budget: roughly 160 core cases and 8 React-adapter cases, inherited from the predecessor
   implementation ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here. The bullet
   above is the figure a reader of this repository can check instead.

@@ -5,7 +5,10 @@
 Pour une direction, en partant de `document.activeElement` (`src/spatial/spatial.ts`) :
 
 1. **Redirection.** Si l'élément focalisé porte `data-snav-<direction>`, le sélecteur est résolu
-   sur tout le document et le déplacement s'arrête là.
+   sur tout le document et le déplacement s'arrête là. Un sélecteur qui ne correspond à rien, ou
+   dont la première correspondance n'est pas focalisable — désactivée, cachée, inerte — est
+   ignoré, et le déplacement passe à l'étape 2 comme si l'attribut était absent. Test : « ignores
+   a redirection to a target that cannot take the focus » (`src/spatial/spatial.browser.test.ts`).
 2. **Géométrie.** Les candidats sont collectés dans le conteneur déclaré le plus proche. Un
    conteneur imbriqué compte pour un seul candidat, évalué comme un unique rectangle et non comme
    l'ensemble de ses enfants. Le candidat le mieux aligné gagne ; à égalité, l'ordre du DOM
@@ -22,6 +25,13 @@ Pour une direction, en partant de `document.activeElement` (`src/spatial/spatial
 Quand le parcours se termine sans rien, `onBoundsHit(direction)` est déclenché et le déplacement
 renvoie `false`.
 
+Le navigateur a le dernier mot sur l'atterrissage. Si l'élément choisi ne devient pas l'élément
+actif après `focus()` — un second `<summary>` dans un `<details>` en est un sur chromium, firefox
+et webkit (Playwright, 2026-09-23) — le déplacement renvoie `false` et n'écrit rien :
+`data-snav-focused` reste où il était, et aucun conteneur ne mémorise l'élément refusé. Tests :
+« writes nothing when the focus does not land » et « reports a move whose target refused the
+focus as not made » (`src/spatial/spatial.browser.test.ts`).
+
 `@standarx/nav/spatial` publie les deux fonctions qui parcourent cette liste — `containerOf` et
 `collectNavNodes` — pour qu'un diagnostic évalue exactement ce que le moteur évalue, et non quelque
 chose qui y ressemble. Les attributs que le parcours lit sont dans [attributes.md](attributes.md).
@@ -34,10 +44,29 @@ chose qui y ressemble. Les attributs que le parcours lit sont dans [attributes.m
   `[tabindex]` (`src/tabbable.ts`).
 - Un `div` avec un `onclick` n'est pas focalisable. Donnez-lui `tabindex="0"`, ou utilisez un vrai
   `button`.
+- `[contenteditable]` ne compte que s'il rend l'élément éditable : `contenteditable="false"`, et
+  `inherit` ou une valeur invalide sous un parent non éditable, ne sont pas des candidats, puisque
+  le navigateur ne les focalise pas non plus. Un hôte d'édition — un élément éditable dont le
+  parent ne l'est pas — est un arrêt de tabulation pour `isTabbable` bien que son `tabIndex` vaille
+  -1, sauf s'il porte `tabindex="-1"` ; ce qui est éditable à l'intérieur d'un hôte ne l'est pas.
+  Tests : « drops a contenteditable attribute that does not make its element editable » et
+  « counts an editing host as a Tab stop, and not what is editable inside it »
+  (`src/tabbable.browser.test.ts`).
 - `aria-hidden` n'est délibérément **pas** filtré : il cache un élément à un lecteur d'écran, pas
-  à la croix directionnelle. `isFocusable` rejette un sélecteur non correspondant, un attribut
-  `disabled`, un élément caché et un élément inerte, et rien d'autre. Utilisez `data-snav-ignore`,
+  à la croix directionnelle. `isFocusable` rejette un sélecteur non correspondant, un élément
+  désactivé, un élément caché et un élément inerte, et rien d'autre. Utilisez `data-snav-ignore`,
   `inert`, ou `display: none`.
+- Désactivé veut dire ce que le navigateur entend par là : un contrôle de formulaire portant
+  `disabled`, ou placé dans un `<fieldset disabled>` ailleurs que dans sa première `<legend>`. Un
+  lien ou un élément à `tabindex` dans ce fieldset reste un candidat, comme il reste focalisable
+  dans le navigateur. Tests : « drops what a disabled fieldset disables, and keeps its first legend
+  and its links » (`src/tabbable.browser.test.ts`) et « steps over the controls of a disabled
+  fieldset » (`src/spatial/spatial.browser.test.ts`).
+- Une exception va plus loin que le navigateur : `disabled` sur un élément qui n'est pas un
+  contrôle de formulaire, comme `<div tabindex="0" disabled>` ou `<a href disabled>`, l'écarte
+  alors que le navigateur le focalise encore. C'est l'échappatoire d'un élément `aria-disabled`
+  ([ADR-0009](../adr/0009-hidden-candidates.md), règle 6). Test : « still rejects disabled on an
+  element the browser would focus, ADR-0009 rule 6 » (`src/tabbable.browser.test.ts`).
 - `aria-disabled` reste un candidat, à dessein, parce que l'APG veut que les éléments désactivés
   restent atteignables. Les ancêtres `inert` et les éléments cachés selon `checkVisibility` sont
   écartés.
