@@ -1,6 +1,6 @@
 # standarnav (@standarx/nav)
 
-> Spatial navigation for the web: d-pad, gamepad sticks, TV remotes and arrow keys drive real DOM focus, declared in data attributes. Headless TypeScript, zero runtime dependencies, ESM only. Published as `@standarx/nav@0.1.0` since 2026-09-22; while the major is 0 a minor may break, and the `data-snav-*` names are not frozen before v1.
+> Spatial navigation for the web: d-pad, gamepad sticks, TV remotes and arrow keys drive real DOM focus, declared in data attributes. Headless TypeScript, zero runtime dependencies, ESM only. Published on npm since 2026-09-22, as `@standarx/nav@0.2.0` since 2026-09-23; while the major is 0 a minor may break, and the `data-snav-*` names are not frozen before v1.
 
 This file is for an assistant helping someone use the package. The facts below are read from the source at the commit that published this file; when they disagree with the linked documents, the documents are newer.
 
