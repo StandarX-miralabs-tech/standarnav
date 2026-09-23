@@ -130,10 +130,10 @@ it work on a 2021 Tizen set" is "no, and there is no work in progress".
   the open worry here.
 - A CI check must still be added that greps the built `dist` for `WeakRef` and for `.at(` and fails
   when either appears outside the single module that guards it. The workflow
-  (`.github/workflows/ci.yml`) now runs six jobs — lint (`:18`), typecheck (`:32`), build (`:42`),
+  (`.github/workflows/ci.yml`) now runs seven jobs — lint (`:18`), typecheck (`:32`), build (`:42`),
   test (`:60`, the unit suite), react-floor (`:75-101`, the declared peer floor re-typechecked and
-  re-run on chromium) and browser (`:103-129`, a matrix over chromium, firefox and webkit), which is
-  eight checks — and the build job runs `bun run build`, the `git diff --exit-code` exports-map drift
+  re-run on chromium), browser (`:103-129`, a matrix over chromium, firefox and webkit) and
+  vue-floor (`:136-161`, the same for Vue), which is nine checks — and the build job runs `bun run build`, the `git diff --exit-code` exports-map drift
   gate (`:53`), `check:package` (`:55`) and `check:size` (`:57`). **None of them is this grep**:
   neither `WeakRef` nor `.at(` appears anywhere in that file. Without it, one refactor silently
   restores the Chrome 84 floor and nothing notices — the CI browsers are current engines, so they

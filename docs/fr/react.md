@@ -105,7 +105,7 @@ son système au fournisseur, qui en construit un autre. Chaque portée ouverte p
 `useIntentScopeHost().pushScope` est enregistrée auprès du fournisseur, dans l'ordre de son
 ouverture, et le fournisseur les rouvre toutes sur le nouveau système dans cet ordre, au-dessus des
 portées que ses plugins empilent, avant qu'aucun composant ne voie le nouveau système (l'effet de
-`NavProvider`, `src/react/react.tsx:243-245`). Les composants ne réempilent rien eux-mêmes : leurs
+`NavProvider`, `src/react/react.tsx:188-190`). Les composants ne réempilent rien eux-mêmes : leurs
 effets tourneraient dans l'ordre de l'arbre, les enfants avant les parents, et un piège ouvert en
 dernier pourrait revenir sous la portée qu'il recouvrait. Un nouveau `trapped` ou `base` sur
 `useIntent` laisse lui aussi la portée à sa place — elle y est rouverte, et chaque portée ouverte
@@ -170,10 +170,10 @@ propre sous-arbre est démonté, un piège qui arrête le parcours, une portée 
 travers ce piège, un composite imbriqué dans une surface qui piège atteint quand les deux passent
 `within` et réduit au silence quand aucun ne le fait, une base réenregistrée à un nouveau rendu
 sans quitter sa place, et l'ordre
-d'ouverture des portées conservé à travers une reconstruction du système. Les adaptateurs qui suivent — Vue,
-Svelte et Angular, dans l'ordre
-d'[ADR-0011](../adr/0011-package-layout-and-adapters.md) — passent la même suite avant d'être
-livrés. L'utilitaire d'auto-montage vanilla livré avant eux, non, et
+d'ouverture des portées conservé à travers une reconstruction du système. Les adaptateurs qui
+suivent, dans l'ordre d'[ADR-0011](../adr/0011-package-layout-and-adapters.md), passent la même
+suite avant d'être livrés : Vue la passe depuis le 2026-09-23 ([Vue](vue.md)), et Svelte et Angular
+viennent ensuite. L'utilitaire d'auto-montage vanilla livré avant eux, non, et
 [ADR-0023](../adr/0023-vanilla-auto-mount.md) est le registre du pourquoi : la suite affirme
 ce que fait un fournisseur à travers un rendu, et cet utilitaire n'a ni l'un ni l'autre
 ([Auto-montage](auto.md)).

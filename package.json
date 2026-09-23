@@ -41,17 +41,22 @@
     "./keyboard/qwerty": "./dist/keyboard/layouts/qwerty.js",
     "./react": "./dist/react/react.js",
     "./spatial": "./dist/spatial/spatial.js",
+    "./vue": "./dist/vue/vue.js",
     "./package.json": "./package.json"
   },
   "peerDependencies": {
     "react": ">=18.3.0",
-    "react-dom": ">=18.3.0"
+    "react-dom": ">=18.3.0",
+    "vue": ">=3.3.0"
   },
   "peerDependenciesMeta": {
     "react": {
       "optional": true
     },
     "react-dom": {
+      "optional": true
+    },
+    "vue": {
       "optional": true
     }
   },
@@ -90,6 +95,7 @@
     "typescript": "^7.0.2",
     "unrun": "^0.3.1",
     "vite": "^8.3.0",
-    "vitest": "^5.0.1"
+    "vitest": "^5.0.1",
+    "vue": "^3.5.43"
   }
 }

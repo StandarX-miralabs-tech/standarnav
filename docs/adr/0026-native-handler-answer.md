@@ -75,8 +75,8 @@ vertical arrows for a vertical radio group, the horizontal ones for a range — 
 axis to the spatial engine, which always gives a way out. A pad still moves spatially and uses
 engage mode for a value control (specification R7).
 
-**8. React.** `useIntent` registers `(event) => latest.current(event)` (`src/react/react.tsx:367`)
-and `useIntentScopeHost().pushScope` registers the handler as given (`:286-289`), so both return
+**8. React.** `useIntent` registers `(event) => latest.current(event)` (`src/react/react.tsx:312`)
+and `useIntentScopeHost().pushScope` registers the handler as given (`:231-234`), so both return
 the answer unchanged; `IntentHandler` is re-exported from `./react` with its new type.
 
 ## Consequences

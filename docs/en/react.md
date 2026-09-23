@@ -101,7 +101,7 @@ development only when there is genuinely no provider above it.
 scope opened through `useIntent` or `useIntentScopeHost().pushScope` is registered with the
 provider, in the order it was opened, and the provider re-opens all of them on the new system in
 that order, above the scopes its plugins push, before any component sees the new system
-(`NavProvider`'s effect, `src/react/react.tsx:243-245`). The components do not re-push anything
+(`NavProvider`'s effect, `src/react/react.tsx:188-190`). The components do not re-push anything
 themselves: their effects would run in tree order, children before parents, and a trap opened last
 could come back beneath the scope it was covering. A new `trapped` or `base` on `useIntent` keeps
 the scope in its place too — it is re-opened there, with every scope opened after it re-opened
@@ -162,8 +162,9 @@ during the first render, LIFO scope order, a scope released when only its own su
 trap that stops the walk, a base scope reached through that trap, a composite nested in a trapping
 surface reached when both pass `within` and silenced when neither does, a base re-registered on a
 rerender without leaving its place, and the order scopes were opened in kept across a system
-rebuild. The adapters that follow — Vue, Svelte and Angular, in the order of
-[ADR-0011](../adr/0011-package-layout-and-adapters.md) — run the same suite before they ship. The
+rebuild. The adapters that follow, in the order of
+[ADR-0011](../adr/0011-package-layout-and-adapters.md), run the same suite before they ship: Vue
+passes it since 2026-09-23 ([Vue](vue.md)), and Svelte and Angular come next. The
 vanilla auto-mount helper that shipped before them does not, and
 [ADR-0023](../adr/0023-vanilla-auto-mount.md) is the record of why: the suite asserts what a
 provider does across a render, and that helper has neither ([Auto-mount](auto.md)).

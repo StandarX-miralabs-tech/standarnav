@@ -141,9 +141,8 @@ that land on `main` were never seen by CI.
 
 - [ ] Freeze the public API: entry points, attribute names, option names, event payloads
 - [ ] Write the deprecation policy that the freeze implies
-- [ ] Vue adapter, on the same browser test suite
-- [ ] Svelte adapter, on the same browser test suite
-- [ ] Angular adapter, on the same browser test suite
+- [ ] Svelte adapter, on the same browser test suite; its record will be ADR-0028
+- [ ] Angular adapter, on the same browser test suite; its record will be ADR-0029
 - [ ] SSR and hydration guard: no DOM access at import time, no attribute written before mount
 - [ ] Full `docs/en`, with a strict file-by-file `docs/fr` mirror
 - [ ] CI gate that fails when a `docs/en` page has no `docs/fr` mirror

@@ -22,72 +22,17 @@ import { createInputSystem, type InputPlugin, type InputSystem } from "../input-
 import type { IntentHandler, IntentScopeHost, IntentScopeOptions } from "../intent-bus";
 import { isDev } from "../internal/env";
 import { arrayEquals, recordEquals } from "../internal/equality";
+import {
+  openOn,
+  type Registration,
+  register,
+  release,
+  reopen,
+  type ScopeRegistry,
+} from "../internal/scope-registry";
 import type { KeymapOverrides } from "../keymap";
 import { getInputModality, trackInputModality } from "../modality";
 import type { InputModality } from "../types";
-
-/**
- * One scope opened through the adapter. `dispose` belongs to whichever system the
- * scope currently sits on, and is `null` while there is none.
- */
-interface Registration {
-  readonly handler: IntentHandler;
-  options: IntentScopeOptions | undefined;
-  dispose: VoidFunction | null;
-}
-
-/**
- * Every scope opened through one provider, in the order it was opened, and the system
- * they currently sit on. A rebuilt system gets them from here, oldest first, rather
- * than from each component re-pushing in an effect of its own: those effects run in
- * tree order, children before parents, so the stack would come back in the order the
- * scopes are *declared*, and a trap opened last could land beneath what it covers.
- *
- * Owned by the provider instance, never by the module — two providers on one page keep
- * two orders.
- */
-interface ScopeRegistry {
-  system: InputSystem | null;
-  readonly entries: Registration[];
-}
-
-function openOn(registry: ScopeRegistry, entry: Registration): void {
-  entry.dispose = registry.system?.pushScope(entry.handler, entry.options) ?? null;
-}
-
-function register(
-  registry: ScopeRegistry,
-  handler: IntentHandler,
-  options: IntentScopeOptions | undefined,
-): Registration {
-  const entry: Registration = { handler, options, dispose: null };
-  registry.entries.push(entry);
-  openOn(registry, entry);
-  return entry;
-}
-
-function release(registry: ScopeRegistry, entry: Registration): void {
-  const index = registry.entries.indexOf(entry);
-  if (index === -1) return;
-  registry.entries.splice(index, 1);
-  entry.dispose?.();
-  entry.dispose = null;
-}
-
-/**
- * New options for a scope that stays where it was opened. The bus only pushes on top,
- * so the scope and everything opened after it are re-pushed, in order: re-pushing the
- * one scope alone would lift it over every scope opened since it, and a page scope
- * that turns `base` would climb over the dialog trap it exists to sit under.
- */
-function reopen(registry: ScopeRegistry, entry: Registration, options: IntentScopeOptions): void {
-  const index = registry.entries.indexOf(entry);
-  if (index === -1) return;
-  const moved = registry.entries.slice(index);
-  for (const each of moved) each.dispose?.();
-  entry.options = options;
-  for (const each of moved) openOn(registry, each);
-}
 
 // The types a consumer of this entry point needs to name what it passes in and what
 // it is handed back. A React application should not have to reach into the package

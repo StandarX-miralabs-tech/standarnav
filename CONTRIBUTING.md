@@ -73,8 +73,8 @@ bun run check:size
 ```
 
 All of those were run here on 2026-09-22 and pass. Between them they reproduce
-five of the eight checks CI runs (six jobs, one of them a three-engine matrix);
-the firefox and webkit runs and the React 18.3 floor job only exist in CI, which
+five of the nine checks CI runs (seven jobs, one of them a three-engine matrix);
+the firefox and webkit runs and the React 18.3 and Vue 3.3.0 floor jobs only exist in CI, which
 reports them on the pull request. Measured on the same date: `bun run test:unit`
 is 110 tests in 11 files, `bun run test:browser` is 257 passed and 1 skipped in
 13 files — 367 passed and 1 skipped in total. The
@@ -165,39 +165,43 @@ fixes.
   empty project means the globs stopped matching, which is a discovery
   breakage, and it has to be as red as a failing assertion rather than a green
   run of nothing. Do not add the flag to get past a red run.
-- A change to the React adapter is held to the shared adapter suite in
+- A change to the React or the Vue adapter is held to the shared adapter suite in
   `src/adapter-parity.ts`, not to tests of its own invention: one system and
   not during the first render, LIFO scope order, a scope released when only
   its own subtree unmounts, a trap that stops the walk, a base scope reached
   through that trap, a composite inside the trapping surface reached when both
   pass `within` and silenced when neither does, a base re-registered in its
   place on a rerender, and the order scopes were opened in kept across a system
-  rebuild. A second adapter
-  implements `ParityAdapter` and runs the same suite. Extend the suite rather
+  rebuild. Each adapter
+  implements `ParityAdapter` and runs the same suite: React in
+  `src/react/react.browser.test.tsx`, Vue in `src/vue/vue.browser.test.ts`. Extend the suite rather
   than working around it. A separate CI job reinstalls React 18.3 over the
   lockfile's 19 and typechecks and runs the browser suite against it
   (the `react-floor` job, `.github/workflows/ci.yml:75-101`): the declared peer
   range is `>=18.3.0`, and every other job installs `--frozen-lockfile`, so
   without that job the floor of the range is a promise nothing keeps. A change
   that needs a React 19 API narrows the peer range in the same pull request.
+  The Vue adapter has the same guard, the `vue-floor` job
+  (`.github/workflows/ci.yml:136-161`), which installs exactly `vue@3.3.0`: a change
+  that needs a later Vue API raises the `>=3.3.0` peer range in the same pull request.
 - A pull request without a test for the behaviour it changes is not merged.
 
 ## Size budgets are blocking
 
 The build job of CI runs `bun run check:size` after the build, the drift gate
 and `check:package` (`.github/workflows/ci.yml:50-58`). The script is
-`scripts/size-budget.ts`. It measures eleven lines against the built `dist/`:
+`scripts/size-budget.ts`. It measures twelve lines against the built `dist/`:
 the core (`index.js`), the gamepad engine, the spatial engine, the focus ring,
-the debug entry, the auto-mount helper, the React adapter, the on-screen keyboard and one line
-per keyboard layout — each bundled with the sibling entries it
+the debug entry, the auto-mount helper, the React adapter, the Vue adapter, the on-screen
+keyboard and one line per keyboard layout — each bundled with the sibling entries it
 also imports left external, so the number is the marginal cost of adding that
 subpath next to what it already sits beside. That is usually the core, but not
 always: the debug line externalises `./spatial/spatial.js` and
 `./spatial/geometry.js`, so it is charged against the spatial engine rather than
 against the core (`scripts/size-budget.ts:108-117`), and the core line has no
-externals at all (`scripts/size-budget.ts:81-86`). There is then one "whole
-package" line that bundles the ten runtime entries once, with nothing external
-but React's optional peer. Every line, single-entry ones
+externals at all (`scripts/size-budget.ts:81-86`). There is no "whole
+package" line since 2026-09-23: a coverage check names any built module that no
+line pays for instead ([ADR-0017](docs/adr/0017-size-budgets.md)). Every line, single-entry ones
 included, goes through a synthetic module that imports each entry as a
 namespace into an exported sink: a bare entry is tree-shaken against
 `sideEffects: false` and measures a list of export names whose declarations
@@ -305,7 +309,8 @@ does not merge — add the French page in the same pull request, or hold the
 English page until it is ready.
 
 Both directories exist since 2026-09-22, four pages each: `attributes.md`,
-`navigation.md`, `react.md` and `focus-ring.md`. `docs/` also holds `adr/`,
+`navigation.md`, `react.md` and `focus-ring.md`. `auto.md` joined them afterwards, and `vue.md` on
+2026-09-23. `docs/` also holds `adr/`,
 `research/` and `specification.md`, all of which are English-only by the
 paragraph below. In a mirror, the prose is translated and everything that is
 the contract — code blocks, attribute and property names, cited paths, table
