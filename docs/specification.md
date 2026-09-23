@@ -402,8 +402,11 @@ this working tree, run 2026-09-20.
   `touch` modality (`focus-ring.ts`); travelling from its own live rect rather than from
   the element it left, so a burst of presses retargets from where the ring visually is (`:175`);
   crossfading instead of travelling under `prefers-reduced-motion` (`:188-191`); appearing and
-  disappearing over a 150 ms WAAPI fade, which is itself skipped under reduced motion
-  (`:147-154`). The overlay element carries `data-snav-focus-ring`, the fourth attribute the package
+  disappearing over a 150 ms WAAPI fade, which is itself skipped under reduced motion and when the
+  ring's resolved duration — the `duration` option, else `--snav-focus-ring-duration` — is zero or
+  less (`:147-154`; `src/focus-ring/focus-ring.browser.test.ts:210-235` on three engines, with the
+  150 ms default guarded at `:197-208`; [ADR-0020](adr/0020-focus-ring-defaults.md), amendment of
+  2026-09-23). The overlay element carries `data-snav-focus-ring`, the fourth attribute the package
   writes.
 - **R33.** **Settled: the ring ships in v0 and paints itself.** No stylesheet ships with the package
   — the overlay is created with its paint in a `cssText` string (`src/focus-ring/focus-ring.ts:51-52`,

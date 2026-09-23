@@ -30,12 +30,17 @@ hérite :
 | `--snav-focus-ring-width` | `3px` | L'épaisseur de l'anneau, dessinée comme un étalement de `box-shadow`. |
 | `--snav-focus-ring-color` | `#1a73e8` | 4,51:1 sur blanc et 4,36:1 sur `#0b0b0f`, tous deux au-dessus du 3:1 que WCAG SC 1.4.11 demande d'un indicateur non textuel. |
 | `--snav-focus-ring-offset` | `2` | Pixels entre la boîte de la cible et l'anneau. Remplacé par l'option `offset`. |
-| `--snav-focus-ring-duration` | `260`, ou `150` en mouvement réduit | Le temps que l'anneau met à glisser. Remplacé par l'option `duration`. |
+| `--snav-focus-ring-duration` | `260`, ou `150` en mouvement réduit | Le temps que l'anneau met à glisser ; à zéro, il n'y a pas de fondu non plus. Remplacé par l'option `duration`. |
 | `--snav-focus-ring-easing` | `cubic-bezier(0.22, 1, 0.36, 1)` | L'accélération du glissement. |
 
 L'apparition et la disparition se fondent sur 150 ms via WAAPI, et le fondu est purement et
-simplement sauté sous `prefers-reduced-motion`. Deux choses que le style en ligne ne peut pas faire
-sont écrites dans `src/focus-ring/focus-ring.ts` : une propriété personnalisée du mauvais type rend
+simplement sauté sous `prefers-reduced-motion` et chaque fois que la durée se résout à zéro :
+`focusRingPlugin({ duration: 0 })`, ou `--snav-focus-ring-duration: 0ms` (ou `0s`), coupe le fondu
+en plus du glissement. C'est l'interrupteur du réglage « pas d'animation » propre à une
+application ; toute autre durée garde le fondu de 150 ms
+(`src/focus-ring/focus-ring.browser.test.ts:197-235`, sur chromium, firefox et webkit ;
+[ADR-0020](../adr/0020-focus-ring-defaults.md), amendement du 2026-09-23). Deux choses que le
+style en ligne ne peut pas faire sont écrites dans `src/focus-ring/focus-ring.ts` : une propriété personnalisée du mauvais type rend
 toute la déclaration invalide sans déclaration antérieure sur laquelle se replier, et
 `forced-colors: active` supprime `box-shadow`, donc l'anneau disparaît dans un thème à couleurs
 forcées — un point v1 de [ROADMAP.md](../../ROADMAP.md), pas un correctif v0.
