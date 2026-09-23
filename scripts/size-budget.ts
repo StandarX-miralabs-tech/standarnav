@@ -133,6 +133,13 @@ const LINES: readonly Line[] = [
     note: "opt-in subpath next to the core; react itself is a peer and never bundled, and internal/{env,equality,scope-registry}.js are charged here as adapter-only helpers",
   },
   {
+    name: "vue adapter",
+    entries: ["vue/vue.js"],
+    cap: 1.5 * KB,
+    external: ["vue", "../input-system.js", "../modality.js"],
+    note: "opt-in subpath next to the core; vue itself is a peer and never bundled, and the internal/ helpers are charged here as they are to react",
+  },
+  {
     name: "keyboard",
     entries: ["keyboard/keyboard.js"],
     cap: 3 * KB,

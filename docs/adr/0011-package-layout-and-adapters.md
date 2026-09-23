@@ -17,9 +17,9 @@ one by one — gamepad polling, spatial navigation, the focus-ring overlay, the 
 The predecessor already shipped that shape, spread over a workspace: the engines were subpaths of a
 core package whose exports map was rewritten from the file layout rather than written by hand. That
 mechanism is the one this repository still uses, and it is inspectable here —
-`tsdown.config.ts` declares `exports.customExports`, and the table at `:33-45` rewrites
+`tsdown.config.ts` declares `exports.customExports`, and the table at `:34-47` rewrites
 `./spatial/spatial` to `./spatial`, `./gamepad/gamepad` to `./gamepad`, `./focus-ring/focus-ring` to
-`./focus-ring`, `./auto/auto` to `./auto` and `./react/react` to `./react`. The adapter was the part that did not fit: it
+`./focus-ring`, `./auto/auto` to `./auto`, `./react/react` to `./react` and `./vue/vue` to `./vue`. The adapter was the part that did not fit: it
 shipped as a separate package with a hard dependency on the core and non-optional `react` and
 `react-dom` peers at `^19.0.0`, inherited from the predecessor implementation
 ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here. standarnav has no workspace and
@@ -29,9 +29,10 @@ State of this repository: `package.json` declares `@standarx/nav`, `"type": "mod
 `"sideEffects": false`, `"files": ["dist", "LICENSE", "README.md"]`, and the scripts `check:size`
 (`scripts/size-budget.ts`) and `check:package` (`scripts/check-package.ts`); `tsdown` `0.23.0`,
 `publint` `^0.3.24` and `@arethetypeswrong/cli` `^0.18.5` are devDependencies.
-The `exports` map is generated and committed, and carries eleven entries plus `./package.json`
+The `exports` map is generated and committed, and carries twelve entries plus `./package.json`
 (`package.json`): `.`, `./auto`, `./debug`, `./focus-ring`, `./gamepad`, `./keyboard`,
-`./keyboard/alphabetic`, `./keyboard/azerty`, `./keyboard/qwerty`, `./react` and `./spatial`.
+`./keyboard/alphabetic`, `./keyboard/azerty`, `./keyboard/qwerty`, `./react`, `./spatial` and
+`./vue`.
 `src/` exists, with 23 test files among its modules
 (`find src -type f \( -name "*.test.ts" -o -name "*.test.tsx" \) | wc -l` → 23), so the layout
 below is a description of the build, not a target.
@@ -51,7 +52,7 @@ imports is never bundled.
 | `@standarx/nav/debug` | `explainMove` and candidate scoring | `src/debug.ts` | `debug` |
 | `@standarx/nav/auto` | attribute-driven start-up ([ADR-0023](0023-vanilla-auto-mount.md)) | `src/auto/auto.ts` | `auto mount` |
 | `@standarx/nav/react` | provider, `useIntentScopeHost`, hooks | `src/react/react.tsx` | `react adapter` |
-| `@standarx/nav/vue` | composables (planned) | `src/vue/*.ts` | `vue adapter` |
+| `@standarx/nav/vue` | provider, `useIntentScopeHost`, composables | `src/vue/vue.ts` | `vue adapter` |
 | `@standarx/nav/svelte` | actions (planned) | `src/svelte/*.ts` | `svelte adapter` |
 | `@standarx/nav/angular` | directives (planned) | `src/angular/*.ts` | `angular adapter` |
 | `@standarx/nav/keyboard` | on-screen keyboard plugin ([ADR-0022](0022-virtual-keyboard.md)) | `src/keyboard/keyboard.ts` | `keyboard` |
@@ -61,11 +62,12 @@ Six of these rows were built when this record was first written: `tsdown.config.
 `src/gamepad/gamepad.ts`, `src/spatial/spatial.ts`, `src/focus-ring/focus-ring.ts`, `src/debug.ts`
 and `src/react/react.tsx`, and the generated map at `package.json` carries the matching six
 subpaths plus `./package.json`. The keyboard and its three layouts were added on 2026-09-20 and the
-auto-mount helper on 2026-09-22, so the map carries eleven subpaths; `./keyboard/qwerty` and its
+auto-mount helper on 2026-09-22, and the Vue adapter on 2026-09-23, so the map carries twelve
+subpaths; `./keyboard/qwerty` and its
 siblings are the one place
 where a subpath name and its file path deliberately differ, because `layouts/` is a directory and not
-part of the surface (`tsdown.config.ts`). The three adapter rows are still planned and have no
-entry, no file and no budget line.
+part of the surface (`tsdown.config.ts`). The Svelte and Angular rows are still planned and have
+no entry, no file and no budget line.
 
 **A subpath re-exports the types its own signatures name.** A consumer importing `spatialPlugin`
 from `@standarx/nav/spatial` must be able to name what it returns and what it takes without
@@ -131,16 +133,18 @@ Adapter order, each shipping only once it passes the same browser suite as the c
 2. **vanilla auto-mount helper — shipped**, `@standarx/nav/auto`, no framework
    ([ADR-0023](0023-vanilla-auto-mount.md)). See the amendment below for what
    "attribute-driven start-up" turned out to mean.
-3. **Vue**, 4. **Svelte**, 5. **Angular** — this repository has no `src/vue`, `src/svelte` or
-   `src/angular`, and no predecessor code to port: they are new code, not a migration.
+3. **Vue — shipped** on 2026-09-23, `@standarx/nav/vue` (`src/vue/vue.ts`), new code rather than a
+   port, passing the same parity suite as React.
+4. **Svelte**, 5. **Angular** — this repository has no `src/svelte` or `src/angular`, and no
+   predecessor code to port: they are new code, not a migration.
 
 Each engine and each adapter carries its own size-budget line, and a line without a cap fails the
-run. `scripts/size-budget.ts` now holds **eleven** lines — core, gamepad engine, spatial engine,
-focus ring, debug, auto mount, react adapter, keyboard and one per keyboard layout — and **no cap
-is `null`**: the react adapter
+run. `scripts/size-budget.ts` now holds **twelve** lines — core, gamepad engine, spatial engine,
+focus ring, debug, auto mount, react adapter, vue adapter, keyboard and one per keyboard layout —
+and **no cap is `null`**: the react adapter
 line was added when the adapter existed, exactly as this ADR said it would be, the auto-mount line
-when the helper existed, and the first build here
-set every cap (`scripts/size-budget.ts:80-165`). `bun run build && bun run check:size`, this
+when the helper existed, the vue adapter line when that adapter existed, and the first build here
+set every cap (`scripts/size-budget.ts:80-172`). `bun run build && bun run check:size`, this
 repository on 2026-09-21, min+gzip: core 3.13 of 3.25 kB, gamepad engine 2.49 of 2.50, spatial
 engine 3.04 of 3.25, focus ring 1.51 of 1.75, debug 0.49 of 0.50, react adapter 1.30 of 1.50,
 keyboard 2.82 of 3.00, the three layouts 0.36 to 0.49 against 0.50 each, whole package 12.40 of
@@ -222,12 +226,13 @@ drift gate turns a mismatch into a failed build instead of a broken published pa
 ## Evidence
 
 - This repository. `package.json`: name `@standarx/nav`,
-  `"type": "module"`, `"sideEffects": false`, the generated `"exports"` map with eleven subpaths plus
-  `"./package.json"` (`:32-44`), optional `react`/`react-dom` peers at `>=18.3.0` (`:46-57`),
-  `"publishConfig": {"access": "public", "provenance": true}` (`:58-61`), devDependencies `tsdown`
+  `"type": "module"`, `"sideEffects": false`, the generated `"exports"` map with twelve subpaths plus
+  `"./package.json"` (`:32-45`), optional `react`/`react-dom` peers at `>=18.3.0` and an optional
+  `vue` peer at `>=3.3.0` (`:47-62`),
+  `"publishConfig": {"access": "public", "provenance": true}` (`:63-66`), devDependencies `tsdown`
   `0.23.0`, `publint` `^0.3.24`, `@arethetypeswrong/cli` `^0.18.5`, and no `dependencies` key at
-  all. `tsdown.config.ts`: eleven entries, `format: ["esm"]`, `platform: "neutral"`, `external`
-  for `react`, `react-dom` and `react/jsx-runtime`, `unbundle`, `dts`, `clean`, `publint`,
+  all. `tsdown.config.ts`: twelve entries, `format: ["esm"]`, `platform: "neutral"`, `external`
+  for `react`, `react-dom`, `react/jsx-runtime` and `vue`, `unbundle`, `dts`, `clean`, `publint`,
   `exports.customExports` rewriting `./gamepad/gamepad` to `./gamepad` and the three like it.
   `scripts/check-package.ts:30-40`: the zero-runtime-dependency gate. `tsconfig.json` and
   `:13-14`: `"target": "es2020"`, `"isolatedDeclarations": true`, `"declaration": true` — the
@@ -239,8 +244,8 @@ drift gate turns a mismatch into a failed build instead of a broken published pa
   implementation ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here, and every cap
   in `scripts/size-budget.ts` was measured against this repository's built `dist/`.
 - Budget rule (a line without a cap fails the run): `scripts/size-budget.ts` in this repository —
-  `Line.cap` documented at `:60-61` and enforced at `:372-376`, where a `null` cap sets the status
-  to `UNCAPPED` and pushes a failure; `LINES` at `:80-165` holding eleven lines with a numeric cap on
+  `Line.cap` documented at `:60-61` and enforced at `:379-383`, where a `null` cap sets the status
+  to `UNCAPPED` and pushes a failure; `LINES` at `:80-172` holding twelve lines with a numeric cap on
   every one; and the rule at `:67-79` that externals are named file by file and never globbed.
 - Sizes measured here: `bun run build && bun run check:size` in this repository on 2026-09-21,
   min+gzip at Bun's default gzip level — core 3.13/3.25 kB, gamepad engine 2.49/2.50, spatial

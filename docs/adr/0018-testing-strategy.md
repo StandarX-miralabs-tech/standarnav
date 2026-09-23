@@ -47,7 +47,7 @@ The config declares one browser instance, chosen by `SNAV_BROWSER` and defaultin
 (`vitest.config.ts`). The three-browser matrix lives in CI instead: chromium, firefox
 and webkit (`.github/workflows/ci.yml:103-129`). The file suffix is the routing rule:
 `*.browser.test.ts` is excluded from the node project (`vitest.config.ts`). Both projects also
-take `.tsx`, because the React adapter and its tests are `.tsx` (`:22-23`, `:29`).
+take `.tsx`, because the React adapter and its tests are `.tsx` (`:22-23`, `:37`).
 
 **2. Fixtures are positioned with inline styles only, never with CSS classes.** A geometric test
 must read as its own specification: the numbers the assertion depends on are in the fixture string,

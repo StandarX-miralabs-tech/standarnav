@@ -12,6 +12,7 @@ const config: UserConfig = defineConfig({
     "src/debug.ts",
     "src/auto/auto.ts",
     "src/react/react.tsx",
+    "src/vue/vue.ts",
     "src/keyboard/keyboard.ts",
     // One entry per layout, never one module holding them all: a French application must
     // not ship Cyrillic (ADR-0022, decision 4).
@@ -21,9 +22,9 @@ const config: UserConfig = defineConfig({
   ],
   format: ["esm"],
   platform: "neutral",
-  // Optional peers: an application that never imports `./react` must not pull
-  // react into its graph, and one that does already has its own copy.
-  external: ["react", "react-dom", "react/jsx-runtime"],
+  // Optional peers: an application that never imports `./react` or `./vue` must not pull
+  // a framework into its graph, and one that does already has its own copy.
+  external: ["react", "react-dom", "react/jsx-runtime", "vue"],
   unbundle: true,
   dts: true,
   clean: true,
@@ -36,6 +37,7 @@ const config: UserConfig = defineConfig({
         "./focus-ring/focus-ring": "./focus-ring",
         "./auto/auto": "./auto",
         "./react/react": "./react",
+        "./vue/vue": "./vue",
         "./keyboard/keyboard": "./keyboard",
         // `layouts/` is a directory, not a subpath: a consumer writes
         // `@standarx/nav/keyboard/qwerty`.

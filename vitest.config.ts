@@ -24,6 +24,14 @@ const config: ViteUserConfig = defineConfig({
         },
       },
       {
+        // The esm-bundler build of Vue expects its bundler to define these, and says so
+        // on every run when none does. The values are Vue's own defaults, and only the
+        // Vue adapter's tests load that build; `unit` gets Vue's CommonJS build from Node.
+        define: {
+          __VUE_OPTIONS_API__: "true",
+          __VUE_PROD_DEVTOOLS__: "false",
+          __VUE_PROD_HYDRATION_MISMATCH_DETAILS__: "false",
+        },
         test: {
           name: "browser",
           include: ["src/**/*.browser.test.ts", "src/**/*.browser.test.tsx"],

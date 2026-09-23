@@ -32,13 +32,15 @@ src/  index.ts  intent-bus.ts  input-system.ts  keymap.ts  engage.ts
       gamepad/     gamepad.ts  mapping.ts  dead-zone.ts  repeat.ts
       spatial/     spatial.ts  geometry.ts  containers.ts
       focus-ring/  focus-ring.ts
+      auto/        auto.ts
       react/       react.tsx  react-harness.tsx
+      vue/         vue.ts  vue-harness.ts
       keyboard/    keyboard.ts
                    layouts/  qwerty.ts  azerty.ts  alphabetic.ts
 ```
 
 The subpath exports map onto it directly — [ADR-0011](0011-package-layout-and-adapters.md).
-Ten of these files are build entries (`tsdown.config.ts`); the rest are reached through them.
+Twelve of these files are build entries (`tsdown.config.ts`); the rest are reached through them.
 `keyboard/layouts/` is the one directory whose files are entries without the directory being part
 of a subpath name: a consumer writes `@standarx/nav/keyboard/qwerty`
 ([ADR-0022](0022-virtual-keyboard.md)).
@@ -55,7 +57,7 @@ a gamepad pays no bytes for one.
 locally rather than pulling `@types/node`, so the package stays usable in a browser with no bundler;
 `equality.ts` holds `arrayEquals` and `recordEquals`, which exist for the React adapter's effect
 dependencies; `scope-registry.ts` holds the ordered registry of scopes a provider re-opens on every
-system it builds (issue #13). All three are charged to the adapter's size-budget line, not to the
+system it builds (issue #13). All three are charged to each adapter's size-budget line, not to the
 core. Everything else
 under `src/` is either exported or an entry.
 
