@@ -86,4 +86,18 @@ describe("pushEngageScope", () => {
     expect(onRelease).not.toHaveBeenCalled();
     expect(bus.depth()).toBe(0);
   });
+
+  it("adjusts inside a trapped dialog with no `within`, because A opens it above the trap", () => {
+    const bus = createIntentBus();
+    const onAdjust = vi.fn();
+    bus.pushScope(() => false, { trapped: true });
+    pushEngageScope(bus, { onAdjust });
+
+    const result = bus.dispatch({ intent: "moveLeft", source: "gamepad" });
+
+    // Why engage mode passes no element (ADR-0025): its scope is opened by the user's A,
+    // after the dialog it sits in, so the trap is beneath it and never in the way.
+    expect(onAdjust).toHaveBeenCalledOnce();
+    expect(result.consumed).toBe(true);
+  });
 });

@@ -54,8 +54,8 @@ Two mechanics of the bus make that work, and both are easy to get wrong:
   `base` exists for. Confinement comes from `data-snav-trap` on the container. The scope silences
   the components in between; the attribute is what keeps the engine inside.
 - **Inside a trap, A does not click the focused element.** `select` is not one of the three intents
-  allowed to escape a trap (`src/intent-bus.ts:90-94`), so a trap that handles nothing still makes
-  the dispatch report the intent consumed (`:141-144`), and `activateFocused` stands down. A
+  allowed to escape a trap (`src/intent-bus.ts:108-112`), so a trap that handles nothing still makes
+  the dispatch report the intent consumed (`:169-175`), and `activateFocused` stands down. A
   trapped surface has to claim `select` and activate its own focused element. This is pinned by a
   test in `src/input-system.browser.test.ts` rather than left as a comment, because the listbox was
   written assuming the opposite and silently picked nothing.

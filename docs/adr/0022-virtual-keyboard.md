@@ -162,7 +162,7 @@ is data and should be small; a layout line that is not small is the signal that 
 into it.
 
 **8. `back` closes the keyboard and keeps what was typed.** It must close — it is the only "get me
-out" button a remote has, and it already escapes a trap by design (`src/intent-bus.ts:90-94`).
+out" button a remote has, and it already escapes a trap by design (`src/intent-bus.ts:108-112`).
 Reverting is an application's own Cancel button, and the keyboard carries a `close` action key for
 "done".
 
