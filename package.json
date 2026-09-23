@@ -72,7 +72,8 @@
     "test:watch": "vitest",
     "check:size": "bun run scripts/size-budget.ts",
     "check:package": "bun run scripts/check-package.ts",
-    "check:docs": "bun run scripts/check-citations.ts"
+    "check:docs": "bun run scripts/check-citations.ts",
+    "badges": "bun run scripts/download-counts.ts"
   },
   "devDependencies": {
     "@arethetypeswrong/cli": "^0.18.5",
