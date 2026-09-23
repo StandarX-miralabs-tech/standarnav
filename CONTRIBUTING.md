@@ -76,8 +76,8 @@ All of those were run here on 2026-09-22 and pass. Between them they reproduce
 five of the eight checks CI runs (six jobs, one of them a three-engine matrix);
 the firefox and webkit runs and the React 18.3 floor job only exist in CI, which
 reports them on the pull request. Measured on the same date: `bun run test:unit`
-is 117 tests in 11 files, `bun run test:browser` is 257 passed and 1 skipped in
-13 files — 374 passed and 1 skipped in total. The
+is 127 tests in 12 files, `bun run test:browser` is 257 passed and 1 skipped in
+13 files — 384 passed and 1 skipped in total. The
 one skip is a documented shadow-DOM fixture
 (`src/spatial/spatial.browser.test.ts:856`, [ADR-0008](docs/adr/0008-shadow-dom.md)),
 not a test someone silenced. A red CI is about your change; treat it that way.
@@ -183,7 +183,7 @@ fixes.
 
 The build job of CI runs `bun run check:size` after the build, the drift gate
 and `check:package` (`.github/workflows/ci.yml:50-58`). The script is
-`scripts/size-budget.ts`. It measures twelve lines against the built `dist/`:
+`scripts/size-budget.ts`. It measures eleven lines against the built `dist/`:
 the core (`index.js`), the gamepad engine, the spatial engine, the focus ring,
 the debug entry, the auto-mount helper, the React adapter, the on-screen keyboard and one line
 per keyboard layout — each bundled with the sibling entries it
@@ -191,8 +191,8 @@ also imports left external, so the number is the marginal cost of adding that
 subpath next to what it already sits beside. That is usually the core, but not
 always: the debug line externalises `./spatial/spatial.js` and
 `./spatial/geometry.js`, so it is charged against the spatial engine rather than
-against the core (`scripts/size-budget.ts:105-114`), and the core line has no
-externals at all (`scripts/size-budget.ts:78-83`). There is then one "whole
+against the core (`scripts/size-budget.ts:108-117`), and the core line has no
+externals at all (`scripts/size-budget.ts:81-86`). There is then one "whole
 package" line that bundles the ten runtime entries once, with nothing external
 but React's optional peer. Every line, single-entry ones
 included, goes through a synthetic module that imports each entry as a
@@ -227,7 +227,6 @@ keyboard        2.82 / 3.00 kB
 layout qwerty   0.45 / 0.50 kB
 layout azerty   0.49 / 0.50 kB
 layout alphabetic  0.36 / 0.50 kB
-whole package   12.40 / 12.50 kB
 ```
 
 The run passes. A `null` cap is still a legal state in the script and still

@@ -105,14 +105,14 @@ The subpath provides:
    > If it still does not work, call `explainMove(origin, direction)` from `@standarx/nav/debug`.
 
 The subpath gets its own size-budget line ([ADR-0017](0017-size-budgets.md)), and that line exists
-and is capped: `scripts/size-budget.ts:105-114` measures `debug.js` against a cap of 0.50 kB, and
+and is capped: `scripts/size-budget.ts:108-117` measures `debug.js` against a cap of 0.50 kB, and
 `bun run build && bun run check:size` reports **0.49 kB min+gzip**, 0.78 kB minified. The line is
 not optional bookkeeping: a diagnostics module with no cap is how a diagnostics module ends up in
 production bundles.
 
 That line's externals are `./spatial/spatial.js`, `./spatial/geometry.js` and `./tabbable.js`, named
 one by one, never a glob. The glob is forbidden by the script itself
-(`scripts/size-budget.ts:65-76`): `*` does not cross a path separator, so `./*` on a top-level entry
+(`scripts/size-budget.ts:67-79`): `*` does not cross a path separator, so `./*` on a top-level entry
 can externalise the line's own contents and report a re-export stub as proof — a budget line that
 stops measuring without ever going red. Naming those three is what makes the 0.49 kB a marginal
 cost, which is the only figure this line is meant to carry.

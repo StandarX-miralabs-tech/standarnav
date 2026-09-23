@@ -134,12 +134,12 @@ Adapter order, each shipping only once it passes the same browser suite as the c
    `src/angular`, and no predecessor code to port: they are new code, not a migration.
 
 Each engine and each adapter carries its own size-budget line, and a line without a cap fails the
-run. `scripts/size-budget.ts` now holds **twelve** lines — core, gamepad engine, spatial engine,
-focus ring, debug, auto mount, react adapter, keyboard, keyboard layout qwerty, keyboard layout
-azerty, keyboard layout alphabetic, whole package — and **no cap is `null`**: the react adapter
+run. `scripts/size-budget.ts` now holds **eleven** lines — core, gamepad engine, spatial engine,
+focus ring, debug, auto mount, react adapter, keyboard and one per keyboard layout — and **no cap
+is `null`**: the react adapter
 line was added when the adapter existed, exactly as this ADR said it would be, the auto-mount line
 when the helper existed, and the first build here
-set every cap (`scripts/size-budget.ts:77-183`). `bun run build && bun run check:size`, this
+set every cap (`scripts/size-budget.ts:80-165`). `bun run build && bun run check:size`, this
 repository on 2026-09-21, min+gzip: core 3.13 of 3.25 kB, gamepad engine 2.49 of 2.50, spatial
 engine 3.04 of 3.25, focus ring 1.51 of 1.75, debug 0.49 of 0.50, react adapter 1.30 of 1.50,
 keyboard 2.82 of 3.00, the three layouts 0.36 to 0.49 against 0.50 each, whole package 12.40 of
@@ -238,9 +238,9 @@ drift gate turns a mismatch into a failed build instead of a broken published pa
   implementation ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here, and every cap
   in `scripts/size-budget.ts` was measured against this repository's built `dist/`.
 - Budget rule (a line without a cap fails the run): `scripts/size-budget.ts` in this repository —
-  `Line.cap` documented at `:58-59` and enforced at `:311-315`, where a `null` cap sets the status
-  to `UNCAPPED` and pushes a failure; `LINES` at `:77-183` holding twelve lines with a numeric cap on
-  every one; and the rule at `:65-76` that externals are named file by file and never globbed.
+  `Line.cap` documented at `:60-61` and enforced at `:372-376`, where a `null` cap sets the status
+  to `UNCAPPED` and pushes a failure; `LINES` at `:80-165` holding eleven lines with a numeric cap on
+  every one; and the rule at `:67-79` that externals are named file by file and never globbed.
 - Sizes measured here: `bun run build && bun run check:size` in this repository on 2026-09-21,
   min+gzip at Bun's default gzip level — core 3.13/3.25 kB, gamepad engine 2.49/2.50, spatial
   engine 3.04/3.25, focus ring 1.51/1.75, debug 0.49/0.50, react adapter 1.30/1.50, keyboard

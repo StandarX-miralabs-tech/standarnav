@@ -33,7 +33,7 @@ commit `docs`, never `fix(docs)`: `fix` publishes a release.
 
 - [ ] Tests added or updated, and green on Chromium, Firefox, and WebKit (`bun run test:browser`).
 - [ ] Size budget respected. Run `bun run build` then `bun run check:size`, and paste the
-      lines for every entry this pull request touches. All twelve lines are capped and the
+      lines for every entry this pull request touches. All eleven lines are capped and the
       run passes today, so a non-zero exit is this change — reduce the size, or link an
       ADR-0017 amendment proposing the new cap.
 

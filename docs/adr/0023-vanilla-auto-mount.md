@@ -106,6 +106,17 @@ run the suite; this is the record of why the one thing that is not an adapter do
 - ROADMAP's v1 line is removed as delivered, and its description ("build the containers from
   the attributes") is carried into no document, because the engine already did that.
 
+## Amendment, 2026-09-23: the whole-package cap this record moved no longer exists
+
+The first consequence above says this change cost "a whole-package cap that moved from 12.50 to
+12.75 kB for 0.23 kB of it". That was true on 2026-09-22 and it is history now: the
+whole-package line was removed on 2026-09-23 ([ADR-0017](0017-size-budgets.md), amendment of
+that date), precisely because a sum of every entry goes red when the package gains one rather
+than when anything gets fatter — and this record's own entry was the fourth time it had done so.
+
+Nothing about `/auto` changes. Its own line still reads 0.60 of 0.75 kB, and the dated figures
+in the Evidence below are what was measured on the day they name.
+
 ## Alternatives considered
 
 | Option | Why not |
