@@ -44,7 +44,7 @@ const input = createInputSystem({
 
 `createInputSystem` options: `doc`, `plugins`, `keymap` (`{ keys: { [event.key]: intent | null }, keyCodes: { [event.keyCode]: intent | null } }`; `null` disables a default row and lets the browser's native behaviour survive), `allowVerticalInText` (off by default).
 
-The system: `pushScope(handler, { trapped?, base? })` returns a dispose; `emit(init)`; `onIntent(listener)`; `onModalityChange(listener)`; `pause()`; `resume()`; `destroy()`; `modality`.
+The system: `pushScope(handler, { trapped?, base?, within? })` returns a dispose; `emit(init)`; `onIntent(listener)`; `onModalityChange(listener)`; `pause()`; `resume()`; `destroy()`; `modality`.
 
 ## Markup contract (read by the engine)
 
@@ -84,6 +84,7 @@ const dispose = input.pushScope((event) => {
 - The top scope is asked first; returning `true` ends the walk and the system calls `preventDefault()` on the key that carried the intent, in the capture phase.
 - `trapped: true` swallows every intent it does not handle, except `back`, `tabNext` and `tabPrev`, which always escape (a dialog must be leavable; Tab is the focus trap's business).
 - `base: true` is asked even through a trap. The spatial engine is a base scope: a trapped dialog still gets d-pad movement inside it. The confinement comes from `data-snav-trap` on the dialog's container, not from the scope.
+- `within` (an element, or a getter read at dispatch) is opt-in. A trap that names its surface with it still asks a scope beneath it whose own `within` lies inside that surface — a radio group or a listbox inside the dialog, opened before the dialog as a framework opens children first. It is asked after the trap, never before: the dialog should claim only what it owns. A trap or a scope without `within` behaves as before (ADR-0025).
 - An unclaimed `select` from a gamepad or remote clicks the focused element, so A works on a button, a checkbox or a link with no code. It never does that for a keyboard source (the browser already clicks), never on repeat, and never on a text-entry target. Inside a trapped scope nothing clicks the focused element for you: the scope has to call `.click()` itself.
 - `spatialPlugin` also exposes `move(direction)`, `focus(elementOrSelector)`, `focusFirst(container?)`, `onWillMove(listener)` (call `event.preventDefault()` to veto), `onBoundsHit(listener)`.
 
@@ -104,7 +105,7 @@ Constraints to know before writing one:
 - **A native `<select>` cannot be navigated on a television.** Closed, it opens a platform popup outside the document; the engine loses the focus into it, and on a desktop the bug is invisible because the browser drives its own popup. `scanNativeSelects` in `/debug` finds them. The recipe: claim `select` while the `<select>` is focused (that also suppresses Enter and Space, which would open the popup), open a `data-snav="container" data-snav-trap` list of real buttons built from its `<option>`s, click the focused option yourself, restore focus to the `<select>` on close, intercept `mousedown` (the popup opens on the press) and Alt+ArrowDown (a modifier never reaches the keymap). `multiple` and `size > 1` render in the document and need nothing.
 - **`gamepadPlugin().assign(padIndex, route)` is a total override, not a filter.** With a route set, every intent from that pad goes to the route and never to the shared stack; an intent the route does not re-emit is dropped.
 - **Nothing hot-swaps.** `mode`, `pointerFollowsFocus`, `allowVerticalInText` and every plugin option are read at construction. Rebuild the system to change them.
-- **React: hoist or memoise the plugins.** `NavProvider` compares the `plugins` list element by element; `plugins={[gamepadPlugin()]}` is a new instance every render and rebuilds the whole system. `useInputSystem()` is `null` until the provider's effect has run and on the server; `useIntent` copes with that itself. A rebuilt system gets every scope opened through `useIntent` or `useIntentScopeHost` back in the order they were opened, not in tree order.
+- **React: hoist or memoise the plugins.** `NavProvider` compares the `plugins` list element by element; `plugins={[gamepadPlugin()]}` is a new instance every render and rebuilds the whole system. `useInputSystem()` is `null` until the provider's effect has run and on the server; `useIntent` copes with that itself. A rebuilt system gets every scope opened through `useIntent` or `useIntentScopeHost` back in the order they were opened, not in tree order. `useIntent` also takes `within` as a ref: pass the dialog's ref on its trap and the composite's own ref on the composite inside it.
 - **Hidden lists and CSS specificity.** A recipe that hides its list with the `hidden` attribute loses to any bare `display` rule on the same element, because `[hidden] { display: none }` has class specificity. Write the rule as `.list:not([hidden]) { display: grid }`.
 - **No `navigator.getGamepads`, no pad.** The gamepad plugin registers nothing when the API is absent (Playwright's WebKit, some television runtimes) rather than throwing inside `createInputSystem`.
 - **`composite` on a laptop looks like nothing happening.** Arrow keys are handed to the page; only Tab and a pad move. Use `mode: "app"` when the whole page is the composite.
@@ -135,7 +136,7 @@ Constraints to know before writing one:
 ## Source
 
 - [Input system](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/src/input-system.ts): `createInputSystem`, the keydown listener, `activateFocused`.
-- [Intent bus](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/src/intent-bus.ts): scopes, `trapped`, `base`.
+- [Intent bus](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/src/intent-bus.ts): scopes, `trapped`, `base`, `within`.
 - [Keymap](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/src/keymap.ts): every default key and remote code, the text-entry rule.
 - [Engage](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/src/engage.ts): `pushEngageScope`.
 - [Spatial engine](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/src/spatial/spatial.ts): options, the walk, the attributes.

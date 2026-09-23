@@ -1,4 +1,15 @@
-import { type ReactNode, StrictMode, useEffect, useLayoutEffect, useState } from "react";
+import {
+  createRef,
+  type ReactNode,
+  type RefObject,
+  StrictMode,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { type ParityProbe, type ParityTree, runAdapterParitySuite } from "../adapter-parity";
 import type { IntentHandler } from "../intent-bus";
@@ -7,6 +18,7 @@ import { alphabetic } from "../keyboard/layouts/alphabetic";
 import { spatialPlugin } from "../spatial/spatial";
 import type { InputModality } from "../types";
 import {
+  type InputSystem,
   NavProvider,
   useInputModality,
   useInputSystem,
@@ -603,6 +615,167 @@ describe("useIntentScopeHost, and scope order across a rebuild", () => {
   });
 });
 
+describe("useIntent — a composite inside a trapping dialog (ADR-0025)", () => {
+  const CHOICES = ["low", "medium", "high"] as const;
+
+  function press(key: string): void {
+    fire(() => {
+      document.dispatchEvent(
+        new KeyboardEvent("keydown", { key, bubbles: true, cancelable: true }),
+      );
+    });
+  }
+
+  function checked(): string | undefined {
+    return document.querySelector<HTMLInputElement>("input[name=level]:checked")?.value;
+  }
+
+  // The recipe of docs/en/react.md: the dialog traps and names its surface.
+  function Dialog({
+    onClose,
+    children,
+  }: {
+    readonly onClose: VoidFunction;
+    readonly children?: ReactNode;
+  }): ReactNode {
+    const surface = useRef<HTMLDivElement>(null);
+    useIntent(
+      (event) => {
+        if (event.intent !== "back") return false;
+        onClose();
+        return true;
+      },
+      { trapped: true, within: surface },
+    );
+    return (
+      <div ref={surface} data-snav="container" data-snav-trap>
+        {children}
+      </div>
+    );
+  }
+
+  type Within = "ref" | "getter" | "element" | "none";
+
+  function RadioGroup({ within }: { readonly within: Within }): ReactNode {
+    const group = useRef<HTMLDivElement | null>(null);
+    const [element, setElement] = useState<HTMLDivElement | null>(null);
+    const [at, setAt] = useState(0);
+    const attach = useCallback((node: HTMLDivElement | null) => {
+      group.current = node;
+      setElement(node);
+    }, []);
+    useIntent(
+      (event) => {
+        if (event.intent !== "moveDown" && event.intent !== "moveUp") return false;
+        const step = event.intent === "moveDown" ? 1 : -1;
+        setAt((index) => Math.max(0, Math.min(CHOICES.length - 1, index + step)));
+        return true;
+      },
+      {
+        within:
+          within === "ref"
+            ? group
+            : within === "getter"
+              ? () => group.current
+              : within === "element"
+                ? element
+                : undefined,
+      },
+    );
+    return (
+      <div role="radiogroup" ref={attach}>
+        {CHOICES.map((choice, index) => (
+          <label key={choice}>
+            <input type="radio" name="level" value={choice} checked={index === at} readOnly />
+            {choice}
+          </label>
+        ))}
+      </div>
+    );
+  }
+
+  function App({
+    within,
+    onClose,
+  }: {
+    readonly within: Within;
+    readonly onClose: VoidFunction;
+  }): ReactNode {
+    const [open, setOpen] = useState(true);
+    const plugins = useMemo(() => [spatialPlugin({ mode: "app" })], []);
+    return (
+      <NavProvider plugins={plugins}>
+        {open ? (
+          <Dialog
+            onClose={() => {
+              onClose();
+              setOpen(false);
+            }}
+          >
+            <RadioGroup within={within} />
+          </Dialog>
+        ) : null}
+      </NavProvider>
+    );
+  }
+
+  for (const within of ["ref", "getter", "element"] as const) {
+    it(`moves a radio group mounted with its dialog, its within given as ${within}`, async () => {
+      const onClose = vi.fn();
+      mount(<App within={within} onClose={onClose} />);
+      await settle();
+
+      press("ArrowDown");
+      expect(checked()).toBe("medium");
+
+      // `back` still escapes the trap and reaches the dialog.
+      press("Escape");
+      await settle();
+      expect(onClose).toHaveBeenCalledOnce();
+    });
+  }
+
+  it("keeps a radio group that names no element silenced, as before", async () => {
+    mount(<App within="none" onClose={() => {}} />);
+    await settle();
+
+    press("ArrowDown");
+
+    expect(checked()).toBe("low");
+  });
+
+  it("does not open the scope again for a within that is a new arrow on every render", async () => {
+    let system: InputSystem | null = null;
+    function Probe(): ReactNode {
+      system = useInputSystem();
+      return null;
+    }
+    function Composite({ tick }: { readonly tick: number }): ReactNode {
+      const group = useRef<HTMLDivElement>(null);
+      useIntent(() => false, { within: () => group.current });
+      return <div ref={group} data-tick={tick} />;
+    }
+    const tree = (tick: number): ReactNode => (
+      <NavProvider>
+        <Probe />
+        <Composite tick={tick} />
+      </NavProvider>
+    );
+    const handle = mount(tree(0));
+    await settle();
+    const built = system as InputSystem | null;
+    if (built === null) throw new Error("no system");
+    const pushScope = vi.spyOn(built, "pushScope");
+
+    handle.render(tree(1));
+    await settle();
+    handle.render(tree(2));
+    await settle();
+
+    expect(pushScope).not.toHaveBeenCalled();
+  });
+});
+
 /**
  * React is the first adapter through the shared gate. Every later one passes its
  * own three functions to the same runner.
@@ -627,20 +800,24 @@ const parity = (() => {
         name,
         trapped,
         base,
+        within,
+        children,
       }: {
         readonly name: string;
         readonly trapped?: boolean | undefined;
         readonly base?: boolean | undefined;
+        readonly within?: RefObject<HTMLDivElement | null> | undefined;
+        readonly children?: ReactNode;
       }): ReactNode {
         useIntent(
           (event) => {
             intents.push(`${name}:${event.intent}`);
             return false;
           },
-          { trapped, base },
+          { trapped, base, within },
         );
         useEffect(() => () => void released.push(name), [name]);
-        return null;
+        return children;
       }
 
       function Probe(): ReactNode {
@@ -654,13 +831,38 @@ const parity = (() => {
       // object on every update and rebuild the system each time, and only `keymap` is
       // meant to do that.
       const plugins = [spatialPlugin()];
-      tree = (next: ParityTree): ReactNode => (
-        <NavProvider plugins={plugins} keymap={next.keymap}>
-          <Probe />
-          {(next.outer ?? true) && <Named name="outer" base={next.base ?? false} />}
-          {(next.inner ?? true) && <Named name="inner" trapped={next.trapped ?? false} />}
-        </NavProvider>
-      );
+      // The elements belong to the tree rather than to the scope components, so they
+      // stay nested when the components are siblings, and a ref is what `within` gets.
+      const outerElement = createRef<HTMLDivElement>();
+      const innerElement = createRef<HTMLDivElement>();
+      tree = (next: ParityTree): ReactNode => {
+        const inner = (next.inner ?? true) && (
+          <Named
+            name="inner"
+            trapped={next.trapped ?? false}
+            within={next.within ? innerElement : undefined}
+          />
+        );
+        return (
+          <NavProvider plugins={plugins} keymap={next.keymap}>
+            <Probe />
+            <div data-parity="outer" ref={outerElement}>
+              <div data-parity="inner" ref={innerElement} />
+            </div>
+            {(next.outer ?? true) && (
+              <Named
+                name="outer"
+                base={next.base ?? false}
+                trapped={next.outerTrapped ?? false}
+                within={next.within ? outerElement : undefined}
+              >
+                {next.nested ? inner : null}
+              </Named>
+            )}
+            {next.nested ? null : inner}
+          </NavProvider>
+        );
+      };
 
       handle = mount(tree(shape ?? {}));
 

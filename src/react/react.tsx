@@ -310,17 +310,42 @@ export function useInputModality(): InputModality {
   return modality;
 }
 
+export interface UseIntentOptions extends Omit<IntentScopeOptions, "within"> {
+  /**
+   * The component's element, for a trap its surface (ADR-0025): an element, a getter,
+   * or a ref — the element only exists after the first commit, so it is read at
+   * dispatch. A new value here never re-opens the scope.
+   */
+  readonly within?:
+    | IntentScopeOptions["within"]
+    | { readonly current: Element | null | undefined }
+    | undefined;
+}
+
 /**
  * Opens an intent scope for the lifetime of the component. The handler is read
  * from a ref, so an inline arrow does not pop and re-push the scope on every
- * render — which would silently reorder it under any scope pushed since. A new
- * `trapped` or `base` keeps the scope where it was opened, and so does a rebuilt
- * system: the provider re-opens every scope itself, in open order.
+ * render — which would silently reorder it under any scope pushed since. `within`
+ * is read the same way. A new `trapped` or `base` keeps the scope where it was
+ * opened, and so does a rebuilt system: the provider re-opens every scope itself,
+ * in open order.
  */
-export function useIntent(handler: IntentHandler, options?: IntentScopeOptions | undefined): void {
+export function useIntent(handler: IntentHandler, options?: UseIntentOptions | undefined): void {
   const registry = useContext(ScopeRegistryContext);
   const latest = useRef(handler);
   latest.current = handler;
+  const source = useRef(options?.within);
+  source.current = options?.within;
+  // One getter for the life of the component, so neither an inline arrow nor a ref
+  // that only gets its element after this commit is a reason to re-open the scope.
+  const [within] = useState(() => (): Element | null | undefined => {
+    const current = source.current;
+    return typeof current === "function"
+      ? current()
+      : current && "current" in current
+        ? current.current
+        : current;
+  });
   // Read field by field rather than passing `options` through: the object is
   // usually a fresh literal per render, and depending on it would pop and re-push
   // the scope every time. `base` is forwarded too — the source dropped it
@@ -328,8 +353,8 @@ export function useIntent(handler: IntentHandler, options?: IntentScopeOptions |
   // someone will pass it.
   const trapped = options?.trapped;
   const base = options?.base;
-  const shape = useRef<IntentScopeOptions>({ trapped, base });
-  shape.current = { trapped, base };
+  const shape = useRef<IntentScopeOptions>({ trapped, base, within });
+  shape.current = { trapped, base, within };
   const opened = useRef<Registration | null>(null);
 
   useEffect(() => {
@@ -351,6 +376,6 @@ export function useIntent(handler: IntentHandler, options?: IntentScopeOptions |
     const entry = opened.current;
     if (registry === null || entry === null) return;
     if (entry.options?.trapped === trapped && entry.options?.base === base) return;
-    reopen(registry, entry, { trapped, base });
-  }, [registry, trapped, base]);
+    reopen(registry, entry, { trapped, base, within });
+  }, [registry, trapped, base, within]);
 }

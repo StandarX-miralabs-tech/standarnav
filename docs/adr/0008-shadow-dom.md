@@ -183,7 +183,7 @@ already the expected first one ([ADR-0010](0010-dev-mode-diagnostics.md)).
 - Only call sites of the shadow-aware `contains` at HEAD: `src/dom/dom.browser.test.ts:53-56`
   (`grep -rn "contains(" src/` — every other hit is `Node.contains`).
 - The skipped fixture: `src/spatial/spatial.browser.test.ts:920-942`, one `it.skip` at `:921`
-  naming this ADR. `bun run test:browser` → 284 passed, 1 skipped in 13 files; that skip is this
+  naming this ADR. `bun run test:browser` → 304 passed, 1 skipped in 14 files; that skip is this
   one, and it is the only one in the repository.
 - Shadow-DOM field of the 20 competitor fact sheets, adversarially verified; the `Shadowdomize`
   module in Tabster's own repository, and its README statement, are the single "supported, opt-in"
