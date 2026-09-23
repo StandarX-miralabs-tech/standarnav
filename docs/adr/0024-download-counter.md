@@ -103,8 +103,11 @@ outage. Past thirteen days of silence, days are lost and no error says so.
 
 Decision 1 through 6 are dead. `.github/workflows/badges.yml`,
 `scripts/download-counts.ts`, its seventeen tests and the orphan `badges` branch are
-deleted, and the README's downloads badge is `shields.io/npm/dt` — the alternative this
-record listed first and rejected only because it answered one source out of three.
+deleted, and the README's downloads badge is `shields.io/npm/dm` — the alternative this
+record listed first and rejected only because it answered one source out of three. `dm` and
+not `dt`: shields serves **no total at all** for a scoped package, and the `npm/dt` form put
+in the README on 2026-09-23 rendered an empty response until it was checked. Monthly
+downloads is what a scoped package can show.
 
 **What killed it, measured the same day it shipped.** The first scheduled run went green
 and published `downloads | 0`. It was not zero: `GET /repos/.../traffic/clones` answered
