@@ -177,3 +177,12 @@ a regrettable one. What still separates them is ownership: one augments a native
 the other is markup an application wrote. The list also renders below its trigger with no
 flip-up when it would overflow the viewport, which is visible on this page with the footer in the
 way. That is a positioning problem, not a navigation one, and it is named here rather than fixed.
+
+## Amendment, 2026-09-23: `within` changes nothing for these lists
+
+[ADR-0025](0025-trap-within-its-surface.md) lets a trap that names its surface through `within`
+still ask a scope beneath it whose own `within` lies inside that surface. Both lists here push
+their trap with `{ trapped: true }` and no `within` (`playground/widgets.ts:277`, `:488`), so they
+silence exactly what the Decision above says they silence. Naming the list would change nothing
+either: each trap is pushed on the user's A, above every scope already open, and nothing inside
+the list opens a scope of its own — its options are plain buttons the `base` engine moves through.
