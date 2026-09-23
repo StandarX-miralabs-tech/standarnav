@@ -1022,13 +1022,13 @@ describe("the native answer through the adapter (ADR-0026)", () => {
     return document.querySelector<HTMLInputElement>("input[name=size]:checked")?.value;
   }
 
-  // The recipe of docs/en/react.md: native radios in app mode keep their arrows.
+  // The recipe of docs/en/react.md: native radios in app mode keep their own axis.
   function Sizes(): ReactNode {
     const group = useRef<HTMLDivElement>(null);
     useIntent(
       (event) =>
         event.source === "keyboard" &&
-        event.intent.startsWith("move") &&
+        (event.intent === "moveUp" || event.intent === "moveDown") &&
         group.current?.contains(document.activeElement) === true
           ? "native"
           : false,

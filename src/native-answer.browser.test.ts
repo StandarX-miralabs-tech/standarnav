@@ -10,7 +10,8 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { userEvent } from "vitest/browser";
 import { createInputSystem, type InputSystem } from "./input-system";
-import { type SpatialPlugin, spatialPlugin } from "./spatial/spatial";
+import { spatialPlugin } from "./spatial/spatial";
+import type { NavigationIntent } from "./types";
 
 const cleanups: VoidFunction[] = [];
 
@@ -18,20 +19,25 @@ afterEach(() => {
   for (const dispose of cleanups.splice(0, cleanups.length)) dispose();
 });
 
+function button(id: string, x: number, y: number): string {
+  return `<button id="${id}" style="position:absolute;left:${x}px;top:${y}px;width:80px;height:40px"></button>`;
+}
+
 const CONTROLS = `
   <div id="group" style="position:absolute;left:10px;top:40px">
     <label style="display:block"><input type="radio" name="size" id="r1" checked> S</label>
     <label style="display:block"><input type="radio" name="size" id="r2"> M</label>
     <label style="display:block"><input type="radio" name="size" id="r3"> L</label>
   </div>
+  ${button("aside", 200, 50)}
   <input type="range" id="range" min="0" max="10" value="5"
     style="position:absolute;left:10px;top:160px;width:160px">
-  <button id="beside" style="position:absolute;left:300px;top:160px;width:80px;height:30px"></button>
+  ${button("beside", 300, 150)}
+  ${button("below", 10, 240)}
 `;
 
 interface Scene {
   readonly input: InputSystem;
-  readonly plugin: SpatialPlugin;
   /** Every target the spatial engine was about to focus, in order. */
   readonly moves: string[];
   at(id: string): HTMLElement;
@@ -57,7 +63,6 @@ function scene(): Scene {
 
   return {
     input,
-    plugin,
     moves,
     at: (id): HTMLElement => host.querySelector(`#${id}`) as HTMLElement,
     checked: (): string => host.querySelector<HTMLInputElement>(":checked")?.id ?? "",
@@ -65,13 +70,21 @@ function scene(): Scene {
   };
 }
 
-/** The recipe of docs/en/navigation.md: keyboard arrows on the control are the browser's. */
-function answerNative(view: Scene, control: HTMLElement): void {
+const AXES: Readonly<Record<"vertical" | "horizontal", readonly NavigationIntent[]>> = {
+  vertical: ["moveUp", "moveDown"],
+  horizontal: ["moveLeft", "moveRight"],
+};
+
+/**
+ * The recipe of docs/en/navigation.md: the keyboard arrows along the control's own axis
+ * are the browser's, and the other axis stays the engine's, so there is always a way out.
+ */
+function answerNative(view: Scene, control: HTMLElement, axis: keyof typeof AXES): void {
   cleanups.push(
     view.input.pushScope(
       (event) =>
         event.source === "keyboard" &&
-        event.intent.startsWith("move") &&
+        AXES[axis].includes(event.intent) &&
         control.contains(document.activeElement)
           ? "native"
           : false,
@@ -83,14 +96,14 @@ function answerNative(view: Scene, control: HTMLElement): void {
 describe("app mode, a native control and a scope answering native", () => {
   it("lets the arrow keys check the next radio, and a pad still leaves the group", async () => {
     const view = scene();
-    answerNative(view, view.at("group"));
+    answerNative(view, view.at("group"), "vertical");
     view.at("r1").focus();
 
     await userEvent.keyboard("{ArrowDown}");
     expect(view.checked()).toBe("r2");
     expect(view.active()).toBe("r2");
 
-    await userEvent.keyboard("{ArrowRight}");
+    await userEvent.keyboard("{ArrowDown}");
     expect(view.checked()).toBe("r3");
     expect(view.active()).toBe("r3");
     expect(view.moves).toEqual([]);
@@ -102,10 +115,22 @@ describe("app mode, a native control and a scope answering native", () => {
     expect(view.moves).toEqual(["range"]);
   });
 
-  it("lets ArrowRight and ArrowLeft step a range", async () => {
+  it("leaves the radio group along the other axis, checking nothing", async () => {
+    const view = scene();
+    answerNative(view, view.at("group"), "vertical");
+    view.at("r1").focus();
+
+    await userEvent.keyboard("{ArrowRight}");
+
+    expect(view.active()).toBe("aside");
+    expect(view.checked()).toBe("r1");
+    expect(view.moves).toEqual(["aside"]);
+  });
+
+  it("lets ArrowRight and ArrowLeft step a range, and ArrowDown leave it", async () => {
     const view = scene();
     const range = view.at("range") as HTMLInputElement;
-    answerNative(view, range);
+    answerNative(view, range, "horizontal");
     range.focus();
 
     await userEvent.keyboard("{ArrowRight}");
@@ -113,9 +138,13 @@ describe("app mode, a native control and a scope answering native", () => {
     await userEvent.keyboard("{ArrowLeft}");
     await userEvent.keyboard("{ArrowLeft}");
     expect(range.value).toBe("4");
-
     expect(view.active()).toBe("range");
     expect(view.moves).toEqual([]);
+
+    await userEvent.keyboard("{ArrowDown}");
+    expect(view.active()).toBe("below");
+    expect(range.value).toBe("4");
+    expect(view.moves).toEqual(["below"]);
   });
 });
 
