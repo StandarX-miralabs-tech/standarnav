@@ -57,6 +57,47 @@ on a field (`src/focus-ring/focus-ring.ts:114-116`).
   step, no import and no stylesheet ordering to make them win — an inline style with a custom
   property is overridden by defining the property, not by out-specifying a selector.
 
+## Amendment, 2026-09-23: a zero duration removes the fade too
+
+The decision above fades show and hide over 150 ms and skips the fade only under reduced motion.
+Issue #12 found the hole in that: a host that turns its own motion off by resolving
+`--snav-focus-ring-duration` to `0ms` stopped the ring travelling, but every hide and every return
+still ran a 150 ms opacity animation, because `fade` animated over the constant `FADE_DURATION`
+whatever the ring's duration was.
+
+**The fade now reads the ring's resolved duration and is skipped when it is zero or less.**
+`fade` calls `motion()` (`src/focus-ring/focus-ring.ts:128-139`), which resolves the same value
+the move uses — the `duration` option, else `--snav-focus-ring-duration`, else 260 ms, or 150 ms
+under reduced motion — and returns before animating when that value is `<= 0` or reduced motion
+is on (`src/focus-ring/focus-ring.ts:147-154`). The move already stopped at the same bound
+(`src/focus-ring/focus-ring.ts:182`). A positive duration leaves the fade exactly as it was:
+150 ms, `FADE_DURATION`, with the fallback easing.
+
+Two things were left out on purpose. The fade is not scaled to the duration (no
+`min(150, duration)`): nothing asked for it, and the only case reported is the off switch. And no
+seventh custom property: the issue suggested `--snav-focus-ring-fade-duration`, but the contract
+stays the six names above and in [ADR-0001](0001-name-scope-and-attribute-prefix.md), and the host
+in the report already sets the property that now switches the fade off.
+
+Evidence, 2026-09-23, in this repository:
+
+- `src/focus-ring/focus-ring.browser.test.ts:210-235`, "neither fades in nor out with %s", runs
+  three ways — the `duration` option at `0`, and `--snav-focus-ring-duration` at `0ms` and at `0s`
+  set on the ring — and asserts `ring.getAnimations()` is empty after a hide and a return, both
+  through `pause`/`resume` and through a switch to `pointer` modality and back. Before the fix all
+  three failed on chromium, firefox and webkit with `expected [ Animation{} ] to have a length of
+  +0 but got 1`.
+- `src/focus-ring/focus-ring.browser.test.ts:197-208`, "fades out and back in over 150 ms by
+  default", is the guard the other way: with no duration set, the hide and the return each start
+  one opacity animation whose timing reports `duration` 150, on all three engines.
+- `SNAV_BROWSER=chromium`, `firefox` and `webkit bun run test:browser src/focus-ring` → 17 passed
+  on each.
+- On the playground (`bun run dev`), a Playwright script recording every `animate` call on the
+  overlay, with `--snav-focus-ring-duration` set on the root element: at `0ms` and at `0s` a
+  pointer click that hides the ring and a Tab that brings it back start no opacity animation on
+  chromium, firefox or webkit; on `main` before the fix the same run recorded a 150 ms fade for
+  each, and with the property unset it still does.
+
 ## Alternatives considered
 
 **Ship an optional stylesheet.** Rejected: it reintroduces the problem the package exists to avoid.
