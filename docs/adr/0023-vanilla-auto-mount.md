@@ -57,7 +57,7 @@ The attribute is read once, off `options.root ?? doc.documentElement`, and only 
 (`MODE_ATTRIBUTE` at `src/auto/auto.ts:32`, `readMode` at `:65-67`). It is a **new** attribute:
 nothing in `src/` read `data-snav-mode` before this record, and
 [ADR-0007](0007-navigation-modes.md) mentions the name only to reject a per-container form of it
-(`0007-navigation-modes.md:129`). That rejection stands untouched — see the amendment this record adds there.
+(`0007-navigation-modes.md:150`). That rejection stands untouched — see the amendment this record adds there.
 
 **4. `plugins` is an array or a factory, and the factory is the point.**
 `AutoPlugins = readonly InputPlugin[] | ((config: AutoConfig) => readonly InputPlugin[])`
@@ -126,7 +126,7 @@ in the Evidence below are what was measured on the day they name.
 | **A bare side-effecting import, `import "@standarx/nav/auto"`** | The shortest possible start-up, and impossible here: `"sideEffects": false` (`package.json:26`) lets a bundler drop a module imported for its effects alone. Dropping the promise for this one entry would cost every other subpath its tree-shaking. |
 | **`autoMount()` with no arguments, constructing `spatialPlugin` itself** | The most convenient form, and the one that breaks the layout: `/auto` would import `/spatial`, so ADR-0011's "an entry the consumer never imports is never bundled" (`:41-43`) would stop holding, and the line would stop being about the helper: it would carry the spatial engine, measured at 3.04 kB min+gzip on its own line the same day, on top of the helper's 0.60. Rejected on that alone. |
 | **No attribute at all, `mode` as an option** | Honest and smaller, and it leaves the helper with one behaviour — the `DOMContentLoaded` wait — which does not earn a public subpath. It would also make ADR-0011's "attribute-driven start-up" (`0011-package-layout-and-adapters.md:131`) a description of nothing. |
-| **Per-container `data-snav-mode`, the form ADR-0007 rejected** | Still rejected, for ADR-0007's own reason (`0007-navigation-modes.md:129`): the mode would depend on where the focus is and could change mid-move. The attribute here is read once, on one element, before the engine exists. |
+| **Per-container `data-snav-mode`, the form ADR-0007 rejected** | Still rejected, for ADR-0007's own reason (`0007-navigation-modes.md:150`): the mode would depend on where the focus is and could change mid-move. The attribute here is read once, on one element, before the engine exists. |
 | **Running the adapter parity suite against it** | The suite's contract is a provider with a render pass and two nested scope components (`src/adapter-parity.ts:86-107`). Satisfying it would mean inventing that shape for an API that has none, which is a test asserting the fixture rather than the helper. |
 
 ## Evidence
@@ -146,7 +146,7 @@ in the Evidence below are what was measured on the day they name.
 - That `data-snav-mode` was new on this date: `MODALITY_ATTRIBUTE = "data-snav-input"`
   (`src/modality.ts:19`) is the only other `mode`-shaped name in the package and is written by
   the library rather than read from the page; ADR-0007's only mention of `data-snav-mode` is the
-  rejected per-container row (`0007-navigation-modes.md:129`), and mode until now was read from
+  rejected per-container row (`0007-navigation-modes.md:150`), and mode until now was read from
   the options at construction (`:55-58`).
 - Coverage: `src/auto/auto.browser.test.ts`, fourteen cases by `grep -c "^  it(" ` on 2026-09-22
   — the two plugin shapes, the two forwarded options, the four mode cases including an explicit
