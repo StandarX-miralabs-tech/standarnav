@@ -79,3 +79,40 @@ that looks like it. The attributes the walk reads are in [attributes.md](attribu
 
 When a move surprises you, read the scored list with `explainMove` from `@standarx/nav/debug`
 (`src/debug.ts`).
+
+## Native radios and ranges in `app` mode
+
+In `app` mode the engine takes every arrow key, so a native radio group and a range lose theirs:
+ArrowDown moves the focus to the next radio without checking it, and ArrowRight moves the focus
+off a range without stepping it. The engine never guesses which controls to leave alone
+([ADR-0026](../adr/0026-native-handler-answer.md)); a scope says so by answering `"native"`. That
+ends the walk before the engine and leaves the key to the browser:
+
+```ts
+const group = document.querySelector<HTMLElement>("#size")!;
+
+const dispose = input.pushScope(
+  (event) =>
+    event.source === "keyboard" &&
+    (event.intent === "moveUp" || event.intent === "moveDown") &&
+    group.contains(document.activeElement)
+      ? "native"
+      : false,
+  { within: group },
+);
+```
+
+- **Keyboard only.** A pad has no native default for a direction, so `"native"` for a pad would
+  stop the walk and move nothing. The pad keeps moving spatially, and adjusts a range through
+  engage mode (`pushEngageScope`).
+- **The control's own axis only.** Up and down for a vertical radio group, left and right for a
+  range. A television remote's arrows reach the page as the same `ArrowUp` to `ArrowRight` keys, so
+  `event.source` cannot tell it from a keyboard; and a native radio group wraps on chromium and
+  firefox, so a remote whose every arrow went to it could never leave. The other axis stays the
+  engine's, which always leaves a way out.
+- **`within` on the control**, so the answer still reaches the scope when the control sits inside a
+  trapping dialog that names its surface ([ADR-0025](../adr/0025-trap-within-its-surface.md)).
+
+Tests, with real key presses on chromium, firefox and webkit: `src/native-answer.browser.test.ts`
+— ArrowDown checks the next radio, ArrowRight leaves the group, ArrowRight and ArrowLeft step a
+range and ArrowDown leaves it, and without the scope the engine moves as before.

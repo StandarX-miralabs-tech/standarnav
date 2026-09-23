@@ -11,6 +11,7 @@ import {
   useState,
 } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { userEvent } from "vitest/browser";
 import { type ParityProbe, type ParityTree, runAdapterParitySuite } from "../adapter-parity";
 import type { IntentHandler } from "../intent-bus";
 import { keyboardPlugin } from "../keyboard/keyboard";
@@ -1013,5 +1014,89 @@ describe("the on-screen keyboard against a controlled React input", () => {
       caret: 3,
       shown: "AAB",
     });
+  });
+});
+
+describe("the native answer through the adapter (ADR-0026)", () => {
+  function checked(): string | undefined {
+    return document.querySelector<HTMLInputElement>("input[name=size]:checked")?.value;
+  }
+
+  // The recipe of docs/en/react.md: native radios in app mode keep their own axis.
+  function Sizes(): ReactNode {
+    const group = useRef<HTMLDivElement>(null);
+    useIntent(
+      (event) =>
+        event.source === "keyboard" &&
+        (event.intent === "moveUp" || event.intent === "moveDown") &&
+        group.current?.contains(document.activeElement) === true
+          ? "native"
+          : false,
+      { within: group },
+    );
+    return (
+      <div role="radiogroup" ref={group}>
+        {["s", "m", "l"].map((size) => (
+          <label key={size} style={{ display: "block" }}>
+            <input type="radio" name="size" value={size} defaultChecked={size === "s"} />
+            {size}
+          </label>
+        ))}
+      </div>
+    );
+  }
+
+  it("lets a real ArrowDown check the next radio through useIntent", async () => {
+    const plugins = [spatialPlugin({ mode: "app" })];
+    mount(
+      <NavProvider plugins={plugins}>
+        <Sizes />
+        <button type="button">after</button>
+      </NavProvider>,
+    );
+    await settle();
+    document.querySelector<HTMLInputElement>("input[value=s]")?.focus();
+
+    await userEvent.keyboard("{ArrowDown}");
+
+    expect(checked()).toBe("m");
+    expect((document.activeElement as HTMLInputElement | null)?.value).toBe("m");
+  });
+
+  it("hands a host scope's native answer back unchanged", async () => {
+    let host: ReturnType<typeof useIntentScopeHost> = null;
+    function Probe(): ReactNode {
+      host = useIntentScopeHost();
+      return null;
+    }
+    const plugins = [spatialPlugin({ mode: "app" })];
+    mount(
+      <NavProvider plugins={plugins}>
+        <Probe />
+        <button type="button" id="first">
+          first
+        </button>
+        <button type="button" id="second">
+          second
+        </button>
+      </NavProvider>,
+    );
+    await settle();
+    const opened = host as ReturnType<typeof useIntentScopeHost>;
+    if (opened === null) throw new Error("no host");
+    const dispose = opened.pushScope(() => "native");
+    document.querySelector<HTMLElement>("#first")?.focus();
+
+    // The two buttons sit side by side, so without the answer the engine would move right.
+    const event = new KeyboardEvent("keydown", {
+      key: "ArrowRight",
+      bubbles: true,
+      cancelable: true,
+    });
+    fire(() => document.dispatchEvent(event));
+    dispose();
+
+    expect(event.defaultPrevented).toBe(false);
+    expect(document.activeElement?.id).toBe("first");
   });
 });

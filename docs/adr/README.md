@@ -58,7 +58,7 @@ Rules that go with that skeleton:
   in the prose so the mismatch is visible when it does.
 - Related records are linked by file name, relative to this directory:
   `[ADR-0003](0003-package-boundaries.md)`.
-- Length: 60 to 150 lines is the target **for a new record**. The twenty-four below
+- Length: 60 to 150 lines is the target **for a new record**. The twenty-five below
   run from 92 to 614 lines (`wc -l docs/adr/0*.md`, 2026-09-23), because an
   accepted record grows by amendment. The target governs the first draft; an
   amendment is judged on whether it says something the record did not, not on the
@@ -66,8 +66,8 @@ Rules that go with that skeleton:
 
 ## Adding one
 
-1. Take the next free number. The highest in use is ADR-0025, so the next is
-   ADR-0026. Numbers are never reused, and a superseded record keeps its number.
+1. Take the next free number. The highest in use is ADR-0026, so the next is
+   ADR-0027. Numbers are never reused, and a superseded record keeps its number.
    ADR-0004 is the one gap: it recorded a migration plan for the private
    predecessor rather than a decision of this repository, so it was withdrawn on
    2026-09-20 instead of superseded, its one design decision — the focus ring's
@@ -125,3 +125,4 @@ dated amendment in its record.
 | [0024](0024-download-counter.md) | One cumulated download counter, and what it may not claim | Accepted, then withdrawn 2026-09-23 | The README's downloads badge sums npm installs, release asset downloads and the clones that are not this repository's own CI. Release assets measure 0 structurally and clones are mostly `actions/checkout`, so the script subtracts two clones per CI job — the ratio measured here — accumulates whole days against GitHub's fourteen-day traffic window, and keeps its state on an orphan `badges` branch. The residual is an upper bound on human clones, never a user count. **Withdrawn the day it shipped:** the Actions `GITHUB_TOKEN` gets 403 on the traffic API and no workflow permission grants that endpoint, so the badge is `npm/dt` and the machinery is deleted. The measurements stand as the reason not to reopen it cheaply. |
 | [0023](0023-vanilla-auto-mount.md) | The vanilla auto-mount helper is `@standarx/nav/auto` | Accepted | Closes ADR-0011's rider on the subpath name. `autoMount()` is a factory, never a side-effecting import, and adds exactly two things to `createInputSystem`: it waits for `DOMContentLoaded` when the document is still parsing, and it lets the page pick the navigation mode through a new `data-snav-mode` attribute read once off the root. `plugins` takes a factory so that attribute can reach an engine at all. No engine is imported, and the adapter parity suite is not run — there is no render pass to satisfy it with. |
 | [0025](0025-trap-within-its-surface.md) | A trap still asks what lies inside its surface, when both say so | Accepted | Answers issue #14. `within` on a scope, an element or a getter read at dispatch, opt-in: a trap that names its surface still asks a scope beneath it whose own `within` lies inside it, after the trap — containment does not reorder the stack. A trap or a scope without `within` behaves as before. Every trap asked sets the surface, so a nested dialog narrows it. React's `useIntent` also takes a ref; engage mode passes no element. Amends specification R4. |
+| [0026](0026-native-handler-answer.md) | A scope may answer "native": the walk ends and the default acts | Accepted | Answers issue #15. A handler may return `"native"` beside `true` and `false`: it stops the walk, `base` scopes and the spatial engine included, and the dispatch reads as an intent nobody answered, so the browser keeps a key's default and a pad `select` keeps the emulated click. A trap still swallows what nobody it asked answered. No engine rule excludes native controls, since a remote's arrows arrive as keyboard arrows and a radio group wraps: the recipe answers on the control's own axis. |

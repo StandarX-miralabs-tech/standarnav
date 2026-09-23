@@ -126,7 +126,7 @@ Adapter order, each shipping only once it passes the same browser suite as the c
    React and nothing else. It also carries a test file of its own, which the predecessor's adapter
    did not: `src/react/react.browser.test.tsx`, 1017 lines, twenty-five direct cases by
    `grep -cE "^\s*(it|test)\("` (one of them a loop that runs three), ending in
-   `runAdapterParitySuite(parity)` at `:894` on the adapter object built at `:783-892` — the
+   `runAdapterParitySuite(parity)` at `:895` on the adapter object built at `:784-893` — the
    shared parity suite that is the ship condition below.
 2. **vanilla auto-mount helper — shipped**, `@standarx/nav/auto`, no framework
    ([ADR-0023](0023-vanilla-auto-mount.md)). See the amendment below for what

@@ -214,7 +214,7 @@ this working tree, run 2026-09-20.
 - **R3. Founding invariant.** Arrow keys and d-pad produce the same `IntentEvent`. Nothing downstream
   can tell them apart except by reading `source`, and the engine branches on it in exactly two
   places, both documented: the unclaimed `select` that a keyboard must not double-fire
-  (R6, `src/input-system.ts:126`) and the composite-mode arrow rule (R29,
+  (R6, `src/input-system.ts:127`) and the composite-mode arrow rule (R29,
   `src/spatial/spatial.ts:493`). `grep -rn "source ===" src` on 2026-09-20 returns five hits: those
   two, one assertion in `src/input-system.browser.test.ts`, and two in `src/react/react.tsx` (`:151`,
   `:160`) that are an unrelated local of the same name in the adapter's value-or-thunk helper.
@@ -226,14 +226,24 @@ this working tree, run 2026-09-20.
   asks a scope beneath it whose own `within` lies inside that surface — after the trap, never
   before it, since containment does not reorder the stack. A trap or a scope without `within` is
   unchanged, and every trap asked sets the surface, so a dialog nested in another narrows it
-  (`src/intent-bus.browser.test.ts`).
+  (`src/intent-bus.browser.test.ts`). Amended by [ADR-0026](adr/0026-native-handler-answer.md): a
+  handler returns `true`, `false`, nothing, or `"native"` (`IntentHandler`). `"native"` ends the
+  walk too — no scope beneath is asked, `base` scopes and the spatial engine included — but
+  unclaimed: the dispatch reports `consumed: false` and the event's own `defaultPrevented`, exactly
+  as for an intent nobody answered. A `"native"` answer from any scope the walk asks, through a trap
+  too, keeps the default; a trap nobody answered still swallows (`src/intent-bus.test.ts`,
+  "createIntentBus — the native answer (ADR-0026)").
 - **R5.** `createInputSystem({ doc, plugins, keymap, allowVerticalInText })` is an instance, never a
   global singleton (`InputSystemOptions`, `src/input-system.ts:50-56`): two coexist in one page,
   and no `document` or `window` access happens outside initialisation, so hydration is safe.
 - **R6.** An unclaimed `select` from a non-keyboard source clicks the focused element, so a pad
-  activates an ordinary `<button>` with no wiring (`src/input-system.ts:118-132`, which also skips a
+  activates an ordinary `<button>` with no wiring (`src/input-system.ts:119-133`, which also skips a
   repeat and a text-entry target). `preventDefault()` reaches the native event only when a scope
-  consumed the intent; arrow-key scrolling stays intact otherwise.
+  consumed the intent; arrow-key scrolling stays intact otherwise. A scope answering `"native"`
+  (R4) consumes nothing, so the key keeps its browser default and a pad `select` answered that way
+  still gets the click ([ADR-0026](adr/0026-native-handler-answer.md); "leaves the native default
+  of a keyboard intent a scope answered native" and "lets the emulated click run for a pad select
+  answered native, as for one nobody claimed" in `src/input-system.browser.test.ts`).
 - **R7.** Engage mode: `select` on a value control pushes a scope where directions adjust the value,
   `select` commits and `back` restores (`src/engage.ts`). A shared mechanic, not a component.
 
@@ -251,7 +261,12 @@ this working tree, run 2026-09-20.
   to add a Vidaa or Roku remote today.
 - **R11.** Text-entry guards: no directional intents while focus is in an `input`, `textarea` or
   `contenteditable`, except vertical moves when `allowVerticalInText` says so. Keydown is captured,
-  IME composition is respected, `select` never auto-repeats.
+  IME composition is respected, `select` never auto-repeats. A radio, a checkbox, a range and the
+  other non-text `input` types are not text entry (`NON_TEXT_INPUT_TYPES`, `src/keymap.ts:138-149`),
+  so their arrows do reach the scopes, and in `app` mode the spatial engine takes them. A scope
+  answering `"native"` (R4) leaves them to the browser: with real key presses on chromium, firefox
+  and webkit, ArrowDown checks the next radio and ArrowRight steps a range
+  (`src/native-answer.browser.test.ts`, 2026-09-23).
 - **R12.** Modality is written on `<html>` as `data-snav-input="keyboard|pointer|touch|gamepad"`,
   synchronously, before focus moves (`src/modality.ts`, 179 lines). A
   pointer only takes over on `pointerdown` or after 300 ms of continuous movement
@@ -373,7 +388,7 @@ this working tree, run 2026-09-20.
   (R8, R17), and `tabNext`/`tabPrev` are even allowed past a trap (R4), but no module in the
   extraction perimeter acts on any of them: the spatial engine handles the four moves and the two
   scrolls and returns `false` for everything else (`src/spatial/spatial.ts:484-495`), the input
-  system acts on `select` alone (`src/input-system.ts:118-132`), and engage mode consumes `select`,
+  system acts on `select` alone (`src/input-system.ts:119-133`), and engage mode consumes `select`,
   `back` and its eight adjust intents (`src/engage.ts:18-26`, read at `:61-72`). `pageUp`,
   `pageDown`, `home` and `end` likewise do nothing
   outside engage mode. They are the application's to act on: the package produces the intent, and a
@@ -479,7 +494,7 @@ A claim without a gate does not go in the README.
 | Blocking size budgets | `scripts/size-budget.ts` run by `bun run check:size` (`.github/workflows/ci.yml:57-58`); a line over its cap fails the run, and so does a line with no cap at all | **Green, eleven lines, every one capped, and every built module charged to one of them.** Measured here, not inherited: `bun run build && bun run check:size` on this package on 2026-09-22, min+gzip at Bun's default gzip level (which reads heavier than `gzip -9`): core 3.13 / 3.25 · gamepad engine 2.49 / 2.50 · spatial engine 3.04 / 3.25 · focus ring 1.51 / 1.75 · debug 0.49 / 0.50 · auto mount 0.60 / 0.75 · react adapter 1.30 / 1.50 · keyboard 2.82 / 3.00 · the three keyboard layouts 0.36 to 0.49, each capped at 0.50 kB. Each subpath is measured with the layers it imports and a consumer already pays for named external **file by file**: a glob is forbidden, because `*` does not cross a path separator and would silently stop measuring (`scripts/size-budget.ts:67-79`). So every subpath figure is the marginal cost of adding it next to what it already needs — the core for the three engines and the React adapter, and the spatial engine for `debug`, whose externals are `./spatial/spatial.js`, `./spatial/geometry.js` and `./tabbable.js` (`scripts/size-budget.ts:108-117`) — and a coverage check names any built module every line hands away, which is what a whole-package sum used to stand in for before 2026-09-23 ([ADR-0017](adr/0017-size-budgets.md)). Caps and the defects the first runs exposed are in [ADR-0017](adr/0017-size-budgets.md) |
 | Never virtual focus | A browser test asserting `document.activeElement` after every move, plus a check that no id-keyed focus map exists in this package | **Half green.** The browser half is written: the spatial scene helper's `active()` reads `document.activeElement` and nothing else (`src/spatial/spatial.browser.test.ts:57`), and the fixtures of that file — 48 running cases and the one skipped shadow-DOM fixture, counted 2026-09-20 — check where the focus went through it alone, so a move that did not move real focus fails. The second half is still a reading rather than a check — the public surface carries no focus key, moves are addressed by direction and answered with a boolean, the elements they carry are real `HTMLElement`s on `WillMoveEvent.from`/`.to` (`src/spatial/spatial.ts:64-71`), and `plugin.focus` takes an element or a selector, so there is no id and no key anywhere on the surface — and R21's landing verification is unwritten |
 | Geometry fixtures do not depend on CSS classes | Geometry fixtures positioned with inline styles only, so a fixture failure means the algorithm changed, never the stylesheet | **Green.** The unit fixtures score plain `Rect` literals with no DOM at all (`src/spatial/geometry.test.ts:10-12`), and every browser fixture is positioned by an inline `style` attribute (`src/spatial/spatial.browser.test.ts:12-14`). The package ships no stylesheet, so there is none for a fixture to depend on |
-| Adapter parity | The shared suite `src/adapter-parity.ts` runs against every adapter; one that does not pass does not ship (R36) | **Written, and React passes it.** It is a callable runner, not a file to copy: an adapter supplies `mount`, `update`, `unmount`, `settle` and `act` over a tree of two scopes whose elements are nested in the DOM (`ParityTree` and `ParityAdapter`, `src/adapter-parity.ts:49-107`) and inherits 16 cases — one system per provider and never during the first render, delivery to the scopes, LIFO order, a scope released when only its own subtree unmounts, a trap stopping the walk, a `base` scope asked through that trap, a composite nested in a trapping surface and mounted in the same commit asked after the trap when both pass `within` and still silenced when neither does (ADR-0025), a scope re-registered in its place when its `base` changes on a rerender, the open order kept across a system rebuild in three shapes (the default tree, a scope declared first and opened last, and the same scope opened over a trap), every scope released on unmount, the reported modality, nothing listening after unmount, and a scope disposed after the provider was destroyed. React runs it at `src/react/react.browser.test.tsx:894`, over the adapter built at `:783-892`, alongside 27 adapter-specific cases. It is a one-adapter gate today because React is the only adapter that exists |
+| Adapter parity | The shared suite `src/adapter-parity.ts` runs against every adapter; one that does not pass does not ship (R36) | **Written, and React passes it.** It is a callable runner, not a file to copy: an adapter supplies `mount`, `update`, `unmount`, `settle` and `act` over a tree of two scopes whose elements are nested in the DOM (`ParityTree` and `ParityAdapter`, `src/adapter-parity.ts:49-107`) and inherits 16 cases — one system per provider and never during the first render, delivery to the scopes, LIFO order, a scope released when only its own subtree unmounts, a trap stopping the walk, a `base` scope asked through that trap, a composite nested in a trapping surface and mounted in the same commit asked after the trap when both pass `within` and still silenced when neither does (ADR-0025), a scope re-registered in its place when its `base` changes on a rerender, the open order kept across a system rebuild in three shapes (the default tree, a scope declared first and opened last, and the same scope opened over a trap), every scope released on unmount, the reported modality, nothing listening after unmount, and a scope disposed after the provider was destroyed. React runs it at `src/react/react.browser.test.tsx:895`, over the adapter built at `:784-893`, alongside 29 adapter-specific cases. It is a one-adapter gate today because React is the only adapter that exists |
 | Scoring performance | A bench of `findBestCandidate` **and** an end-to-end move measurement | **Neither exists, and one of them cannot yet.** There is no bench script and no benchmark: `vitest` 5.0.1 exports no `bench`. What is ported is the guard — the median of 51 samples scoring 200 candidates, asserted under 1 ms (`src/spatial/geometry.test.ts:156-177`) |
 
 The guard carries the blind spot the inherited bench had: it measures `findBestCandidate` alone, and

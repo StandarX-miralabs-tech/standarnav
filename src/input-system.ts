@@ -112,7 +112,8 @@ export function createInputSystem(options: InputSystemOptions = {}): InputSystem
    * which is what makes A work on a button, a checkbox, a radio and a segment
    * without a single component knowing a pad exists.
    *
-   * Only when unclaimed, only from a source that has no native click of its own,
+   * Only when unclaimed — a `"native"` answer included, since it leaves the default
+   * to act and this click is the default a pad has — only from a source with no click,
    * and never into a text field — where A belongs to the virtual keyboard.
    */
   const activateFocused = (init: IntentInit, result: IntentDispatch): void => {
@@ -177,7 +178,8 @@ export function createInputSystem(options: InputSystemOptions = {}): InputSystem
           originalEvent: event,
         });
         // The native default survives unless someone actually wanted the intent —
-        // otherwise arrow keys would stop scrolling a page that has no navigation.
+        // otherwise arrow keys would stop scrolling a page that has no navigation. A
+        // `"native"` answer is no claim: it reports the intent unconsumed (ADR-0026).
         if (result.consumed || result.defaultPrevented) event.preventDefault();
       },
       // Capture, and after the modality tracker registered just above: a scope has

@@ -83,7 +83,7 @@ needs no such care — it is compared one level deep over its string values, so
 | Export | What it is |
 |---|---|
 | `NavProvider` | Builds one input system for the tree and destroys it on unmount. |
-| `useIntent(handler, options?)` | Opens an intent scope for the component's lifetime. The handler is read through a ref, so an inline arrow does not pop and re-push the scope — which would silently reorder it under anything pushed since. A new `trapped` or `base` keeps the scope where it was opened. `within` — a ref, an element or a getter — is read at dispatch and never re-opens it. |
+| `useIntent(handler, options?)` | Opens an intent scope for the component's lifetime. The handler is read through a ref, so an inline arrow does not pop and re-push the scope — which would silently reorder it under anything pushed since. A new `trapped` or `base` keeps the scope where it was opened. `within` — a ref, an element or a getter — is read at dispatch and never re-opens it. The handler's answer — `true`, `false`, nothing or `"native"` — reaches the bus unchanged. |
 | `useInputSystem()` | The system, or `null`. |
 | `useIntentScopeHost()` | A host stable for the life of the provider, for a state machine that installs its effects on entering a state and has no dependency array to re-run on. A scope pushed through it before the system exists is opened once it does. Its `pushScope` forwards the options as given, so `within` there is an element or a getter such as `() => ref.current`, not a ref. `null` without a provider. |
 | `useInputModality()` | `keyboard` \| `pointer` \| `touch` \| `gamepad`. Works with no provider above it: the modality store is ref-counted per document, so a component that only wants to know whether to draw a ring pays for a tracker, not for an input system. |
@@ -117,6 +117,38 @@ What this does not change is the order of the first commit, which is React's: a 
 runs before its parent's, so a scope a component opens is opened before the one its parent opens
 in the same commit — the nested case above asserts that order for a composite and the item inside
 it. That order is why the Dialog recipe at the top of this page passes `within`.
+
+**Native radios and ranges in `app` mode keep their arrows when a scope answers `"native"`.** In
+`app` mode the spatial engine takes every arrow key, so a native radio group moves the focus
+without checking anything. A handler may return `"native"` beside `true` and `false`: the walk
+ends before the engine and the key keeps its browser default
+([ADR-0026](../adr/0026-native-handler-answer.md)). `useIntent` and `useIntentScopeHost` hand the
+answer to the bus unchanged.
+
+```tsx
+function Sizes() {
+  const group = useRef<HTMLDivElement>(null);
+  useIntent(
+    (event) =>
+      event.source === "keyboard" &&
+      (event.intent === "moveUp" || event.intent === "moveDown") &&
+      group.current?.contains(document.activeElement) === true
+        ? "native"
+        : false,
+    { within: group },
+  );
+  return <div ref={group} role="radiogroup">…</div>;
+}
+```
+
+Answer for the keyboard only, since a pad has no native default for a direction, and only along
+the control's own axis — up and down here, left and right for a range: a television remote's
+arrows arrive as the same keys, and a native radio group wraps on chromium and firefox, so the
+other axis has to stay the engine's for a remote user to leave. The reasoning, and why the engine
+does not decide it itself, is in [Navigation](navigation.md#native-radios-and-ranges-in-app-mode).
+Pinned in `src/react/react.browser.test.tsx` by "lets a real ArrowDown check the next radio
+through useIntent" and "hands a host scope's native answer back unchanged"; `bun run
+test:browser` passed them on chromium, firefox and webkit on 2026-09-23.
 
 `react` and `react-dom` are **optional** peer dependencies at `>=18.3.0`; nothing outside
 `src/react/` imports them, and the adapter is measured with React external. The floor of that range

@@ -18,7 +18,7 @@ consumer who writes their own has to reimplement the intent plumbing to do it.
 What exists today is the refusal, not the answer. `isTextEntryTarget` decides that an `<input>`,
 a `<textarea>`, a `contenteditable` or a `role="textbox"` is a text entry (`src/keymap.ts:151-161`),
 and the input system then **drops** every intent aimed at one except `back`, `tabNext`, `tabPrev`
-and `contextMenu` (`src/input-system.ts:166-171`, `src/keymap.ts:164-190`). So the arrows move a
+and `contextMenu` (`src/input-system.ts:167-172`, `src/keymap.ts:164-190`). So the arrows move a
 caret and Space types a space, and a navigation scope never sees them. That is correct for a
 physical keyboard and it is why a television is stuck: the d-pad is dropped too, and there is
 nothing to type with.
@@ -35,7 +35,7 @@ same mechanism). Any design where a layout module *registers itself* by being im
 effect, and would either be dropped by a bundler or force the flag off for everyone.
 
 The composition stance is already set, and it is to stand aside: a keydown mid-composition is
-ignored outright (`src/input-system.ts:158-160`, `isComposingEvent` at `src/dom/event.ts:24-26`,
+ignored outright (`src/input-system.ts:159-161`, `isComposingEvent` at `src/dom/event.ts:24-26`,
 which also covers the `keyCode === 229` that older engines report). The package currently lets the
 platform own IME entirely.
 
@@ -151,7 +151,7 @@ Latin, Greek and Cyrillic layouts type a character per key and need nothing beyo
 CJK layout does not: it needs a composition buffer, candidate selection, and `compositionstart` /
 `compositionupdate` / `compositionend` events the application and the platform both believe. The
 package's current stance is to stand aside from composition entirely
-(`src/input-system.ts:158-160`), and reversing that for the keyboard would mean owning IME in a
+(`src/input-system.ts:159-161`), and reversing that for the keyboard would mean owning IME in a
 module that cannot yet type a Latin letter. A CJK layout therefore needs its own ADR, and shipping
 one before that record exists is the failure this decision prevents.
 
@@ -162,7 +162,7 @@ is data and should be small; a layout line that is not small is the signal that 
 into it.
 
 **8. `back` closes the keyboard and keeps what was typed.** It must close — it is the only "get me
-out" button a remote has, and it already escapes a trap by design (`src/intent-bus.ts:108-112`).
+out" button a remote has, and it already escapes a trap by design (`src/intent-bus.ts:122-126`).
 Reverting is an application's own Cancel button, and the keyboard carries a `close` action key for
 "done".
 

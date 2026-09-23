@@ -6,6 +6,10 @@
  * when it opens and pops it when it closes, so an open menu captures the arrows by
  * simply existing — nothing has to know a menu might be open.
  *
+ * `"native"` ends the walk too, but unclaimed, so the key keeps what the browser does
+ * with it: the arrows of a radio group or a range in `app` mode, which the spatial
+ * engine at the bottom of the stack would otherwise take (ADR-0026).
+ *
  * `trapped` is the modal case: the scope swallows what it did not handle so nothing
  * underneath sees it. Three intents escape a trap anyway. `back` must, or a modal
  * would be impossible to leave. `tabNext`/`tabPrev` must because Tab in a dialog is
@@ -34,10 +38,15 @@
 
 import type { IntentEvent, IntentSource, NavigationIntent } from "./types";
 
+/**
+ * `true` claims the intent and ends the walk; `false` or nothing passes it on. `"native"`
+ * ends the walk without claiming it: the default is left to act, the browser's for a
+ * key and the emulated click for an unclaimed pad `select` (ADR-0026).
+ */
 // `void`, not `undefined`: a handler written with a statement body and no return
 // is the common case, and the rule's suggested fix rejects every one of them.
 // biome-ignore lint/suspicious/noConfusingVoidType: the union is the contract.
-export type IntentHandler = (event: IntentEvent) => boolean | void;
+export type IntentHandler = (event: IntentEvent) => boolean | "native" | void;
 
 export interface IntentScopeOptions {
   readonly trapped?: boolean | undefined;
@@ -66,8 +75,13 @@ export interface IntentInit {
 }
 
 export interface IntentDispatch {
-  /** A scope claimed the intent — the native default is the caller's to suppress. */
+  /**
+   * A scope claimed the intent, or a trap swallowed it — the native default is the
+   * caller's to suppress. A scope answering `"native"` ends the walk with this `false`,
+   * exactly as if nobody had answered, so the caller leaves the default to act.
+   */
   readonly consumed: boolean;
+  /** `consumed`, or a scope called `preventDefault`, which a `"native"` answer never undoes. */
   readonly defaultPrevented: boolean;
   /** The event as the scopes saw it, for whoever only wants to watch. */
   readonly event: IntentEvent;
@@ -161,8 +175,15 @@ export function createIntentBus(): IntentBus {
         // focus inside the modal, and so a composite the dialog holds — pushed before
         // the dialog, as a child is — still answers. Everything else stays silenced.
         if (trapped && !scope.base && !surface?.contains(resolve(scope.within))) continue;
-        if (scope.handler(event) === true) {
+        const answer = scope.handler(event);
+        if (answer === true) {
           return { consumed: true, defaultPrevented: true, event };
+        }
+        // The platform serves this one (ADR-0026): nothing beneath is asked, the spatial
+        // engine included, and no trap swallows what a scope it asked handed back.
+        if (answer === "native") {
+          trapped = false;
+          break;
         }
         // Every trap asked sets the surface. Beneath the first, a component trap is only
         // asked when it lies inside the surface, so a dialog nested in another narrows it.

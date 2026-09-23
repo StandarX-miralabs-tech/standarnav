@@ -126,7 +126,7 @@ did ([ADR-0017](0017-size-budgets.md), the amendment of that date).
 
 - Production builds are unchanged. The core entry gains nothing: `src/index.ts` does not re-export
   the debug module, and `./debug` is its own entry in the exports map (`package.json`). Measured
-  here with `bun run build && bun run check:size`: core 3.21 kB of a 3.25 kB cap, spatial engine
+  here with `bun run build && bun run check:size`: core 3.23 kB of a 3.25 kB cap, spatial engine
   3.07 of 3.25, debug 0.49 of 0.50, min+gzip ([ADR-0017](0017-size-budgets.md)).
 - Point 4 removed a duplicate implementation of the winner rule, and that is done: `src/debug.ts`
   imports `findBestCandidate` and calls it for the winner (`src/debug.ts:13-19`, `:69`), keeping
@@ -234,7 +234,7 @@ removed.
   `cap: 0.5 * KB`. The rule forbidding globbed externals, with the `./*` failure mode
   spelled out, is the comment at `:65-76`.
 - Sizes measured here: `bun run build && bun run check:size`, min+gzip at Bun's default gzip level —
-  debug 0.49 kB of 0.50, core 3.21 of 3.25, spatial engine 3.07 of 3.25. Any earlier figure for a
+  debug 0.49 kB of 0.50, core 3.23 of 3.25, spatial engine 3.07 of 3.25. Any earlier figure for a
   differently shaped build is inherited from the predecessor implementation
   ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here.
 - The winner rule is shared, not restated: `src/debug.ts:13-19` imports `findBestCandidate`,

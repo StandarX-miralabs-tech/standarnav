@@ -235,4 +235,33 @@ describe("createIntentBus — a trap confined to its surface", () => {
     // silenced by the modal drawn over it.
     expect(asked).toEqual(["outer dialog", "inner dialog", "inner composite"]);
   });
+
+  it("ends the walk with the default kept when a contained scope answers native", () => {
+    const bus = createIntentBus();
+    const dialog = element();
+    const group = element(dialog);
+    const engine = vi.fn(() => true);
+    bus.pushScope(engine, { base: true });
+    bus.pushScope(() => "native", { within: group });
+    bus.pushScope(() => false, { trapped: true, within: dialog });
+
+    const result = bus.dispatch({ intent: "moveDown", source: "keyboard" });
+
+    expect(engine).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ consumed: false, defaultPrevented: false });
+  });
+
+  it("still swallows when the scope that would answer native lies outside the surface", () => {
+    const bus = createIntentBus();
+    const dialog = element();
+    const page = element();
+    const outside = vi.fn(() => "native" as const);
+    bus.pushScope(outside, { within: page });
+    bus.pushScope(() => false, { trapped: true, within: dialog });
+
+    const result = bus.dispatch({ intent: "moveDown", source: "keyboard" });
+
+    expect(outside).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ consumed: true, defaultPrevented: true });
+  });
 });

@@ -82,6 +82,7 @@ const dispose = input.pushScope((event) => {
 ```
 
 - The top scope is asked first; returning `true` ends the walk and the system calls `preventDefault()` on the key that carried the intent, in the capture phase.
+- Returning `"native"` ends the walk too, but unclaimed: no scope beneath is asked, the spatial engine included, the key keeps its browser default, and an unclaimed pad `select` still gets its click. The dispatch reports `consumed: false`, as for an intent nobody answered. A trap does not swallow a `"native"` answer from a scope it asked; one nobody answered it still swallows. `false` or nothing keeps walking (ADR-0026).
 - `trapped: true` swallows every intent it does not handle, except `back`, `tabNext` and `tabPrev`, which always escape (a dialog must be leavable; Tab is the focus trap's business).
 - `base: true` is asked even through a trap. The spatial engine is a base scope: a trapped dialog still gets d-pad movement inside it. The confinement comes from `data-snav-trap` on the dialog's container, not from the scope.
 - `within` (an element, or a getter read at dispatch) is opt-in. A trap that names its surface with it still asks a scope beneath it whose own `within` lies inside that surface — a radio group or a listbox inside the dialog, opened before the dialog as a framework opens children first. It is asked after the trap, never before: the dialog should claim only what it owns. A trap or a scope without `within` behaves as before (ADR-0025).
@@ -110,6 +111,7 @@ Constraints to know before writing one:
 - **No `navigator.getGamepads`, no pad.** The gamepad plugin registers nothing when the API is absent (Playwright's WebKit, some television runtimes) rather than throwing inside `createInputSystem`.
 - **`composite` on a laptop looks like nothing happening.** Arrow keys are handed to the page; only Tab and a pad move. Use `mode: "app"` when the whole page is the composite.
 - **`pointerFollowsFocus`** is on in `app` and off in `composite`: under `app` a hover focuses what it crosses, so a mouse and a pad do not fight over two cursors.
+- **In `app` mode a native radio group or range loses its arrows** to the spatial engine: ArrowDown moves the focus to the next radio without checking it, ArrowRight moves the focus off the range without stepping it. Push a scope with `within` on the control that answers `"native"` while the focus is inside it, for `event.source === "keyboard"` and along the control's own axis only: up and down for a vertical radio group, left and right for a range. A television remote's arrows arrive as keyboard arrows and a native radio group wraps on Chromium and Firefox, so the other axis must stay the engine's or a remote user cannot leave. A pad has no native default for a direction: never answer `"native"` for one.
 
 ## Focus ring and on-screen keyboard
 

@@ -120,6 +120,27 @@ it from a markup typo.
 A page that sets it and never calls `autoMount` gets silence — no warning, no effect. That is
 the price of keeping the engine free of it, and it is named here rather than discovered.
 
+## Amendment, 2026-09-23: in `app` mode a native control keeps its arrows when a scope says so
+
+The Decision above says an unclaimed keyboard intent keeps its native default. In `composite`
+mode that holds. In `app` mode no direction goes unclaimed: the engine is the `base` scope at
+the bottom of the stack and takes every one, so ArrowDown on a native radio moved the focus
+without checking anything and ArrowRight on a range moved off it, and a scope that declined
+only handed the key to the engine. [Issue #15](https://github.com/StandarX-miralabs-tech/standarnav/issues/15)
+reported it; it was measured with real key presses on chromium, firefox and webkit on
+2026-09-23 ([ADR-0026](0026-native-handler-answer.md), Evidence).
+
+The answer is neither a third mode nor an engine rule. A scope may answer `"native"`: the walk
+ends above the engine and the dispatch reads as unclaimed, so the key keeps its default
+([ADR-0026](0026-native-handler-answer.md)). The "Auto-detect" row below is why the engine
+does not decide it: ADR-0026 rests on that rejection and adds a reason this record did not
+have — a remote's arrows resolve as keyboard arrows, and a native radio group wraps on chromium
+and firefox, so an engine that left the keyboard's arrows to it would hold a remote user there.
+
+The mode table is unchanged. `app` gives the arrow keys the run of the page wherever no scope
+above the engine answers first, which was already true of a scope answering `true`. Tests:
+`src/native-answer.browser.test.ts`, with the engine still moving where no scope answers.
+
 ## Alternatives considered
 
 | Option | Why not |
@@ -144,7 +165,7 @@ the price of keeping the engine free of it, and it is named here rather than dis
   `src/spatial/spatial.ts:512-528`.
 - Unclaimed intents keep the native default: "The native default survives unless
   someone actually wanted the intent — otherwise arrow keys would stop scrolling a
-  page that has no navigation", `src/input-system.ts:179-181`.
+  page that has no navigation", `src/input-system.ts:180-183`.
 - Same intents from both devices, which is what makes the mode the only place the
   source matters: `ArrowUp`…`ArrowRight` become `moveUp`…`moveRight` in
   `src/keymap.ts:48-51`, the stick sectors become the same four intents in
@@ -152,7 +173,7 @@ the price of keeping the engine free of it, and it is named here rather than dis
   through the `STANDARD` button table, `src/gamepad/mapping.ts:31-34`. The `source`
   the mode branches on is stamped in `resolveKeyIntent` (`src/keymap.ts:128`), and the
   `select` fallback that clicks the focused element for a pad but never for a
-  keyboard is `activateFocused`, `src/input-system.ts:118-132`.
+  keyboard is `activateFocused`, `src/input-system.ts:119-133`.
 - ARIA Authoring Practices Guide, keyboard interaction conventions for composite
   widgets (arrow keys inside, `Tab` between):
   https://www.w3.org/WAI/ARIA/apg/practices/keyboard-interface/ — the external rule

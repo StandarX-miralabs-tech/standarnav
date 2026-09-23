@@ -410,3 +410,65 @@ describe("createInputSystem — the gaps", () => {
     expect(handler).toHaveBeenCalledOnce();
   });
 });
+
+describe("createInputSystem — the native answer (ADR-0026)", () => {
+  it("leaves the native default of a keyboard intent a scope answered native", () => {
+    const input = system();
+    const engine = vi.fn(() => true);
+    cleanups.push(input.pushScope(engine, { base: true }));
+    cleanups.push(input.pushScope((event) => (event.intent === "moveDown" ? "native" : false)));
+
+    const native = press("ArrowDown");
+    expect(native.defaultPrevented).toBe(false);
+    expect(engine).not.toHaveBeenCalled();
+
+    const claimed = press("ArrowUp");
+    expect(claimed.defaultPrevented).toBe(true);
+    expect(engine).toHaveBeenCalledOnce();
+  });
+
+  it("leaves the default through a trap only when a scope it asked answers native", () => {
+    const input = system();
+    const engine = vi.fn<() => boolean | "native">(() => "native");
+    cleanups.push(input.pushScope(engine, { base: true }));
+    cleanups.push(input.pushScope(() => false, { trapped: true }));
+
+    expect(press("ArrowDown").defaultPrevented).toBe(false);
+
+    engine.mockReturnValue(false);
+    expect(press("ArrowDown").defaultPrevented).toBe(true);
+  });
+
+  it("still tells every observer, whichever answer ended the walk", () => {
+    const input = system();
+    const seen: string[] = [];
+    cleanups.push(input.onIntent((event) => seen.push(event.intent)));
+    cleanups.push(input.pushScope(() => "native"));
+
+    press("ArrowRight");
+
+    expect(seen).toEqual(["moveRight"]);
+  });
+
+  it("lets the emulated click run for a pad select answered native, as for one nobody claimed", () => {
+    const input = system();
+    const host = mount(`<button type="button">go</button>`);
+    const button = host.firstElementChild as HTMLButtonElement;
+    const clicks = vi.fn();
+    button.addEventListener("click", clicks);
+    button.focus();
+    const engine = vi.fn(() => true);
+    cleanups.push(input.pushScope(engine, { base: true }));
+    cleanups.push(input.pushScope(() => "native"));
+
+    const result = input.emit({ intent: "select", source: "gamepad" });
+
+    expect(result).toMatchObject({ consumed: false, defaultPrevented: false });
+    expect(engine).not.toHaveBeenCalled();
+    expect(clicks).toHaveBeenCalledTimes(1);
+
+    // A keyboard select stays the browser's own click, native answer or not.
+    input.emit({ intent: "select", source: "keyboard" });
+    expect(clicks).toHaveBeenCalledTimes(1);
+  });
+});
