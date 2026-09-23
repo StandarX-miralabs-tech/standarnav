@@ -135,6 +135,21 @@ describe("spatialPlugin — plain HTML", () => {
   });
 });
 
+describe("spatialPlugin — a focus the browser refuses", () => {
+  it("steps over the controls of a disabled fieldset", () => {
+    const view = scene(
+      `${box("a", 0, 0)}<fieldset disabled>${box("b", 120, 0)}</fieldset>${box("c", 240, 0)}`,
+    );
+    view.plugin.focus("#a");
+
+    view.move("right");
+
+    expect(view.active()).toBe("c");
+    expect(document.querySelector("[data-snav-focused]")?.id).toBe("c");
+    expect(view.at("b").hasAttribute("data-snav-focused")).toBe(false);
+  });
+});
+
 describe("spatialPlugin — the two modes", () => {
   it("leaves the arrow keys to the composites by default", () => {
     const view = scene(grid());

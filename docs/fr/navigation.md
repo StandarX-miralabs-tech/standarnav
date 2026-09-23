@@ -35,9 +35,20 @@ chose qui y ressemble. Les attributs que le parcours lit sont dans [attributes.m
 - Un `div` avec un `onclick` n'est pas focalisable. Donnez-lui `tabindex="0"`, ou utilisez un vrai
   `button`.
 - `aria-hidden` n'est délibérément **pas** filtré : il cache un élément à un lecteur d'écran, pas
-  à la croix directionnelle. `isFocusable` rejette un sélecteur non correspondant, un attribut
-  `disabled`, un élément caché et un élément inerte, et rien d'autre. Utilisez `data-snav-ignore`,
+  à la croix directionnelle. `isFocusable` rejette un sélecteur non correspondant, un élément
+  désactivé, un élément caché et un élément inerte, et rien d'autre. Utilisez `data-snav-ignore`,
   `inert`, ou `display: none`.
+- Désactivé veut dire ce que le navigateur entend par là : un contrôle de formulaire portant
+  `disabled`, ou placé dans un `<fieldset disabled>` ailleurs que dans sa première `<legend>`. Un
+  lien ou un élément à `tabindex` dans ce fieldset reste un candidat, comme il reste focalisable
+  dans le navigateur. Tests : « drops what a disabled fieldset disables, and keeps its first legend
+  and its links » (`src/tabbable.browser.test.ts`) et « steps over the controls of a disabled
+  fieldset » (`src/spatial/spatial.browser.test.ts`).
+- Une exception va plus loin que le navigateur : `disabled` sur un élément qui n'est pas un
+  contrôle de formulaire, comme `<div tabindex="0" disabled>` ou `<a href disabled>`, l'écarte
+  alors que le navigateur le focalise encore. C'est l'échappatoire d'un élément `aria-disabled`
+  ([ADR-0009](../adr/0009-hidden-candidates.md), règle 6). Test : « still rejects disabled on an
+  element the browser would focus, ADR-0009 rule 6 » (`src/tabbable.browser.test.ts`).
 - `aria-disabled` reste un candidat, à dessein, parce que l'APG veut que les éléments désactivés
   restent atteignables. Les ancêtres `inert` et les éléments cachés selon `checkVisibility` sont
   écartés.

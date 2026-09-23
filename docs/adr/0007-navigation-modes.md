@@ -74,12 +74,12 @@ the options at construction and no attribute changes it
   library treats a keyboard.
 - Two modes mean two paths through the same handler, so the browser test suite has
   to cover both: a keyboard-sourced `moveDown` must move focus in `app` and must not
-  in `composite`. It does — `src/spatial/spatial.browser.test.ts:138-167`, three
+  in `composite`. It does — `src/spatial/spatial.browser.test.ts:153-182`, three
   cases: the arrow keys are left to the composites by default, the gamepad crosses
   the page anyway in `composite`, and `app` gives the arrow keys the run of the page.
 - `pointerFollowsFocus` was recorded as a known coverage gap in
   [ADR-0018](0018-testing-strategy.md) — a default-on path with nothing pinning it.
-  It has three tests now (`src/spatial/spatial.browser.test.ts:512-545`): off in
+  It has three tests now (`src/spatial/spatial.browser.test.ts:527-560`): off in
   `composite` so a hover changes nothing, on in `app`, and bypassing the `onWillMove`
   veto — which a hover is not subject to.
 - The gamepad crossing composites in `composite` mode is deliberate, and it means a
@@ -157,7 +157,7 @@ the price of keeping the engine free of it, and it is named here rather than dis
   widgets (arrow keys inside, `Tab` between):
   https://www.w3.org/WAI/ARIA/apg/practices/keyboard-interface/ — the external rule
   this ADR follows.
-- Coverage: `src/spatial/spatial.browser.test.ts:138-167` (the two modes) and
-  `:512-545` (`pointerFollowsFocus`).
+- Coverage: `src/spatial/spatial.browser.test.ts:153-182` (the two modes) and
+  `:527-560` (`pointerFollowsFocus`).
 - Related: [ADR-0005](0005-real-dom-focus.md) (what "focused" means) and
   [ADR-0006](0006-declarative-first.md) (what the engine reads from the markup).

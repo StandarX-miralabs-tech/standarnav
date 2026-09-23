@@ -31,8 +31,19 @@ that looks like it. The attributes the walk reads are in [attributes.md](attribu
   (`src/tabbable.ts`).
 - A `div` with an `onclick` is not focusable. Give it `tabindex="0"`, or use a real `button`.
 - `aria-hidden` is deliberately **not** filtered: it hides an element from a screen reader, not
-  from the d-pad. `isFocusable` rejects a non-matching selector, a `disabled` attribute, a hidden
+  from the d-pad. `isFocusable` rejects a non-matching selector, a disabled element, a hidden
   element and an inert one, and nothing else. Use `data-snav-ignore`, `inert`, or `display: none`.
+- Disabled means what the browser means: a form control with `disabled`, or one inside a
+  `<fieldset disabled>` anywhere but in its first `<legend>`. A link or a `tabindex` element
+  inside that fieldset stays a candidate, as it stays focusable in the browser. Tests: "drops what
+  a disabled fieldset disables, and keeps its first legend and its links"
+  (`src/tabbable.browser.test.ts`) and "steps over the controls of a disabled fieldset"
+  (`src/spatial/spatial.browser.test.ts`).
+- One exception goes further than the browser: `disabled` on an element that is not a form
+  control, such as `<div tabindex="0" disabled>` or `<a href disabled>`, drops it although the
+  browser still focuses it. It is the opt-out for an `aria-disabled` item
+  ([ADR-0009](../adr/0009-hidden-candidates.md), rule 6). Test: "still rejects disabled on an
+  element the browser would focus, ADR-0009 rule 6" (`src/tabbable.browser.test.ts`).
 - `aria-disabled` stays a candidate, on purpose, because the APG wants disabled items reachable.
   `inert` ancestors and elements hidden per `checkVisibility` are dropped.
 - An element with **either** dimension at zero is dropped — the candidate filter tests

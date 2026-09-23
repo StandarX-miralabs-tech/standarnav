@@ -59,7 +59,7 @@ These are refusals, not backlog items. Each will be reconsidered only through an
 
 | Non-goal | Reason |
 |---|---|
-| Shadow DOM traversal in v0 | Piercing open roots means walking every root on every move; the module is light-DOM-only by explicit choice (`src/tabbable.ts:10-12`). So `getFocusables` stops at a shadow boundary while the `contains` of `src/dom/query.ts:24-39` walks `getRootNode()` and hosts and crosses one — an inconsistency this version keeps deliberately, pinned by the skipped fixture at `src/spatial/spatial.browser.test.ts:856`, with coherence a v1 goal. Components that need it can pass their own root. See [ADR-0008](adr/0008-shadow-dom.md). |
+| Shadow DOM traversal in v0 | Piercing open roots means walking every root on every move; the module is light-DOM-only by explicit choice (`src/tabbable.ts:10-12`). So `getFocusables` stops at a shadow boundary while the `contains` of `src/dom/query.ts:24-39` walks `getRootNode()` and hosts and crosses one — an inconsistency this version keeps deliberately, pinned by the skipped fixture at `src/spatial/spatial.browser.test.ts:871`, with coherence a v1 goal. Components that need it can pass their own root. See [ADR-0008](adr/0008-shadow-dom.md). |
 | RTL mirroring of directions | `moveLeft` means left on the screen. An application that mirrors its layout decides what its left arrow means; the engine does not guess. |
 | A component library | No menu, no dialog, no grid. The engine navigates whatever markup it is given, and the boundary that keeps it that way is [ADR-0003](adr/0003-package-boundaries.md). |
 | Styling beyond focus ring defaults | The package ships the focus ring overlay and the six custom properties it reads (R33). No stylesheet ships at all — the overlay paints itself inline ([ADR-0020](adr/0020-focus-ring-defaults.md)) — and there is no theme, no reset, no component CSS. |
@@ -118,7 +118,7 @@ Feature detection required by this tiering (browser support from caniuse and MDN
 | `WeakRef` | Chrome 84, Safari 14.1, Firefox 79 | Written. `elementHandle` returns a `WeakRef` where the constructor exists and a strong reference that drops itself on the first read finding the element detached — `isConnected` — where it does not (`src/spatial/spatial.ts:127-141`). The constructor is read per call rather than at module scope, so a test can delete the global and exercise the fallback |
 | `checkVisibility` | Chrome 105, Safari 17.4, Firefox 106 | `offsetParent === null && getClientRects().length === 0` (`src/tabbable.ts:49`) |
 | `inert` | Chrome 102, Safari 15.5, Firefox 112 | `closest("[inert]")` reads the attribute everywhere (`src/tabbable.ts:53`) |
-| `Array.prototype.at` | Chrome 92, Safari 15.4, Firefox 90, Samsung Internet 16.0 (`https://caniuse.com/mdn-javascript_builtins_array_at`) | Avoided outright, and the rewrite is done: `getTabbableEdges` indexes `tabbables[tabbables.length - 1]` (`src/tabbable.ts:89-92`). Unlike every other row its floor is **above** the supported tier, so the use it replaced threw on Chromium 85-91, Safari 15.0-15.3 and Firefox 79-89, and `getTabbableEdges` is the entry point for `getFirstTabbable` and `getLastTabbable`. A `lib` bump would have hidden the break rather than fixed it |
+| `Array.prototype.at` | Chrome 92, Safari 15.4, Firefox 90, Samsung Internet 16.0 (`https://caniuse.com/mdn-javascript_builtins_array_at`) | Avoided outright, and the rewrite is done: `getTabbableEdges` indexes `tabbables[tabbables.length - 1]` (`src/tabbable.ts:91-94`). Unlike every other row its floor is **above** the supported tier, so the use it replaced threw on Chromium 85-91, Safari 15.0-15.3 and Firefox 79-89, and `getTabbableEdges` is the entry point for `getFirstTabbable` and `getLastTabbable`. A `lib` bump would have hidden the break rather than fixed it |
 
 `tsconfig.json` declares `target: "es2020"` and `lib: ["es2020", "dom", "dom.iterable"]` (read
 2026-09-20), so neither `WeakRef` nor `Array.prototype.at` type-checks by accident: `WeakRef` is
@@ -133,26 +133,43 @@ will move to it. Nothing has to be registered, wrapped in a hook, or listed in a
 move, so a virtualised or freshly mutated DOM needs no cache invalidation.
 
 "Focusable in the platform's sense" is the selector at `src/tabbable.ts:17-32`:
-`input` (also excluding `[type='hidden']`), `select`, `textarea` and `button`, each excluding
-`[disabled]`; then `a[href]`, `area[href]`, `iframe`, `object`, `embed`, `audio[controls]`,
-`video[controls]`, `summary`, `[contenteditable]` that is not `false`, and anything carrying
-`[tabindex]` — minus hidden and inert elements.
+`input` (also excluding `[type='hidden']`), `select`, `textarea` and `button`; then `a[href]`,
+`area[href]`, `iframe`, `object`, `embed`, `audio[controls]`, `video[controls]`, `summary`,
+`[contenteditable]` that is not `false`, and anything carrying `[tabindex]` — minus hidden, inert
+and disabled elements. Disabled is what the browser calls `:disabled` — a form control carrying
+`disabled`, or one inside a `<fieldset disabled>` anywhere but in that fieldset's first `<legend>` —
+plus exception 5 below: `isFocusable` rejects `:disabled,[disabled]` (`src/tabbable.ts:59-61`).
+A link or a `[tabindex]` element inside such a fieldset is not disabled and stays a candidate.
+Tests: "drops what a disabled fieldset disables, and keeps its first legend and its links" and
+"reports the edges of a surface that ends in a disabled fieldset" in `src/tabbable.browser.test.ts`,
+and "steps over the controls of a disabled fieldset" in `src/spatial/spatial.browser.test.ts`.
+The browser agrees: a `<button>` in the first `<legend>` takes the focus, one in a second
+`<legend>` or in the fieldset body does not, and the link and the `[tabindex]` element do, on
+chromium, firefox and webkit (Playwright, 2026-09-23).
 
-The rule has exactly four documented exceptions. Each is deliberate, and each must be stated in the
-README because each surprises someone.
+The rule has exactly five documented exceptions. Each is deliberate, and each must be stated in the
+user documentation the README sends a reader to — [docs/en/navigation.md](en/navigation.md), with
+its French mirror — because each surprises someone.
 
 1. **A clickable `div` without `tabindex` is not navigable.** The browser will not focus it either.
    The fix is `tabindex="-1"` or `tabindex="0"`, which is also the fix for keyboard users; the engine
    does not invent focusability the platform withholds.
 2. **`aria-hidden` elements stay reachable.** `isFocusable` does not filter `aria-hidden`
-   (`src/tabbable.ts:56-63`). Hiding a subtree from assistive technology while leaving it focusable
+   (`src/tabbable.ts:56-65`). Hiding a subtree from assistive technology while leaving it focusable
    is already an authoring error; an element that should not be reached is removed, made `inert`, or
    marked `data-snav-ignore`. See [ADR-0009](adr/0009-hidden-candidates.md) and open question 1
    below: the candidate filters of that ADR are settled (R31), `aria-hidden` itself is not.
 3. **`aria-disabled` stays focusable.** The APG wants disabled menu items and toolbar buttons
-   reachable, unlike natively disabled form controls (comment at `src/tabbable.ts:60-61`).
+   reachable, unlike natively disabled form controls (comment at `src/tabbable.ts:62-63`).
 4. **Light DOM only.** Elements inside a shadow root are not collected; a component that needs it
    passes its own root (§2).
+5. **`disabled` on an element that is not a form control is rejected, although the browser
+   focuses it.** The attribute means nothing to a `<div tabindex="0">` or an `<a href>`, and both
+   still take the focus on chromium, firefox and webkit (Playwright, 2026-09-23). `isFocusable`
+   drops them anyway, because `disabled` is the opt-out [ADR-0009](adr/0009-hidden-candidates.md)
+   rule 6 gives an `aria-disabled` item; that is why the test is `:disabled,[disabled]` and not
+   `:disabled` alone (`src/tabbable.ts:59-61`). Test: "still rejects disabled on an element the
+   browser would focus, ADR-0009 rule 6" in `src/tabbable.browser.test.ts`.
 
 ## 5. Functional requirements
 
@@ -274,7 +291,7 @@ this working tree, run 2026-09-20.
   created, and `aria-hidden` is the only ARIA attribute the package writes anywhere — never on
   markup it did not create (`grep -rn "aria-" src` on 2026-09-20: twelve hits, of which two are
   outside the tests — the write at `src/focus-ring/focus-ring.ts:241` and the `aria-disabled`
-  comment at `src/tabbable.ts:60` — and the other ten are fixtures). The attribute **names** are
+  comment at `src/tabbable.ts:62` — and the other ten are fixtures). The attribute **names** are
   the public contract; the constants that hold them are module-internal and no entry point
   publishes them (`src/spatial/containers.ts:10-18`, reachable from no path in the exports map).
   `./spatial` publishes `containerOf` and
@@ -329,7 +346,7 @@ this working tree, run 2026-09-20.
   or the application owns sequential focus.
 - **R30.** `pointerFollowsFocus`, default on in `app` mode and off in `composite`
   (`src/spatial/spatial.ts:239`), so mouse and pad do not fight over two cursors. Covered by the
-  browser fixtures at `src/spatial/spatial.browser.test.ts:512` — it is no longer the untested
+  browser fixtures at `src/spatial/spatial.browser.test.ts:527` — it is no longer the untested
   option it was in the predecessor implementation ([ADR-0002](adr/0002-license-and-copyright.md)).
 - **R31.** Visible limits, documented because a user meets them: container nesting is bounded at
   `MAX_CONTAINER_DEPTH = 16` (`src/spatial/spatial.ts:60`), and the zero-size filter is
@@ -339,7 +356,7 @@ this working tree, run 2026-09-20.
   a zero dimension paints nothing and its projection onto the cross axis is empty, so the alignment
   pass can never call it aligned and it is scored on the distance to a centre that is really an
   edge. Three fixtures pin it, including the one that says the rule is zero and not small — a
-  one-pixel hairline stays a candidate (`src/spatial/spatial.browser.test.ts:598-630`).
+  one-pixel hairline stays a candidate (`src/spatial/spatial.browser.test.ts:613-645`).
   Filter **C2 is refused for v0** and deferred to v1: dropping `opacity: 0` candidates costs a
   `getComputedStyle` per candidate in the hot loop, and an opacity inherited from an ancestor
   escapes the test anyway. The two do not ship together, which is the premise the ADR was written
@@ -474,7 +491,7 @@ physical gamepad are recorded in a device report issue
    risk, not specific to this project.
 5. **Shadow DOM after v0.** Half answered. v0's position is settled and deliberate: no traversal in
    `getFocusables`, a shadow-aware `contains` beside it, the inconsistency documented, and the
-   skipped fixture at `src/spatial/spatial.browser.test.ts:856` kept as the acceptance test of any
+   skipped fixture at `src/spatial/spatial.browser.test.ts:871` kept as the acceptance test of any
    future attempt ([ADR-0008](adr/0008-shadow-dom.md)). Coherence between the two is a v1 goal. What
    stays open is the shape — an opt-in root list or real traversal — and what it costs per move.
 6. **Controls that hold a value: settled as recipes, not as shipped behaviour.** `pushEngageScope`

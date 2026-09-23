@@ -22,7 +22,7 @@ engine is broken":
 
 | Symptom | Cause | Where |
 |---|---|---|
-| A move does nothing, no error | The element is not focusable, or `collectNavNodes` filtered it as ignored or zero-size | `isFocusable` at `src/tabbable.ts:56-63`, then `src/spatial/spatial.ts:175` and `:188` |
+| A move does nothing, no error | The element is not focusable, or `collectNavNodes` filtered it as ignored or zero-size | `isFocusable` at `src/tabbable.ts:56-65`, then `src/spatial/spatial.ts:175` and `:188` |
 | A move stops crossing containers in a deep tree | The walk out gives up at `MAX_CONTAINER_DEPTH = 16` and calls the bounds listeners instead | `src/spatial/spatial.ts:60`, `:423-444` |
 | A redirection attribute is ignored, or focuses nothing | `data-snav-<direction>` is a CSS selector resolved on the whole document. If it matches nothing, the move silently falls through to geometry. If it matches a non-focusable element, the engine calls `focus()` on it, reports success and writes `data-snav-focused` on an element the browser will not focus — there is no `isFocusable` check on that path | `src/spatial/spatial.ts:414-417`, then `commit` at `:308-333` |
 
@@ -203,7 +203,7 @@ removed.
 - `src/spatial/spatial.ts:414-417`, `:308-333` — the redirection resolved with
   `root.ownerDocument.querySelector` and handed straight to `commit`, with no `isFocusable` check
   between them: row 3 of the table, and why points 2 and 3 above are still needed.
-- `src/tabbable.ts:17-32`, `:56-63` — `FOCUSABLE_SELECTOR` and `isFocusable`, what a candidate has to
+- `src/tabbable.ts:17-32`, `:56-65` — `FOCUSABLE_SELECTOR` and `isFocusable`, what a candidate has to
   be.
 - `package.json` — `"./debug"` as its own export, and `"sideEffects": false`.
 - `scripts/size-budget.ts` — the `debug` line at `:105-114`, entry `debug.js`,

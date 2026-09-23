@@ -56,7 +56,9 @@ export function isInert(node: HTMLElement): boolean {
 export function isFocusable(node: HTMLElement | null | undefined): boolean {
   if (node === null || node === undefined) return false;
   if (!node.matches(FOCUSABLE_SELECTOR)) return false;
-  if (node.hasAttribute("disabled")) return false;
+  // `:disabled` reaches a control through a disabled `<fieldset>`; `[disabled]` keeps
+  // the attribute an opt-out on elements the browser would still focus (ADR-0009, rule 6).
+  if (node.matches(":disabled,[disabled]")) return false;
   // `aria-disabled` stays focusable on purpose: APG wants disabled menu items and
   // toolbar buttons reachable, unlike natively disabled form controls.
   return !isHidden(node) && !isInert(node);

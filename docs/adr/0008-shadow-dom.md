@@ -7,7 +7,7 @@ Deciders: Wesley Cormier
 ## Context
 
 The engine finds its candidates with `querySelectorAll`. `getFocusables` calls `queryAll`
-(`src/tabbable.ts:69-76`), `queryAll` is one `root.querySelectorAll(selector)`
+(`src/tabbable.ts:71-78`), `queryAll` is one `root.querySelectorAll(selector)`
 (`src/dom/query.ts:10-15`), and `collectNavNodes` builds every move from that list
 (`src/spatial/spatial.ts:170`). `querySelectorAll` does not cross a shadow boundary, so nothing
 inside a shadow root is ever a candidate.
@@ -52,7 +52,7 @@ for itself: isolated frames such as `iframe` and shadow DOM are outside what an 
    tree, or declares its host as a single navigable node. This requires widening the accepted root
    type, which is a v0 task and not a promise of traversal: `SpatialPluginOptions.root` is
    `HTMLElement | null | undefined` today (`src/spatial/spatial.ts:80`) and `getFocusables` accepts
-   `HTMLElement | Document` (`src/tabbable.ts:69-72`), while a `ShadowRoot` is a `DocumentFragment`.
+   `HTMLElement | Document` (`src/tabbable.ts:71-74`), while a `ShadowRoot` is a `DocumentFragment`.
    `queryAll` already accepts `ParentNode` (`src/dom/query.ts:10-14`), so the change is in the public
    types of `src/spatial/spatial.ts` and `src/tabbable.ts`, not in the scan.
 3. Event-path code keeps `composedPath()` (`src/dom/query.ts`). Retargeting bugs are not the same
@@ -72,7 +72,7 @@ for itself: isolated frames such as `iframe` and shadow DOM are outside what an 
 
 The fixture ships in v0 as a skipped, documented failure. It is the acceptance test of any future
 attempt, and it stops the feature being declared done by inspection. It is written:
-`src/spatial/spatial.browser.test.ts:855-877`.
+`src/spatial/spatial.browser.test.ts:870-892`.
 
 ## Consequences
 
@@ -105,7 +105,7 @@ rather than left for a reader to discover, because it is a deliberate inconsiste
 module.
 
 **What v0 does.** `getFocusables` collects candidates through `queryAll`, which is one
-`root.querySelectorAll(selector)` (`src/dom/query.ts:10-15`), called from `src/tabbable.ts:69-76`.
+`root.querySelectorAll(selector)` (`src/dom/query.ts:10-15`), called from `src/tabbable.ts:71-78`.
 `querySelectorAll` does not cross a shadow boundary, so nothing inside a shadow root is ever a
 candidate. `collectNavNodes` builds every move from that list (`src/spatial/spatial.ts:170`), and
 `containerOf` (`src/spatial/spatial.ts:148-151`) and the root guard in `move`
@@ -127,7 +127,7 @@ right; making `getFocusables` traverse is the v1 feature, with the per-root walk
 resolution and the depth question that come with it. Leaving them as they are costs nothing at
 runtime, because the traversing one is never called.
 
-**It is tracked by a fixture, not by a comment.** `src/spatial/spatial.browser.test.ts:856` is
+**It is tracked by a fixture, not by a comment.** `src/spatial/spatial.browser.test.ts:871` is
 `it.skip("steers into an open shadow root (ADR-0008: light DOM only in v0)")`: a host with an open
 root and a button inside it, asserting that a move from outside lands on the button. It is the one
 skipped test in the suite (`bun run test:browser` → 257 passed, 1 skipped in 13 files),
@@ -168,7 +168,7 @@ already the expected first one ([ADR-0010](0010-dev-mode-diagnostics.md)).
   here.
 - `src/tabbable.ts:17-32` — `FOCUSABLE_SELECTOR`, including `[tabindex]` at `:31`, which is why a
   host with `tabindex` is already a node.
-- `src/tabbable.ts:69-76` — `getFocusables` over `queryAll`.
+- `src/tabbable.ts:71-78` — `getFocusables` over `queryAll`.
 - `src/dom/query.ts:10-15` — `queryAll` is one `querySelectorAll`, typed on `ParentNode`.
 - `src/dom/query.ts:24-39` — the shadow-aware `contains`, present and unused by the spatial engine,
   with the header that says so at `:17-23`.
@@ -182,8 +182,8 @@ already the expected first one ([ADR-0010](0010-dev-mode-diagnostics.md)).
   `activeElement()`; `:60`, `MAX_CONTAINER_DEPTH`; `:248`, the focus memory `WeakMap`.
 - Only call sites of the shadow-aware `contains` at HEAD: `src/dom/dom.browser.test.ts:53-56`
   (`grep -rn "contains(" src/` — every other hit is `Node.contains`).
-- The skipped fixture: `src/spatial/spatial.browser.test.ts:855-877`, one `it.skip` at `:856`
-  naming this ADR. `bun run test:browser` → 257 passed, 1 skipped in 13 files; that skip is this
+- The skipped fixture: `src/spatial/spatial.browser.test.ts:870-892`, one `it.skip` at `:871`
+  naming this ADR. `bun run test:browser` → 261 passed, 1 skipped in 13 files; that skip is this
   one, and it is the only one in the repository.
 - Shadow-DOM field of the 20 competitor fact sheets, adversarially verified; the `Shadowdomize`
   module in Tabster's own repository, and its README statement, are the single "supported, opt-in"

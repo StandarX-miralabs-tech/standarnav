@@ -59,6 +59,57 @@ describe("tabbable", () => {
     expect(getTabbableEdges(host.querySelector("#empty"))).toEqual([null, null]);
   });
 
+  it("drops what a disabled fieldset disables, and keeps its first legend and its links", () => {
+    const host = mount(`
+      <button id="before"></button>
+      <fieldset disabled>
+        <legend><button id="legend"></button></legend>
+        <button id="button"></button>
+        <input id="input" />
+        <a id="link" href="#x">link</a>
+      </fieldset>
+    `);
+    const at = (id: string): HTMLElement => host.querySelector(`#${id}`) as HTMLElement;
+
+    at("button").focus();
+    expect(document.activeElement).not.toBe(at("button"));
+
+    expect(isFocusable(at("button"))).toBe(false);
+    expect(isFocusable(at("input"))).toBe(false);
+    expect(isFocusable(at("legend"))).toBe(true);
+    expect(isFocusable(at("link"))).toBe(true);
+    expect(getTabbables(host).map((node) => node.id)).toEqual(["before", "legend", "link"]);
+  });
+
+  it("reports the edges of a surface that ends in a disabled fieldset", () => {
+    const host = mount(`
+      <button id="first"></button>
+      <fieldset disabled>
+        <legend><button id="legend"></button></legend>
+        <button id="dead"></button>
+        <input id="dead-too" />
+      </fieldset>
+    `);
+
+    const [first, last] = getTabbableEdges(host);
+    expect(first?.id).toBe("first");
+    expect(last?.id).toBe("legend");
+  });
+
+  it("still rejects disabled on an element the browser would focus, ADR-0009 rule 6", () => {
+    const host = mount(`
+      <div id="div" tabindex="0" disabled>div</div>
+      <a id="link" href="#x" disabled>link</a>
+    `);
+    const div = host.querySelector("#div") as HTMLElement;
+
+    div.focus();
+    expect(document.activeElement).toBe(div);
+
+    expect(isFocusable(div)).toBe(false);
+    expect(isFocusable(host.querySelector("#link"))).toBe(false);
+  });
+
   it("focuses without scrolling the page", () => {
     const host = mount(`<div style="height: 200vh"></div><button id="low"></button>`);
     const button = host.querySelector("#low") as HTMLElement;
