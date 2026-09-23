@@ -35,7 +35,7 @@ const input = createInputSystem({ plugins: [gamepadPlugin(), spatialPlugin({ mod
 // later: input.destroy();
 ```
 
-`mode: "app"` is what makes that snippet move on a keyboard. The default, `composite`, keeps arrow keys inside the composite that holds the focus, APG-strict, and only Tab crosses between composites; a gamepad has no Tab and crosses the page in either mode. Under `app` a hover also moves the focus, so a mouse and a pad do not fight over two cursors ([ADR-0007](docs/adr/0007-navigation-modes.md)).
+`mode: "app"` is what makes that snippet move on a keyboard. The default, `composite`, keeps arrow keys inside the composite that holds the focus, APG-strict, and only Tab crosses between composites; a gamepad has no Tab and crosses the page in either mode. Under `app` a hover also moves the focus, so a mouse and a pad do not fight over two cursors ([ADR-0007](docs/adr/0007-navigation-modes.md)). It also takes the arrows of a native radio group or range, unless a scope answers `"native"` for them ([docs/en/navigation.md](docs/en/navigation.md#native-radios-and-ranges-in-app-mode), [ADR-0026](docs/adr/0026-native-handler-answer.md)).
 
 | Attribute | Placed on | Value | Effect |
 |---|---|---|---|

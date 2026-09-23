@@ -85,7 +85,7 @@ niveau de profondeur sur ses valeurs chaîne, donc `keymap={{ keys: { … } }}` 
 | Export | Ce que c'est |
 |---|---|
 | `NavProvider` | Construit un système d'entrée pour l'arbre et le détruit au démontage. |
-| `useIntent(handler, options?)` | Ouvre une portée d'intention pour la durée de vie du composant. Le gestionnaire est lu à travers une ref, donc une fonction fléchée inline ne dépile pas et ne réempile pas la portée — ce qui la réordonnerait silencieusement sous tout ce qui a été empilé depuis. Un nouveau `trapped` ou `base` laisse la portée là où elle a été ouverte. `within` — une ref, un élément ou un accesseur — est lu au dispatch et ne la rouvre jamais. |
+| `useIntent(handler, options?)` | Ouvre une portée d'intention pour la durée de vie du composant. Le gestionnaire est lu à travers une ref, donc une fonction fléchée inline ne dépile pas et ne réempile pas la portée — ce qui la réordonnerait silencieusement sous tout ce qui a été empilé depuis. Un nouveau `trapped` ou `base` laisse la portée là où elle a été ouverte. `within` — une ref, un élément ou un accesseur — est lu au dispatch et ne la rouvre jamais. La réponse du gestionnaire — `true`, `false`, rien ou `"native"` — atteint le bus sans changement. |
 | `useInputSystem()` | Le système, ou `null`. |
 | `useIntentScopeHost()` | Un hôte stable pour toute la vie du fournisseur, pour une machine à états qui installe ses effets en entrant dans un état et n'a pas de tableau de dépendances pour se relancer. Une portée empilée par lui avant que le système existe est ouverte dès qu'il existe. Son `pushScope` transmet les options telles quelles, donc `within` y est un élément ou un accesseur comme `() => ref.current`, pas une ref. `null` sans fournisseur. |
 | `useInputModality()` | `keyboard` \| `pointer` \| `touch` \| `gamepad`. Fonctionne sans fournisseur au-dessus : le magasin de modalité est compté par référence par document, donc un composant qui veut seulement savoir s'il doit dessiner un anneau paie un traqueur, pas un système d'entrée. |
@@ -123,6 +123,39 @@ enfant tourne avant celui de son parent, donc la portée qu'ouvre un composant e
 celle qu'ouvre son parent dans le même commit — le cas imbriqué ci-dessus affirme cet ordre pour un
 composite et l'élément qu'il contient. C'est cet ordre qui fait passer `within` à la recette du
 dialogue en haut de cette page.
+
+**Les radios et curseurs natifs gardent leurs flèches en mode `app` quand une portée répond
+`"native"`.** En mode `app`, le moteur spatial prend toutes les flèches du clavier, si bien qu'un
+groupe de radios natif déplace le focus sans rien cocher. Un gestionnaire peut renvoyer `"native"`
+à côté de `true` et `false` : le parcours s'arrête avant le moteur et la touche garde son
+comportement natif ([ADR-0026](../adr/0026-native-handler-answer.md)). `useIntent` et
+`useIntentScopeHost` transmettent la réponse au bus sans la changer.
+
+```tsx
+function Sizes() {
+  const group = useRef<HTMLDivElement>(null);
+  useIntent(
+    (event) =>
+      event.source === "keyboard" &&
+      (event.intent === "moveUp" || event.intent === "moveDown") &&
+      group.current?.contains(document.activeElement) === true
+        ? "native"
+        : false,
+    { within: group },
+  );
+  return <div ref={group} role="radiogroup">…</div>;
+}
+```
+
+Ne répondez que pour le clavier, puisqu'une manette n'a pas de comportement natif pour une
+direction, et seulement sur l'axe propre du contrôle — haut et bas ici, gauche et droite pour un
+curseur : les flèches d'une télécommande de télévision arrivent sous les mêmes touches, et un groupe
+de radios natif boucle sur chromium et firefox, donc l'autre axe doit rester au moteur pour qu'un
+utilisateur de télécommande puisse en sortir. Le raisonnement, et pourquoi le moteur ne le décide
+pas lui-même, sont dans [Navigation](navigation.md#radios-et-curseurs-natifs-en-mode-app). Épinglé
+dans `src/react/react.browser.test.tsx` par « lets a real ArrowDown check the next radio through
+useIntent » et « hands a host scope's native answer back unchanged » ; `bun run test:browser` les a
+passés sur chromium, firefox et webkit le 2026-09-23.
 
 `react` et `react-dom` sont des dépendances pair **optionnelles** en `>=18.3.0` ; rien en dehors de
 `src/react/` ne les importe, et l'adaptateur est mesuré avec React en externe. Le plancher de cette

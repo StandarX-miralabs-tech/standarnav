@@ -226,14 +226,24 @@ this working tree, run 2026-09-20.
   asks a scope beneath it whose own `within` lies inside that surface — after the trap, never
   before it, since containment does not reorder the stack. A trap or a scope without `within` is
   unchanged, and every trap asked sets the surface, so a dialog nested in another narrows it
-  (`src/intent-bus.browser.test.ts`).
+  (`src/intent-bus.browser.test.ts`). Amended by [ADR-0026](adr/0026-native-handler-answer.md): a
+  handler returns `true`, `false`, nothing, or `"native"` (`IntentHandler`). `"native"` ends the
+  walk too — no scope beneath is asked, `base` scopes and the spatial engine included — but
+  unclaimed: the dispatch reports `consumed: false` and the event's own `defaultPrevented`, exactly
+  as for an intent nobody answered. A `"native"` answer from any scope the walk asks, through a trap
+  too, keeps the default; a trap nobody answered still swallows (`src/intent-bus.test.ts`,
+  "createIntentBus — the native answer (ADR-0026)").
 - **R5.** `createInputSystem({ doc, plugins, keymap, allowVerticalInText })` is an instance, never a
   global singleton (`InputSystemOptions`, `src/input-system.ts:50-56`): two coexist in one page,
   and no `document` or `window` access happens outside initialisation, so hydration is safe.
 - **R6.** An unclaimed `select` from a non-keyboard source clicks the focused element, so a pad
   activates an ordinary `<button>` with no wiring (`src/input-system.ts:119-133`, which also skips a
   repeat and a text-entry target). `preventDefault()` reaches the native event only when a scope
-  consumed the intent; arrow-key scrolling stays intact otherwise.
+  consumed the intent; arrow-key scrolling stays intact otherwise. A scope answering `"native"`
+  (R4) consumes nothing, so the key keeps its browser default and a pad `select` answered that way
+  still gets the click ([ADR-0026](adr/0026-native-handler-answer.md); "leaves the native default
+  of a keyboard intent a scope answered native" and "lets the emulated click run for a pad select
+  answered native, as for one nobody claimed" in `src/input-system.browser.test.ts`).
 - **R7.** Engage mode: `select` on a value control pushes a scope where directions adjust the value,
   `select` commits and `back` restores (`src/engage.ts`). A shared mechanic, not a component.
 
@@ -251,7 +261,12 @@ this working tree, run 2026-09-20.
   to add a Vidaa or Roku remote today.
 - **R11.** Text-entry guards: no directional intents while focus is in an `input`, `textarea` or
   `contenteditable`, except vertical moves when `allowVerticalInText` says so. Keydown is captured,
-  IME composition is respected, `select` never auto-repeats.
+  IME composition is respected, `select` never auto-repeats. A radio, a checkbox, a range and the
+  other non-text `input` types are not text entry (`NON_TEXT_INPUT_TYPES`, `src/keymap.ts:138-149`),
+  so their arrows do reach the scopes, and in `app` mode the spatial engine takes them. A scope
+  answering `"native"` (R4) leaves them to the browser: with real key presses on chromium, firefox
+  and webkit, ArrowDown checks the next radio and ArrowRight steps a range
+  (`src/native-answer.browser.test.ts`, 2026-09-23).
 - **R12.** Modality is written on `<html>` as `data-snav-input="keyboard|pointer|touch|gamepad"`,
   synchronously, before focus moves (`src/modality.ts`, 179 lines). A
   pointer only takes over on `pointerdown` or after 300 ms of continuous movement

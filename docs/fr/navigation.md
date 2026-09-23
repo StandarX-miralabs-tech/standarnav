@@ -88,3 +88,44 @@ chose qui y ressemble. Les attributs que le parcours lit sont dans [attributes.m
 
 Quand un déplacement vous surprend, lisez la liste évaluée avec `explainMove` de
 `@standarx/nav/debug` (`src/debug.ts`).
+
+## Radios et curseurs natifs en mode `app`
+
+En mode `app`, le moteur prend toutes les flèches du clavier, si bien qu'un groupe de radios
+natifs et un curseur (`range`) perdent les leurs : ArrowDown déplace le focus vers la radio
+suivante sans la cocher, et ArrowRight fait quitter le curseur au focus sans le faire avancer. Le
+moteur ne devine jamais quels contrôles laisser tranquilles
+([ADR-0026](../adr/0026-native-handler-answer.md)) ; c'est une portée qui le dit, en répondant
+`"native"`. Le parcours s'arrête alors avant le moteur et la touche est laissée au navigateur :
+
+```ts
+const group = document.querySelector<HTMLElement>("#size")!;
+
+const dispose = input.pushScope(
+  (event) =>
+    event.source === "keyboard" &&
+    (event.intent === "moveUp" || event.intent === "moveDown") &&
+    group.contains(document.activeElement)
+      ? "native"
+      : false,
+  { within: group },
+);
+```
+
+- **Le clavier seulement.** Une manette n'a pas de comportement natif pour une direction : un
+  `"native"` pour elle arrêterait le parcours sans rien déplacer. La manette continue de se
+  déplacer spatialement, et règle un curseur par le mode engagé (`pushEngageScope`).
+- **L'axe propre du contrôle seulement.** Haut et bas pour un groupe de radios vertical, gauche et
+  droite pour un curseur. Les flèches d'une télécommande de télévision arrivent dans la page sous
+  les mêmes touches `ArrowUp` à `ArrowRight`, donc `event.source` ne la distingue pas d'un clavier ;
+  et un groupe de radios natif boucle sur chromium et firefox, si bien qu'une télécommande dont
+  toutes les flèches lui reviendraient ne pourrait jamais en sortir. L'autre axe reste au moteur,
+  qui laisse toujours une sortie.
+- **`within` sur le contrôle**, pour que la réponse atteigne encore la portée quand le contrôle se
+  trouve dans une boîte de dialogue piégeante qui nomme sa surface
+  ([ADR-0025](../adr/0025-trap-within-its-surface.md)).
+
+Tests, avec de vraies frappes sur chromium, firefox et webkit :
+`src/native-answer.browser.test.ts` — ArrowDown coche la radio suivante, ArrowRight quitte le
+groupe, ArrowRight et ArrowLeft font avancer et reculer un curseur et ArrowDown le quitte, et sans
+la portée le moteur se déplace comme avant.
