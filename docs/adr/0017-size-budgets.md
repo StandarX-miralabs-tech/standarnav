@@ -532,6 +532,29 @@ need a cap to be answerable.
 **Rule 4 is untouched** and now applies only where it means something: a cap moves when measured
 code outgrows it. Adding an entry no longer moves anybody's cap.
 
+## Amendment, 2026-09-23 (second): a twelfth line, for the Vue adapter
+
+`bun run build && bun run check:size`, run 2026-09-23. The Vue adapter is a subpath,
+`@standarx/nav/vue` ([ADR-0027](0027-vue-adapter.md)), so it gets a line; it is new, so no cap
+moves and rule 4 is not in play. The line went in with `cap: null` first and the run went red as
+rule 5 intends, `vue adapter: measured 1.40 kB min+gzip and has no cap`, then the cap was written.
+
+| Line | min | min+gzip | cap |
+|---|---|---|---|
+| vue adapter | 3.12 kB | **1.40 kB** (1 434 B) | **1.50 kB** (1 536 B), 93 % used |
+| react adapter | 3.32 kB | 1.42 kB (1 452 B, was 1 450) | 1.50 kB, unchanged, 95 % used |
+
+**Rule 3 gives 1.50.** The next quarter above 1.40 kB is 1.50 kB, 102 bytes of room.
+
+**Its externals mirror the React line's.** `vue`, a peer the consumer supplies, and
+`../input-system.js` and `../modality.js`, which the core already ships
+(`scripts/size-budget.ts:135-141`). The three `internal/` modules are charged here as they are to
+the React line: `env.js`, `equality.js`, and `scope-registry.js`, which the same pull request moved
+out of the React adapter so that both adapters share it. That move is the React line's 2 bytes.
+
+Twelve lines, every built module charged to one: `size budgets passed for 12 lines, and all 30
+built modules are charged to one`, 2026-09-23.
+
 ## Alternatives considered
 
 **A bundlephobia badge in the README.** Rejected: it is not blocking, it lags

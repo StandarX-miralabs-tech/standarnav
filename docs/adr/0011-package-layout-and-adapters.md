@@ -207,6 +207,33 @@ is a minor change" — `./auto` is the first subpath added since publication, an
 rides is 0.2.0 rather than 0.1.1, which is that sentence working as written
 ([ADR-0012](0012-versioning-and-release.md)).
 
+## Amendment, 2026-09-23: item 3 of the adapter order ships, `@standarx/nav/vue`
+
+Vue is built: `src/vue/vue.ts`, subpath `./vue` in the generated map (`package.json:44`), an entry
+and an external in `tsdown.config.ts` (`:15`, `:27`) and the rename at `:40`, budget line
+`vue adapter` at 1.40 of 1.50 kB ([ADR-0017](0017-size-budgets.md), second amendment of
+2026-09-23). Its design, and why its floor is 3.3, are [ADR-0027](0027-vue-adapter.md). Two rows
+of the table remain planned, Svelte and Angular.
+
+**The peer rule of this record holds for a second framework.** `vue` is declared the way `react`
+is: a peer at `>=3.3.0` (`package.json:50`) with `"optional": true` (`:59`), so a consumer of
+`@standarx/nav/spatial` alone is asked for neither. And the floor is kept the way React's is,
+by a job that installs it over the lockfile and runs typecheck and the chromium browser suite,
+`vue-floor` (`.github/workflows/ci.yml:136-161`), exactly `vue@3.3.0` rather than the newest 3.3
+patch, because 3.3.0 is the version the range names.
+
+**`src/internal/` gained a module with a second importer.** The ordered scope registry
+(`src/internal/scope-registry.ts`) moved out of the React adapter so that both adapters keep scope
+order with one implementation. It is still exported by nothing, and it is charged to each adapter
+line rather than to the core, like `env.ts` and `equality.ts`.
+
+**The parity gate is now a two-adapter gate.** `runAdapterParitySuite` runs against React and
+against Vue (`src/vue/vue.browser.test.ts:921`), all 16 cases, on chromium, firefox and webkit,
+which is the ship condition of the adapter order above working as written. The React-first
+choice paid off in one concrete way: every React correction since publication — scope order
+across a rebuild, `within`, the `"native"` answer — arrived in Vue as a case it had to pass on its
+first day rather than as a bug found later.
+
 ## Alternatives considered
 
 **A monorepo with one package per adapter** (`@standarx/nav-core`, `@standarx/nav-react`, and so
