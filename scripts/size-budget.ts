@@ -4,16 +4,18 @@
 //
 // A budget is not "how big is this file" but "how much does a consumer pay". Each
 // subpath is therefore measured alone, with the sibling entries it imports marked
-// external: the marginal cost of adding that engine next to the core. One more line
-// bundles every entry together with nothing external: what a consumer of everything
-// pays. Sizes are minified, then gzipped at Bun's default level, which reads a little
-// heavier than `gzip -9`; cite one or the other, never mix.
+// external: the marginal cost of adding that engine next to the core. There is no
+// whole-package line: no consumer downloads every entry, and a sum of them went red
+// whenever the package gained one rather than when anything got fatter. What it stood
+// in for is checked directly at the foot of this file — every built module is charged
+// to some line. Sizes are minified, then gzipped at Bun's default level, which reads a
+// little heavier than `gzip -9`; cite one or the other, never mix.
 //
 // A `null` cap means "measured, not yet capped". The line is bundled and reported like
 // any other, and the run fails printing the number: a cap is written after the number
 // exists, never before, and a default would be a guess this file ratifies by being green.
 
-import { existsSync, rmSync, writeFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 
 // Declared locally rather than through `@types/bun`, which ships its own node typings
@@ -68,7 +70,8 @@ interface Line {
 // can externalise the line's own contents and report a re-export stub as proof. Each list
 // below is the part of the core graph that the subpath also imports — and deliberately
 // not a module whose only importers are subpaths, because externalising one of those
-// charges it to nobody and only the whole-package line ever sees it.
+// charges it to nobody. That is no longer a rule a reader has to remember: the coverage
+// check at the foot of this file names any module every line hands away.
 //
 // Read off `dist/` after a build, never off `src/`: the two disagree. `src/types.ts` is
 // types only, so no `types.js` is emitted and naming one is an external that matches
@@ -159,27 +162,6 @@ const LINES: readonly Line[] = [
     cap: 0.5 * KB,
     note: "data only; the layout a television usually wants",
   },
-  {
-    name: "whole package",
-    entries: [
-      "index.js",
-      "gamepad/gamepad.js",
-      "spatial/spatial.js",
-      "focus-ring/focus-ring.js",
-      "keyboard/keyboard.js",
-      "keyboard/layouts/qwerty.js",
-      "keyboard/layouts/azerty.js",
-      "keyboard/layouts/alphabetic.js",
-      "auto/auto.js",
-      "react/react.js",
-    ],
-    cap: 12.75 * KB,
-    // The one external on this line, and the only one it may ever carry: react is an
-    // optional peer every consumer of the adapter already has. Bundled instead, the
-    // line reads 21.06 kB and measures React rather than this package.
-    external: ["react", "react/jsx-runtime"],
-    note: "every runtime entry bundled once, only React's peer external — the debug entry is excluded on purpose",
-  },
 ];
 
 interface Measurement {
@@ -188,26 +170,96 @@ interface Measurement {
   readonly gzipped: number;
 }
 
-async function measure(line: Line): Promise<Measurement> {
+/** Every built module, which is what the lines together have to account for. */
+export function builtModules(directory: string): string[] {
+  const found: string[] = [];
+  for (const entry of readdirSync(directory, { withFileTypes: true })) {
+    const full = path.join(directory, entry.name);
+    if (entry.isDirectory()) {
+      found.push(...builtModules(full));
+      continue;
+    }
+    // The synthetic entrypoints this script writes and deletes are not the package.
+    if (entry.name.endsWith(".js") && !entry.name.startsWith("__size-")) found.push(full);
+  }
+  return found;
+}
+
+/**
+ * The relative imports of a built ESM module, resolved against it. Read off the built
+ * output rather than the bundler: asking Bun would mean a catch-all `onResolve`, and a
+ * catch-all resolver changes how the entry is tree-shaken — measured once, it took the
+ * core line from 3.13 kB to 0.38.
+ */
+export function moduleImports(source: string, from: string): string[] {
+  const found: string[] = [];
+  for (const match of source.matchAll(/(?:from|import)\s*["']([^"']+)["']/g)) {
+    const specifier = match[1];
+    if (specifier === undefined || !specifier.startsWith(".")) continue;
+    found.push(path.resolve(path.dirname(from), specifier));
+  }
+  return found;
+}
+
+/**
+ * What a line pays for: everything reachable from its entries, minus what it hands to
+ * somebody else. Walking stops at an external, which is the point — those bytes are on
+ * another line's bill.
+ */
+export function chargedBy(
+  entries: readonly string[],
+  external: ReadonlySet<string>,
+  importsOf: (file: string) => readonly string[],
+): Set<string> {
+  const charged = new Set<string>();
+  const queue = [...entries];
+  while (queue.length > 0) {
+    const file = queue.pop();
+    if (file === undefined || charged.has(file) || external.has(file)) continue;
+    charged.add(file);
+    queue.push(...importsOf(file));
+  }
+  return charged;
+}
+
+/**
+ * The hole the whole-package line used to watch, checked directly instead: a module
+ * every line that reaches it marks `external` is charged to nobody, so it can grow
+ * without a single line going red. Here it is named rather than inferred from a sum.
+ */
+export function uncoveredModules(built: readonly string[], charged: ReadonlySet<string>): string[] {
+  return built.filter((file) => !charged.has(file)).sort();
+}
+
+function entryFiles(line: Line): string[] {
   const files = line.entries.map((entry) => path.join(distDir, entry));
   for (const file of files) {
     if (!existsSync(file)) {
       throw new Error(`${path.relative(rootDir, file)} is missing — run \`bun run build\` first`);
     }
   }
+  return files;
+}
 
-  // A named external that matches no built file is silent: the bundle simply keeps the
-  // module, the line measures more than it claims, and nothing ever goes red. Since the
-  // lists above encode a file layout, they have to be checked against it.
-  //
-  // The check resolves each specifier against every entry of the line, and the set of
-  // resolved absolute paths is what the bundler is then told to leave out — see the
-  // plugin below for why the specifier strings themselves are not usable.
-  //
-  // A bare specifier is a peer dependency rather than a file of this package, so it
-  // has nothing to check against and is matched by name. Leaving one out is how the
-  // react line first measured 29 kB: react is never shipped, and a line that bundles
-  // it is reporting a consumer's cost as this package's.
+/**
+ * The `external` list of a line, resolved against its entries. Shared by the measurement
+ * and by the coverage check, so the two can never disagree about what a line hands away.
+ *
+ * A named external that matches no built file is silent: the bundle simply keeps the
+ * module, the line measures more than it claims, and nothing ever goes red. Since the
+ * lists above encode a file layout, they have to be checked against it.
+ *
+ * The check resolves each specifier against every entry of the line, and the set of
+ * resolved absolute paths is what the bundler is then told to leave out — see the
+ * plugin in `measure` for why the specifier strings themselves are not usable.
+ *
+ * A bare specifier is a peer dependency rather than a file of this package, so it
+ * has nothing to check against and is matched by name. Leaving one out is how the
+ * react line first measured 29 kB: react is never shipped, and a line that bundles
+ * it is reporting a consumer's cost as this package's.
+ */
+function resolveExternals(line: Line): { paths: Set<string>; packages: Set<string> } {
+  const files = entryFiles(line);
   const externalPaths = new Set<string>();
   const externalPackages = new Set<string>();
   for (const specifier of line.external ?? []) {
@@ -225,6 +277,12 @@ async function measure(line: Line): Promise<Measurement> {
       externalPaths.add(resolved);
     }
   }
+  return { paths: externalPaths, packages: externalPackages };
+}
+
+async function measure(line: Line): Promise<Measurement> {
+  const files = entryFiles(line);
+  const { paths: externalPaths, packages: externalPackages } = resolveExternals(line);
 
   // Every line is bundled through a synthetic module, single-entry ones included, and it
   // imports namespaces into a sink rather than re-exporting.
@@ -297,42 +355,75 @@ function kb(bytes: number): string {
   return `${(bytes / KB).toFixed(2)} kB`;
 }
 
-if (!existsSync(distDir)) {
-  console.error("dist/ is missing — run `bun run build` before `bun run check:size`");
-  process.exit(1);
-}
-
-const failures: string[] = [];
-const rows: string[] = [];
-
-for (const line of LINES) {
-  const { minified, gzipped } = await measure(line);
-  let status: string;
-  if (line.cap === null) {
-    status = "UNCAPPED";
-    failures.push(
-      `${line.name}: measured ${kb(gzipped)} min+gzip and has no cap — write the cap in scripts/size-budget.ts (next 0.25 kB above the measurement) and record it in an ADR-0017 amendment`,
-    );
-  } else if (gzipped > line.cap) {
-    status = "OVER";
-    failures.push(`${line.name}: ${kb(gzipped)} exceeds its cap of ${kb(line.cap)}`);
-  } else {
-    status = "ok";
+// Guarded so the pure helpers above can be imported by `scripts/size-budget.test.ts`
+// without the whole measurement running on import.
+if (import.meta.main) {
+  if (!existsSync(distDir)) {
+    console.error("dist/ is missing — run `bun run build` before `bun run check:size`");
+    process.exit(1);
   }
-  const used = line.cap === null ? "  —" : `${Math.round((gzipped / line.cap) * 100)}%`.padStart(4);
-  const cap = line.cap === null ? "(none)" : kb(line.cap);
-  rows.push(
-    `${line.name.padEnd(16)} ${kb(minified).padStart(10)} ${kb(gzipped).padStart(10)} ${cap.padStart(9)} ${used}  ${status.padEnd(8)} — ${line.note}`,
+
+  const failures: string[] = [];
+  const rows: string[] = [];
+
+  for (const line of LINES) {
+    const { minified, gzipped } = await measure(line);
+    let status: string;
+    if (line.cap === null) {
+      status = "UNCAPPED";
+      failures.push(
+        `${line.name}: measured ${kb(gzipped)} min+gzip and has no cap — write the cap in scripts/size-budget.ts (next 0.25 kB above the measurement) and record it in an ADR-0017 amendment`,
+      );
+    } else if (gzipped > line.cap) {
+      status = "OVER";
+      failures.push(`${line.name}: ${kb(gzipped)} exceeds its cap of ${kb(line.cap)}`);
+    } else {
+      status = "ok";
+    }
+    const used =
+      line.cap === null ? "  —" : `${Math.round((gzipped / line.cap) * 100)}%`.padStart(4);
+    const cap = line.cap === null ? "(none)" : kb(line.cap);
+    rows.push(
+      `${line.name.padEnd(16)} ${kb(minified).padStart(10)} ${kb(gzipped).padStart(10)} ${cap.padStart(9)} ${used}  ${status.padEnd(8)} — ${line.note}`,
+    );
+  }
+
+  // Coverage, which is what the whole-package line used to stand in for: every built
+  // module has to be on somebody's bill. The graph is read off `dist/` rather than asked
+  // of the bundler — see `moduleImports` for the measurement that settled that.
+  const importCache = new Map<string, string[]>();
+  const importsOf = (file: string): string[] => {
+    const cached = importCache.get(file);
+    if (cached !== undefined) return cached;
+    const imports = existsSync(file) ? moduleImports(readFileSync(file, "utf8"), file) : [];
+    importCache.set(file, imports);
+    return imports;
+  };
+
+  const charged = new Set<string>();
+  for (const line of LINES) {
+    for (const file of chargedBy(entryFiles(line), resolveExternals(line).paths, importsOf)) {
+      charged.add(file);
+    }
+  }
+
+  const uncovered = uncoveredModules(builtModules(distDir), charged);
+  if (uncovered.length > 0) {
+    failures.push(
+      `charged to no line: ${uncovered.map((file) => path.relative(distDir, file)).join(", ")} — a module every line marks external grows without any of them going red, so give it a line or stop externalising it everywhere`,
+    );
+  }
+
+  console.log(
+    `${"line".padEnd(16)} ${"min".padStart(10)} ${"min+gzip".padStart(10)} ${"cap".padStart(9)} used  status`,
+  );
+  for (const row of rows) console.log(row);
+
+  if (failures.length > 0) {
+    console.error(`\nsize budgets failed:\n- ${failures.join("\n- ")}`);
+    process.exit(1);
+  }
+  console.log(
+    `\nsize budgets passed for ${LINES.length} lines, and all ${charged.size} built modules are charged to one`,
   );
 }
-
-console.log(
-  `${"line".padEnd(16)} ${"min".padStart(10)} ${"min+gzip".padStart(10)} ${"cap".padStart(9)} used  status`,
-);
-for (const row of rows) console.log(row);
-
-if (failures.length > 0) {
-  console.error(`\nsize budgets failed:\n- ${failures.join("\n- ")}`);
-  process.exit(1);
-}
-console.log(`\nsize budgets passed for ${LINES.length} lines`);
