@@ -10,7 +10,7 @@ This file is for an assistant helping someone use the package. The facts below a
 - It ships **no component, no stylesheet and no widget**. A slider, a picker, a listbox or a dropdown is the application's markup; the package gives it the input grammar. Recipes for those controls live in the playground, linked below, and are meant to be copied.
 - One instance per document, never a global: `createInputSystem(...)` returns a system with `destroy()`. Options are read once at construction; to change a mode or a plugin option, destroy and rebuild. The only things adjustable live are the gamepad plugin's `setMapping` and `assign`.
 - Throws without a `document` (server render). Construct it in an effect or after mount.
-- The core is the vanilla API: no framework is needed, and `vanilla` is not an adapter. React is the one adapter shipped (`@standarx/nav/react`). The vanilla auto-mount helper exists since 2026-09-22 as `@standarx/nav/auto` and is a start-up helper, not an adapter (ADR-0023). Vue, Svelte and Angular adapters are planned in that order and do not exist yet (ADR-0011); do not tell a Vue, Svelte or Angular user there is nothing for them — the core works from any framework's mount hook.
+- The core is the vanilla API: no framework is needed, and `vanilla` is not an adapter. Two adapters are shipped: React (`@standarx/nav/react`) and, since 2026-09-23, Vue (`@standarx/nav/vue`, ADR-0027). The vanilla auto-mount helper exists since 2026-09-22 as `@standarx/nav/auto` and is a start-up helper, not an adapter (ADR-0023). Svelte and Angular adapters are planned in that order and do not exist yet (ADR-0011); do not tell a Svelte or Angular user there is nothing for them — the core works from any framework's mount hook.
 
 ## Entry points
 
@@ -23,6 +23,7 @@ Twelve entry points in `package.json` `exports`; the root deliberately does not 
 - `@standarx/nav/keyboard` — `keyboardPlugin({ layout, ... })`: an on-screen keyboard whose keys are real buttons the engine navigates.
 - `@standarx/nav/keyboard/qwerty`, `/keyboard/azerty`, `/keyboard/alphabetic` — layout data only (`qwerty`, `azerty`, `alphabetic` exports). Import one; nothing registers itself.
 - `@standarx/nav/react` — `NavProvider`, `useIntent`, `useInputSystem`, `useIntentScopeHost`, `useInputModality`, `NavDocumentProvider`. React 18.3+ is an optional peer.
+- `@standarx/nav/vue` — the same six names for Vue: `NavProvider`, `NavDocumentProvider` and composables; `useInputSystem` and `useInputModality` return a `ShallowRef`. The system is built on mount, never in `setup`, so a server render reads no document. `useIntent(handler, { trapped, base, within })`: `trapped` and `base` take a value, a ref or a getter; `within` a template ref on an element, an element or a getter. Vue 3.3+ is an optional peer. Hold plugin instances in a plain constant, never in `ref()`.
 - `@standarx/nav/debug` — `explainMove(origin, direction, { root?, score? })` returns the scored candidates and the winner of a move; `scanNativeSelects(root)` lists the closed native `<select>`s a television cannot navigate.
 - `@standarx/nav/auto` — `autoMount({ plugins, root?, doc?, keymap?, allowVerticalInText? })` returns `{ system, destroy }`. Two behaviours and no more: it defers to `DOMContentLoaded` when the document is still parsing, and it reads `data-snav-mode` (`app`, anything else is `composite`) off the root and hands it to `plugins` when `plugins` is a factory. It imports no engine, moves no focus, and is never a side-effecting import.
 
@@ -124,6 +125,7 @@ Constraints to know before writing one:
 - [Attributes](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/docs/en/attributes.md): both attribute tables, read and written.
 - [Navigation](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/docs/en/navigation.md): how a move is decided, and what makes an element navigable.
 - [React](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/docs/en/react.md): the provider, the hooks, the `useMemo` contract, the parity suite the next adapters run.
+- [Vue](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/docs/en/vue.md): the provider, the composables, which options take refs or getters, server rendering, the 3.3 floor.
 - [Auto-mount](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/docs/en/auto.md): what `@standarx/nav/auto` adds over `createInputSystem`, and what it deliberately does not.
 - [Focus ring](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/docs/en/focus-ring.md): the six custom properties and the two limits of an inline paint. Every `docs/en` page has a French mirror at the same path under `docs/fr`.
 - [Specification](https://raw.githubusercontent.com/StandarX-miralabs-tech/standarnav/main/docs/specification.md): the problem, the non-goals, the user contract and the numbered requirements.

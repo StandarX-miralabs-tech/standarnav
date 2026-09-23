@@ -162,8 +162,9 @@ during the first render, LIFO scope order, a scope released when only its own su
 trap that stops the walk, a base scope reached through that trap, a composite nested in a trapping
 surface reached when both pass `within` and silenced when neither does, a base re-registered on a
 rerender without leaving its place, and the order scopes were opened in kept across a system
-rebuild. The adapters that follow — Vue, Svelte and Angular, in the order of
-[ADR-0011](../adr/0011-package-layout-and-adapters.md) — run the same suite before they ship. The
+rebuild. The adapters that follow, in the order of
+[ADR-0011](../adr/0011-package-layout-and-adapters.md), run the same suite before they ship: Vue
+passes it since 2026-09-23 ([Vue](vue.md)), and Svelte and Angular come next. The
 vanilla auto-mount helper that shipped before them does not, and
 [ADR-0023](../adr/0023-vanilla-auto-mount.md) is the record of why: the suite asserts what a
 provider does across a render, and that helper has neither ([Auto-mount](auto.md)).

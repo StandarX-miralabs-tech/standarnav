@@ -5,7 +5,7 @@
 This policy covers the standarnav library code (the `@standarx/nav` package
 and its subpath exports: core, `gamepad`, `spatial`, `focus-ring`, `debug`,
 `auto`, `keyboard` with its `qwerty`, `azerty` and `alphabetic` layouts, and
-the React adapter). It does not cover the local development page under
+the React and Vue adapters). It does not cover the local development page under
 `playground/`, which is not shipped in the package, nor its copy on GitHub
 Pages, a static build of that page published by `.github/workflows/pages.yml`
 on every push to `main`: it runs no server and stores nothing.

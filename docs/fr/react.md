@@ -170,10 +170,10 @@ propre sous-arbre est démonté, un piège qui arrête le parcours, une portée 
 travers ce piège, un composite imbriqué dans une surface qui piège atteint quand les deux passent
 `within` et réduit au silence quand aucun ne le fait, une base réenregistrée à un nouveau rendu
 sans quitter sa place, et l'ordre
-d'ouverture des portées conservé à travers une reconstruction du système. Les adaptateurs qui suivent — Vue,
-Svelte et Angular, dans l'ordre
-d'[ADR-0011](../adr/0011-package-layout-and-adapters.md) — passent la même suite avant d'être
-livrés. L'utilitaire d'auto-montage vanilla livré avant eux, non, et
+d'ouverture des portées conservé à travers une reconstruction du système. Les adaptateurs qui
+suivent, dans l'ordre d'[ADR-0011](../adr/0011-package-layout-and-adapters.md), passent la même
+suite avant d'être livrés : Vue la passe depuis le 2026-09-23 ([Vue](vue.md)), et Svelte et Angular
+viennent ensuite. L'utilitaire d'auto-montage vanilla livré avant eux, non, et
 [ADR-0023](../adr/0023-vanilla-auto-mount.md) est le registre du pourquoi : la suite affirme
 ce que fait un fournisseur à travers un rendu, et cet utilitaire n'a ni l'un ni l'autre
 ([Auto-montage](auto.md)).

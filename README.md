@@ -63,15 +63,16 @@ Import only what you use: the root entry pulls in no engine.
 | `@standarx/nav/keyboard` | An on-screen keyboard whose keys are real buttons the engine navigates; a layout is data in `/keyboard/qwerty`, `/keyboard/azerty` or `/keyboard/alphabetic` ([ADR-0022](docs/adr/0022-virtual-keyboard.md)). |
 | `@standarx/nav/debug` | `explainMove`, the scored candidates of a move; `scanNativeSelects`, the closed `<select>`s a television cannot open. |
 | `@standarx/nav/react` | `NavProvider` and the hooks — [docs/en/react.md](docs/en/react.md). |
+| `@standarx/nav/vue` | `NavProvider` and the composables, for Vue 3.3 and later — [docs/en/vue.md](docs/en/vue.md). |
 | `@standarx/nav/auto` | `autoMount` for a page with no framework: waits for the document, and lets `data-snav-mode` on the root pick the navigation mode — [docs/en/auto.md](docs/en/auto.md). |
 
 ## Frameworks
 
-The core is the vanilla API and needs no framework, and `@standarx/nav/auto` is a start-up helper next to it rather than an adapter ([ADR-0023](docs/adr/0023-vanilla-auto-mount.md)). React is the adapter shipped today; Vue, Svelte and Angular follow in that order ([ADR-0011](docs/adr/0011-package-layout-and-adapters.md)), each held to the same parity suite as React before it ships.
+The core is the vanilla API and needs no framework, and `@standarx/nav/auto` is a start-up helper next to it rather than an adapter ([ADR-0023](docs/adr/0023-vanilla-auto-mount.md)). React and Vue are the adapters shipped today, both held to the same parity suite ([ADR-0027](docs/adr/0027-vue-adapter.md) for Vue); Svelte and Angular follow in that order ([ADR-0011](docs/adr/0011-package-layout-and-adapters.md)), each held to that suite before it ships.
 
 ## Documentation
 
-- [docs/en/](docs/en/): the attribute tables, how a move is decided and what makes an element navigable, React, the auto-mount helper, the focus ring. Mirrored file by file in [docs/fr/](docs/fr/).
+- [docs/en/](docs/en/): the attribute tables, how a move is decided and what makes an element navigable, React, Vue, the auto-mount helper, the focus ring. Mirrored file by file in [docs/fr/](docs/fr/).
 - [Playground](https://standarx-miralabs-tech.github.io/standarnav/): the fixture page, driven by keyboard and gamepad. `bun run dev` serves it from `src/`, and `playground/widgets.ts` holds the recipes for a slider, a stepper, a wheel picker, a listbox, a splitter and a native `<select>`.
 - Browser support: Chromium 85, Safari 15 and Firefox 79 are the declared floor, television runtimes of 2020-2021 are best effort, and no television has been tested ([ADR-0013](docs/adr/0013-browser-baseline-and-fallbacks.md), [docs/research/tv-runtime-compatibility.md](docs/research/tv-runtime-compatibility.md)).
 - [docs/specification.md](docs/specification.md): the problem, the non-goals, the requirements and the gate each public claim has to pass. [docs/adr/README.md](docs/adr/README.md): every decision with its evidence — package layout [ADR-0011](docs/adr/0011-package-layout-and-adapters.md), versioning and release [ADR-0012](docs/adr/0012-versioning-and-release.md).

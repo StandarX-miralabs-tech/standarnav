@@ -74,7 +74,7 @@ optional peer at `>=3.3.0` and a devDependency at `^3.5.43` (`package.json`).
 
 **10. Vue's feature flags in the test config.** The esm-bundler build warns once per run when
 `__VUE_OPTIONS_API__`, `__VUE_PROD_DEVTOOLS__` and `__VUE_PROD_HYDRATION_MISMATCH_DETAILS__` are
-undefined; the browser project defines them to Vue's defaults (`vitest.config.ts:30-34`).
+undefined; the browser project defines them to Vue's defaults (`vitest.config.ts`, `:30-34`).
 
 ## Consequences
 
@@ -102,8 +102,8 @@ undefined; the browser project defines them to Vue's defaults (`vitest.config.ts
 ## Evidence
 
 - Code: `src/vue/vue.ts`, anchors above; `src/internal/scope-registry.ts` (`openOn`, `register`,
-  `release`, `reopen`); `tsdown.config.ts:15`, `:27`, `:40` (entry, external, subpath);
-  `package.json:44`, `:50`, `:59`, `:99` (export, peer, optional, devDependency).
+  `release`, `reopen`); `tsdown.config.ts`, `:15`, `:27`, `:40` (entry, external, subpath);
+  `package.json`, `:44`, `:50`, `:59`, `:99` (export, peer, optional, devDependency).
 - Tests, `src/vue/vue.browser.test.ts`: 27 cases of its own and `runAdapterParitySuite(parity)` at
   `:921`, 16 cases, among them "keeps a nested composite under the trap of the dialog around it"
   (`:384`), "re-opens a scope in its place when a ref it was given for trapped changes" (`:443`),
