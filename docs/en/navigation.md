@@ -30,6 +30,13 @@ that looks like it. The attributes the walk reads are in [attributes.md](attribu
   `audio[controls]`, `video[controls]`, `summary`, `[contenteditable]`, `[tabindex]`
   (`src/tabbable.ts`).
 - A `div` with an `onclick` is not focusable. Give it `tabindex="0"`, or use a real `button`.
+- `[contenteditable]` counts only when it makes the element editable: `contenteditable="false"`,
+  and `inherit` or an invalid value under a parent that is not editable, are not candidates, since
+  the browser does not focus them either. An editing host — an editable element whose parent is
+  not editable — is a Tab stop for `isTabbable` although its `tabIndex` reads -1, unless it
+  carries `tabindex="-1"`; what is editable inside a host is not. Tests: "drops a contenteditable
+  attribute that does not make its element editable" and "counts an editing host as a Tab stop,
+  and not what is editable inside it" (`src/tabbable.browser.test.ts`).
 - `aria-hidden` is deliberately **not** filtered: it hides an element from a screen reader, not
   from the d-pad. `isFocusable` rejects a non-matching selector, a disabled element, a hidden
   element and an inert one, and nothing else. Use `data-snav-ignore`, `inert`, or `display: none`.

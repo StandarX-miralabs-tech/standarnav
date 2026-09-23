@@ -34,6 +34,14 @@ chose qui y ressemble. Les attributs que le parcours lit sont dans [attributes.m
   `[tabindex]` (`src/tabbable.ts`).
 - Un `div` avec un `onclick` n'est pas focalisable. Donnez-lui `tabindex="0"`, ou utilisez un vrai
   `button`.
+- `[contenteditable]` ne compte que s'il rend l'élément éditable : `contenteditable="false"`, et
+  `inherit` ou une valeur invalide sous un parent non éditable, ne sont pas des candidats, puisque
+  le navigateur ne les focalise pas non plus. Un hôte d'édition — un élément éditable dont le
+  parent ne l'est pas — est un arrêt de tabulation pour `isTabbable` bien que son `tabIndex` vaille
+  -1, sauf s'il porte `tabindex="-1"` ; ce qui est éditable à l'intérieur d'un hôte ne l'est pas.
+  Tests : « drops a contenteditable attribute that does not make its element editable » et
+  « counts an editing host as a Tab stop, and not what is editable inside it »
+  (`src/tabbable.browser.test.ts`).
 - `aria-hidden` n'est délibérément **pas** filtré : il cache un élément à un lecteur d'écran, pas
   à la croix directionnelle. `isFocusable` rejette un sélecteur non correspondant, un élément
   désactivé, un élément caché et un élément inerte, et rien d'autre. Utilisez `data-snav-ignore`,

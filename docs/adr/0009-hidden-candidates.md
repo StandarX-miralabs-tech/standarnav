@@ -25,10 +25,10 @@ and not re-derived here; the last is the one (C1) has since changed.
 
 | Rule | Where | What it does |
 |---|---|---|
-| `FOCUSABLE_SELECTOR` | `src/tabbable.ts:17-32` | The shape of a candidate: form controls without `disabled`, `a[href]`, `area[href]`, `iframe`, `object`, `embed`, `audio/video[controls]`, `summary`, `[contenteditable]`, `[tabindex]`. |
-| `isHidden` | `src/tabbable.ts:41-50` | `checkVisibility({ contentVisibilityAuto: true, visibilityProperty: true })` where the browser has it; otherwise `offsetParent === null && getClientRects().length === 0`. |
-| `isInert` | `src/tabbable.ts:52-54` | `closest("[inert]")`. An inert subtree is still visible, so it is a separate question. |
-| `aria-disabled` | `isFocusable`, `src/tabbable.ts:56-65`, with the comment saying so at `:62-63` | Stays focusable, on purpose: APG wants disabled menu items and toolbar buttons reachable, unlike natively disabled controls. |
+| `FOCUSABLE_SELECTOR` | `src/tabbable.ts:17-34` | The shape of a candidate: form controls without `disabled`, `a[href]`, `area[href]`, `iframe`, `object`, `embed`, `audio/video[controls]`, `summary`, `[contenteditable]`, `[tabindex]`. |
+| `isHidden` | `src/tabbable.ts:43-52` | `checkVisibility({ contentVisibilityAuto: true, visibilityProperty: true })` where the browser has it; otherwise `offsetParent === null && getClientRects().length === 0`. |
+| `isInert` | `src/tabbable.ts:54-56` | `closest("[inert]")`. An inert subtree is still visible, so it is a separate question. |
+| `aria-disabled` | `isFocusable`, `src/tabbable.ts:58-67`, with the comment saying so at `:64-65` | Stays focusable, on purpose: APG wants disabled menu items and toolbar buttons reachable, unlike natively disabled controls. |
 | `aria-hidden` | not filtered anywhere | Deliberate. A roving item is `tabindex="-1"` so the container owns one tab stop, and steering to it is the d-pad's whole job. The opt-out is `data-snav-ignore`, not a filter. |
 | Zero-size filter | `collectNavNodes`, `src/spatial/spatial.ts:188` | `rect.width === 0 \|\| rect.height === 0`. Either dimension, since (C1); the inherited rule asked for both, so a 0x40 element stayed a candidate. |
 
@@ -48,7 +48,7 @@ What is not tested, and where the rules are therefore only as good as a reading:
 | Gap | Current behaviour, by reading | Consequence |
 |---|---|---|
 | `visibility: hidden` on the fallback path | `checkVisibility({ visibilityProperty: true })` excludes it; the fallback does not, because such an element still has client rects and an offset parent | The rule differs between a modern desktop browser and the fallback runtimes — and the fallback is the live path on the whole supported TV tier, since `checkVisibility` is Chrome 105 / Safari 17.4 / Firefox 106 (caniuse and MDN BCD, fetched 2026-09-18) while the supported tier starts at Chromium 85 ([ADR-0013](0013-browser-baseline-and-fallbacks.md)) |
-| `opacity: 0` | Kept. Not asked of `checkVisibility` (the `opacityProperty` option is not passed at `src/tabbable.ts:47`) and invisible to the fallback | A fade-out overlay stays a target while it is transparent |
+| `opacity: 0` | Kept. Not asked of `checkVisibility` (the `opacityProperty` option is not passed at `src/tabbable.ts:49`) and invisible to the fallback | A fade-out overlay stays a target while it is transparent |
 | `clip-path` | Kept. Nothing reads it | An element clipped to nothing is a target |
 | Clipped by an `overflow: hidden` ancestor | Kept | Sometimes right, sometimes not: see the decision |
 | Outside the scroller's viewport | Kept | This is exactly how a long list works: the move lands, then `scrollFocusIntoView` brings it in with `scrollIntoView` (`src/spatial/spatial.ts:294-306`) |
@@ -189,8 +189,8 @@ so it stays rejected: `src/spatial/spatial.browser.test.ts:401-457`.
 
 ## Evidence
 
-- `src/tabbable.ts:17-32`, `:41-50`, `:52-54`, `:56-65` — `FOCUSABLE_SELECTOR`, `isHidden`,
-  `isInert`, `isFocusable` and the `aria-disabled` comment at `:62-63`.
+- `src/tabbable.ts:17-34`, `:43-52`, `:54-56`, `:58-67` — `FOCUSABLE_SELECTOR`, `isHidden`,
+  `isInert`, `isFocusable` and the `aria-disabled` comment at `:64-65`.
 - `src/tabbable.browser.test.ts:36-51` — the only visibility coverage that exists:
   `hidden`, `display: none`, `inert`, `aria-disabled`.
 - `src/spatial/spatial.ts:188` — the zero-size filter, either dimension, inside `collectNavNodes`
@@ -207,11 +207,11 @@ so it stays rejected: `src/spatial/spatial.browser.test.ts:401-457`.
 - State at HEAD in this repository: the zero-size filter is
   `rect.width === 0 || rect.height === 0` at `src/spatial/spatial.ts:188`, under a comment at
   `:183-187` naming (C1) and this record — so (C1) is decided and written.
-  `src/tabbable.ts:41-50` carries `isHidden` with the
+  `src/tabbable.ts:43-52` carries `isHidden` with the
   `checkVisibility({ contentVisibilityAuto: true, visibilityProperty: true })` call and the
   `offsetParent === null && getClientRects().length === 0` fallback: `opacityProperty` is not
   passed, and the fallback has no `visibility` test, so rule 5 is also still to be written.
-  `src/tabbable.ts:56-65` is `isFocusable`, with `aria-disabled` deliberately absent and the
+  `src/tabbable.ts:58-67` is `isFocusable`, with `aria-disabled` deliberately absent and the
   comment saying so; nothing filters `aria-hidden` anywhere.
 - Fixtures in this repository: `src/spatial/spatial.browser.test.ts:598-646`, the
   candidate filter — "drops an element with no size at all" (`:613`), "drops one that is flat on a
@@ -220,7 +220,7 @@ so it stays rejected: `src/spatial/spatial.browser.test.ts:401-457`.
   and `min-width`, because a Chromium UA button measures 16 x 6 at width 0 and would never reach the
   filter at all. `src/spatial/spatial.browser.test.ts:423-457`, the three `aria-hidden` cases,
   carrying the trap they pin. Suite state at HEAD: `bun run test:unit` → 110 passed in
-  11 files; `bun run test:browser` → 261 passed and 1 skipped in 13 files, the skip being the
+  11 files; `bun run test:browser` → 264 passed and 1 skipped in 13 files, the skip being the
   shadow-DOM fixture of [ADR-0008](0008-shadow-dom.md).
 - `checkVisibility` availability: Chrome 105, Safari 17.4, Firefox 106 (caniuse and MDN browser-compat
   data, fetched 2026-09-18; table with URLs in
@@ -228,5 +228,5 @@ so it stays rejected: `src/spatial/spatial.browser.test.ts:401-457`.
   tier of this project: Chromium 85, Safari 15, Firefox 79
   ([ADR-0013](0013-browser-baseline-and-fallbacks.md), decided 2026-09-18).
 - Behaviour of `visibility: hidden` and `opacity: 0` under the fallback is derived by reading the two
-  lines of `src/tabbable.ts:45-49`, not measured in a browser. The fixtures required by this decision are
+  lines of `src/tabbable.ts:47-51`, not measured in a browser. The fixtures required by this decision are
   what will turn that reading into a fact.

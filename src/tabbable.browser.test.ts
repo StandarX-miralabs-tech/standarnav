@@ -110,6 +110,57 @@ describe("tabbable", () => {
     expect(isFocusable(host.querySelector("#link"))).toBe(false);
   });
 
+  it("counts an editing host as a Tab stop, and not what is editable inside it", () => {
+    const host = mount(`
+      <button id="before"></button>
+      <div id="editor" contenteditable>text <span id="nested" contenteditable="true">nested</span></div>
+      <div id="pinned" contenteditable tabindex="-1">pinned</div>
+      <div id="outer" contenteditable><span contenteditable="false">fixed <span id="island" contenteditable>island</span></span></div>
+      <button id="after"></button>
+    `);
+    const at = (id: string): HTMLElement => host.querySelector(`#${id}`) as HTMLElement;
+
+    expect(at("editor").tabIndex).toBe(-1);
+    expect(isTabbable(at("editor"))).toBe(true);
+    expect(isTabbable(at("nested"))).toBe(false);
+    expect(isFocusable(at("pinned"))).toBe(true);
+    expect(isTabbable(at("pinned"))).toBe(false);
+    expect(isTabbable(at("island"))).toBe(true);
+    expect(getTabbables(host).map((node) => node.id)).toEqual([
+      "before",
+      "editor",
+      "outer",
+      "island",
+      "after",
+    ]);
+  });
+
+  it("drops a contenteditable attribute that does not make its element editable", () => {
+    const host = mount(`
+      <div id="inherit" contenteditable="inherit">inherit</div>
+      <div id="upper" contenteditable="FALSE">upper</div>
+      <div id="bogus" contenteditable="bogus">bogus</div>
+      <div id="stop" contenteditable="inherit" tabindex="0">stop</div>
+    `);
+    const inherit = host.querySelector("#inherit") as HTMLElement;
+
+    inherit.focus();
+    expect(document.activeElement).not.toBe(inherit);
+
+    expect(isFocusable(inherit)).toBe(false);
+    expect(isFocusable(host.querySelector("#upper"))).toBe(false);
+    expect(isFocusable(host.querySelector("#bogus"))).toBe(false);
+    expect(isTabbable(host.querySelector("#stop"))).toBe(true);
+  });
+
+  it("reports an editing host as the last edge", () => {
+    const host = mount(`<button id="a"></button><div id="editor" contenteditable>text</div>`);
+
+    const [first, last] = getTabbableEdges(host);
+    expect(first?.id).toBe("a");
+    expect(last?.id).toBe("editor");
+  });
+
   it("focuses without scrolling the page", () => {
     const host = mount(`<div style="height: 200vh"></div><button id="low"></button>`);
     const button = host.querySelector("#low") as HTMLElement;
