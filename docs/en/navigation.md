@@ -5,7 +5,10 @@
 For one direction, starting from `document.activeElement` (`src/spatial/spatial.ts`):
 
 1. **Redirect.** If the focused element carries `data-snav-<direction>`, the selector is resolved
-   on the whole document and the move ends there.
+   on the whole document and the move ends there. A selector that matches nothing, or whose first
+   match is not focusable — disabled, hidden, inert — is ignored, and the move goes on to step 2
+   as if the attribute were absent. Test: "ignores a redirection to a target that cannot take the
+   focus" (`src/spatial/spatial.browser.test.ts`).
 2. **Geometry.** Candidates are collected in the nearest declared container. A nested container
    counts as one candidate, scored as a single rectangle, not as all of its children. The
    best-aligned candidate wins; ties go to DOM order, because candidates are collected in document
@@ -18,6 +21,13 @@ For one direction, starting from `document.activeElement` (`src/spatial/spatial.
    container traps, blocks this direction, or is the root. It is bounded at sixteen levels.
 
 When the walk ends with nothing, `onBoundsHit(direction)` fires and the move returns `false`.
+
+The browser has the last word on the landing. If the chosen element does not become the active
+element after `focus()` — a second `<summary>` in a `<details>` is one such element on chromium,
+firefox and webkit (Playwright, 2026-09-23) — the move returns `false` and writes nothing:
+`data-snav-focused` stays where it was, and no container remembers the refused element. Tests:
+"writes nothing when the focus does not land" and "reports a move whose target refused the focus
+as not made" (`src/spatial/spatial.browser.test.ts`).
 
 `@standarx/nav/spatial` publishes the two functions that walk that list — `containerOf` and
 `collectNavNodes` — so a diagnostic can score exactly what the engine scores rather than something

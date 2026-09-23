@@ -23,8 +23,8 @@ engine is broken":
 | Symptom | Cause | Where |
 |---|---|---|
 | A move does nothing, no error | The element is not focusable, or `collectNavNodes` filtered it as ignored or zero-size | `isFocusable` at `src/tabbable.ts:58-67`, then `src/spatial/spatial.ts:175` and `:188` |
-| A move stops crossing containers in a deep tree | The walk out gives up at `MAX_CONTAINER_DEPTH = 16` and calls the bounds listeners instead | `src/spatial/spatial.ts:60`, `:423-444` |
-| A redirection attribute is ignored, or focuses nothing | `data-snav-<direction>` is a CSS selector resolved on the whole document. If it matches nothing, the move silently falls through to geometry. If it matches a non-focusable element, the engine calls `focus()` on it, reports success and writes `data-snav-focused` on an element the browser will not focus — there is no `isFocusable` check on that path | `src/spatial/spatial.ts:414-417`, then `commit` at `:308-333` |
+| A move stops crossing containers in a deep tree | The walk out gives up at `MAX_CONTAINER_DEPTH = 16` and calls the bounds listeners instead | `src/spatial/spatial.ts:60`, `:427-448` |
+| A redirection attribute is ignored, or focuses nothing | `data-snav-<direction>` is a CSS selector resolved on the whole document. If it matches nothing, the move silently falls through to geometry. If it matches a non-focusable element, the engine calls `focus()` on it, reports success and writes `data-snav-focused` on an element the browser will not focus — there is no `isFocusable` check on that path | `src/spatial/spatial.ts:418-421`, then `commit` at `:308-337` |
 
 The precedent for the answer already exists in this repository. `explainMove` is published as its
 own entry point so that "an application that ships spatial navigation does not ship the explanation
@@ -81,13 +81,13 @@ The subpath provides:
 
 2. **A depth warning.** When the walk out of nested containers runs its full `MAX_CONTAINER_DEPTH = 16`
    iterations without breaking on the root, a trap or a block (`src/spatial/spatial.ts:60`,
-   `:423-444`), the diagnostics report it with the container chain it saw. Saturation means the move
+   `:427-448`), the diagnostics report it with the container chain it saw. Saturation means the move
    silently stopped short; today it is indistinguishable from a real boundary.
 
 3. **A redirection warning.** For every `data-snav-up/down/left/right` in the scanned tree: report the
    selector that resolves to nothing, and the selector that resolves to an element `isFocusable` says
    no to. The second case is worse than the first, because the engine currently treats it as a
-   successful move (`src/spatial/spatial.ts:414-417`).
+   successful move (`src/spatial/spatial.ts:418-421`).
 
 4. **`explainMove`, calling the engine's own rule.** `findBestCandidate` becomes the single ranking
    implementation; `explainMove` calls it for the winner and keeps `scoreCandidates` only for the
@@ -127,7 +127,7 @@ did ([ADR-0017](0017-size-budgets.md), the amendment of that date).
 - Production builds are unchanged. The core entry gains nothing: `src/index.ts` does not re-export
   the debug module, and `./debug` is its own entry in the exports map (`package.json`). Measured
   here with `bun run build && bun run check:size`: core 3.16 kB of a 3.25 kB cap, spatial engine
-  3.04 of 3.25, debug 0.49 of 0.50, min+gzip ([ADR-0017](0017-size-budgets.md)).
+  3.07 of 3.25, debug 0.49 of 0.50, min+gzip ([ADR-0017](0017-size-budgets.md)).
 - Point 4 removed a duplicate implementation of the winner rule, and that is done: `src/debug.ts`
   imports `findBestCandidate` and calls it for the winner (`src/debug.ts:13-19`, `:69`), keeping
   `scoreCandidates` for the per-candidate table alone (`:68`). The asymmetry this ADR's Context
@@ -172,6 +172,28 @@ runtime where the code is written. A television opens a platform popup; a deskto
 browser navigates its own. A warning would fire on every desktop and be right on
 neither.
 
+## Amendment, 2026-09-23: the redirection is checked, and the landing is verified
+
+Row 3 of the Context table and point 3 of the decision describe an engine that no longer exists.
+Two changes made on 2026-09-23 close the half of row 3 that was a defect rather than a missing
+diagnostic.
+
+A redirect is taken only when its target passes `isFocusable` (`src/spatial/spatial.ts:421`); a
+target that is disabled, hidden, inert or not focusable at all is ignored, and the geometric search
+runs as if the attribute were absent. That is the owner's decision of 2026-09-23, pinned by
+"ignores a redirection to a target that cannot take the focus" in
+`src/spatial/spatial.browser.test.ts`. And `commit` no longer reports a focus the browser refused:
+after the `focus()` call it compares the target with the active element of the target's own root,
+and on a mismatch returns `false` having written neither `data-snav-focused` nor the container
+memory (`src/spatial/spatial.ts:333`). "writes nothing when the focus does not land" and "reports a move whose target
+refused the focus as not made" in the same file pin it.
+
+Point 3 is not made redundant by either change. A redirect that resolves to nothing and one that
+resolves to an element `isFocusable` refuses now behave the same way — both fall through to
+geometry, silently — so the warning it describes is still the only way an author learns that an
+attribute is doing nothing. What it no longer has to report is a successful move onto an element
+that never took the focus.
+
 ## Alternatives considered
 
 **Console warnings in the production build, behind `process.env.NODE_ENV`.** Rejected. The package is
@@ -198,11 +220,12 @@ removed.
 - `src/spatial/geometry.ts:202-236` — `scoreCandidates`, which recomputes eligibility and alignment a
   second time for the overlay; the comment at `:196-201` says why that second pass is deliberate and
   must not become the hot path's.
-- `src/spatial/spatial.ts:60`, `:423-444` — `MAX_CONTAINER_DEPTH = 16` and the walk out that ends in
-  the bounds listeners at `:444`, which is row 2 of the Context table.
-- `src/spatial/spatial.ts:414-417`, `:308-333` — the redirection resolved with
-  `root.ownerDocument.querySelector` and handed straight to `commit`, with no `isFocusable` check
-  between them: row 3 of the table, and why points 2 and 3 above are still needed.
+- `src/spatial/spatial.ts:60`, `:427-448` — `MAX_CONTAINER_DEPTH = 16` and the walk out that ends in
+  the bounds listeners at `:448`, which is row 2 of the Context table.
+- `src/spatial/spatial.ts:418-421`, `:308-337` — the redirection resolved with
+  `root.ownerDocument.querySelector`, and `commit`. Row 3 of the table described them with no
+  `isFocusable` check between them; since 2026-09-23 the check is at `:421` and `commit` verifies
+  the landing at `:333`, as the amendment of that date records.
 - `src/tabbable.ts:17-34`, `:58-67` — `FOCUSABLE_SELECTOR` and `isFocusable`, what a candidate has to
   be.
 - `package.json` — `"./debug"` as its own export, and `"sideEffects": false`.
@@ -211,7 +234,7 @@ removed.
   `cap: 0.5 * KB`. The rule forbidding globbed externals, with the `./*` failure mode
   spelled out, is the comment at `:65-76`.
 - Sizes measured here: `bun run build && bun run check:size`, min+gzip at Bun's default gzip level —
-  debug 0.49 kB of 0.50, core 3.16 of 3.25, spatial engine 3.04 of 3.25. Any earlier figure for a
+  debug 0.49 kB of 0.50, core 3.16 of 3.25, spatial engine 3.07 of 3.25. Any earlier figure for a
   differently shaped build is inherited from the predecessor implementation
   ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here.
 - The winner rule is shared, not restated: `src/debug.ts:13-19` imports `findBestCandidate`,

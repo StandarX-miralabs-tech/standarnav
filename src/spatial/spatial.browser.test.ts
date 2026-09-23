@@ -133,6 +133,20 @@ describe("spatialPlugin — plain HTML", () => {
 
     expect(view.active()).toBe("far");
   });
+
+  it("ignores a redirection to a target that cannot take the focus", () => {
+    const view = scene(
+      box("a", 0, 0, 100, 40, 'data-snav-right="#far"') +
+        box("near", 120, 0) +
+        box("far", 240, 0, 100, 40, "disabled"),
+    );
+    view.plugin.focus("#a");
+
+    view.move("right");
+
+    expect(view.active()).toBe("near");
+    expect(view.at("far").hasAttribute("data-snav-focused")).toBe(false);
+  });
 });
 
 describe("spatialPlugin — a focus the browser refuses", () => {
@@ -147,6 +161,42 @@ describe("spatialPlugin — a focus the browser refuses", () => {
     expect(view.active()).toBe("c");
     expect(document.querySelector("[data-snav-focused]")?.id).toBe("c");
     expect(view.at("b").hasAttribute("data-snav-focused")).toBe(false);
+  });
+
+  /**
+   * A second `<summary>` in an open `<details>` matches the selector, is visible and
+   * sized, and `focus()` leaves it alone on chromium, firefox and webkit alike —
+   * measured with Playwright on 2026-09-23. It is the honest witness of a target the
+   * engine accepts and the browser does not.
+   */
+  function refusing(): string {
+    return (
+      `${box("a", 0, 0)}<details open>` +
+      `<summary id="first" style="position:absolute;left:0;top:200px;width:100px;height:40px">one</summary>` +
+      `<summary id="second" style="position:absolute;left:120px;top:0;width:100px;height:40px">two</summary>` +
+      `</details>`
+    );
+  }
+
+  it("writes nothing when the focus does not land", () => {
+    const view = scene(refusing());
+    view.plugin.focus("#a");
+
+    expect(view.plugin.focus("#second")).toBe(false);
+
+    expect(view.active()).toBe("a");
+    expect(document.querySelector("[data-snav-focused]")?.id).toBe("a");
+  });
+
+  it("reports a move whose target refused the focus as not made", () => {
+    const view = scene(refusing());
+    view.plugin.focus("#a");
+
+    expect(view.plugin.move("right")).toBe(false);
+
+    expect(view.active()).toBe("a");
+    expect(view.at("second").hasAttribute("data-snav-focused")).toBe(false);
+    expect(document.querySelector("[data-snav-focused]")?.id).toBe("a");
   });
 });
 

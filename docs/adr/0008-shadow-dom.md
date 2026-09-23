@@ -22,7 +22,7 @@ component does not read as "outside" its own trigger. `getEventTarget` (`src/dom
 reads `composedPath()[0]` rather than `event.target`, because the browser retargets `target` to the
 host. Neither is used by the spatial engine: `src/spatial/spatial.ts:16` imports only
 `isHTMLElement` from that module, and both `containerOf` (`src/spatial/spatial.ts:148-151`) and the
-root guard in `move` (`src/spatial/spatial.ts:410`) use `Node.contains`, which stops at the
+root guard in `move` (`src/spatial/spatial.ts:414`) use `Node.contains`, which stops at the
 boundary. The event path knows about shadow DOM; the candidate scan does not.
 
 What that produces, asserted by one fixture that ships skipped:
@@ -72,7 +72,7 @@ for itself: isolated frames such as `iframe` and shadow DOM are outside what an 
 
 The fixture ships in v0 as a skipped, documented failure. It is the acceptance test of any future
 attempt, and it stops the feature being declared done by inspection. It is written:
-`src/spatial/spatial.browser.test.ts:870-892`.
+`src/spatial/spatial.browser.test.ts:920-942`.
 
 ## Consequences
 
@@ -109,7 +109,7 @@ module.
 `querySelectorAll` does not cross a shadow boundary, so nothing inside a shadow root is ever a
 candidate. `collectNavNodes` builds every move from that list (`src/spatial/spatial.ts:170`), and
 `containerOf` (`src/spatial/spatial.ts:148-151`) and the root guard in `move`
-(`src/spatial/spatial.ts:410`) use `Node.contains`, which stops at the same boundary. A host
+(`src/spatial/spatial.ts:414`) use `Node.contains`, which stops at the same boundary. A host
 carrying `tabindex` is navigable as one node, because `[tabindex]` is in `FOCUSABLE_SELECTOR`
 (`src/tabbable.ts:33`). Everything inside its root is unreachable.
 
@@ -127,7 +127,7 @@ right; making `getFocusables` traverse is the v1 feature, with the per-root walk
 resolution and the depth question that come with it. Leaving them as they are costs nothing at
 runtime, because the traversing one is never called.
 
-**It is tracked by a fixture, not by a comment.** `src/spatial/spatial.browser.test.ts:871` is
+**It is tracked by a fixture, not by a comment.** `src/spatial/spatial.browser.test.ts:921` is
 `it.skip("steers into an open shadow root (ADR-0008: light DOM only in v0)")`: a host with an open
 root and a button inside it, asserting that a move from outside lands on the button. It is the one
 skipped test in the suite (`bun run test:browser` → 257 passed, 1 skipped in 13 files),
@@ -174,7 +174,7 @@ already the expected first one ([ADR-0010](0010-dev-mode-diagnostics.md)).
   with the header that says so at `:17-23`.
 - `src/dom/query.ts:45-48` — `getEventTarget`, `composedPath()[0]` for event targets.
 - `src/spatial/spatial.ts:16` — the spatial engine imports only `isHTMLElement` from `dom/query`.
-- `src/spatial/spatial.ts:148-151` (`containerOf`) and `:410` (the root guard in `move`) —
+- `src/spatial/spatial.ts:148-151` (`containerOf`) and `:414` (the root guard in `move`) —
   `Node.contains` in the containment checks.
 - `src/spatial/spatial.ts:170` — `collectNavNodes`, the whole candidate list; `:182-188`, the rect a
   node is scored on.
@@ -182,8 +182,8 @@ already the expected first one ([ADR-0010](0010-dev-mode-diagnostics.md)).
   `activeElement()`; `:60`, `MAX_CONTAINER_DEPTH`; `:248`, the focus memory `WeakMap`.
 - Only call sites of the shadow-aware `contains` at HEAD: `src/dom/dom.browser.test.ts:53-56`
   (`grep -rn "contains(" src/` — every other hit is `Node.contains`).
-- The skipped fixture: `src/spatial/spatial.browser.test.ts:870-892`, one `it.skip` at `:871`
-  naming this ADR. `bun run test:browser` → 264 passed, 1 skipped in 13 files; that skip is this
+- The skipped fixture: `src/spatial/spatial.browser.test.ts:920-942`, one `it.skip` at `:921`
+  naming this ADR. `bun run test:browser` → 267 passed, 1 skipped in 13 files; that skip is this
   one, and it is the only one in the repository.
 - Shadow-DOM field of the 20 competitor fact sheets, adversarially verified; the `Shadowdomize`
   module in Tabster's own repository, and its README statement, are the single "supported, opt-in"

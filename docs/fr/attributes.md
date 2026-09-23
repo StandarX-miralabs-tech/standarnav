@@ -17,7 +17,7 @@ et le CHANGELOG le dit quand c'est le cas.
 | `data-snav-trap` | un conteneur | nu | Un déplacement ne quitte jamais ce conteneur. |
 | `data-snav-scroll` | un conteneur | `center` | Fait défiler un élément nouvellement focalisé au centre plutôt qu'au plus proche (`nearest`). |
 | `data-snav-ignore` | n'importe quel élément | nu | Exclut l'élément de la liste des candidats. |
-| `data-snav-up` / `-down` / `-left` / `-right` | un élément focalisable | un sélecteur CSS | Envoie cette direction vers la première correspondance dans le document, avant toute géométrie. |
+| `data-snav-up` / `-down` / `-left` / `-right` | un élément focalisable | un sélecteur CSS | Envoie cette direction vers la première correspondance dans le document, avant toute géométrie. Une correspondance qui ne peut pas prendre le focus, ou aucune correspondance, est ignorée et la géométrie s'applique comme si l'attribut était absent. |
 
 Un conteneur est n'importe quel élément portant `data-snav="container"`, et `body` est le conteneur
 par défaut quand aucun ancêtre n'en déclare ([ADR-0006](../adr/0006-declarative-first.md)). Un
