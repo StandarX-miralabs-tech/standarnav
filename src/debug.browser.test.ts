@@ -177,6 +177,22 @@ describe("explainMove — where it is meant to differ from the engine", () => {
     plugin.move("right");
     expect(document.activeElement?.id).toBe("w1");
   });
+
+  it("names a winner the browser refuses, where the engine goes on to the next", () => {
+    const view = scene([
+      ["a", 0, 0],
+      ["b", 140, 0],
+      ["c", 300, 0],
+    ]);
+    // A focus that never lands: explainMove cannot learn that without focusing.
+    view.at("b").focus = (): void => {};
+    const from = view.at("a");
+    from.focus();
+
+    expect(explainMove(from, "right", { root: view.root }).winner?.element.id).toBe("b");
+    view.move("right");
+    expect(document.activeElement?.id).toBe("c");
+  });
 });
 
 describe("scanNativeSelects", () => {

@@ -305,7 +305,16 @@ export function spatialPlugin(options: SpatialPluginOptions = {}): SpatialPlugin
     });
   }
 
-  function commit(from: HTMLElement | null, to: HTMLElement, direction: MoveDirection): boolean {
+  /**
+   * `true` landed; `false` ends the operation, a veto or a focus the application sent
+   * elsewhere; `null` the browser refused, and the caller goes on to the next candidate.
+   */
+  function commit(
+    from: HTMLElement | null,
+    to: HTMLElement,
+    direction: MoveDirection,
+    refused: Set<HTMLElement>,
+  ): boolean | null {
     const root = rootOf();
     if (root === null) return false;
 
@@ -326,14 +335,59 @@ export function spatialPlugin(options: SpatialPluginOptions = {}): SpatialPlugin
       if (prevented) return false;
     }
 
+    const before = deepActiveElement();
     focusElement(to, { preventScroll: true });
-    // The browser has the last word: a control it refuses keeps `document.activeElement`
-    // where it was, and marking it would draw a focus that is not there. Its own root,
-    // not the document, so a root inside a shadow tree still sees the landing (ADR-0008).
-    if ((to.getRootNode() as Document | ShadowRoot).activeElement !== to) return false;
+    if (!landed(to)) {
+      // A focus handler that moved it on is the application's call: never pull it back.
+      if (deepActiveElement() !== before) return false;
+      refused.add(to);
+      return null;
+    }
     remember(to, root);
     scrollFocusIntoView(to, root);
     return true;
+  }
+
+  // The browser has the last word: a control it refuses keeps `activeElement` where it
+  // was, and marking it would draw a focus that is not there. Its own root, not the
+  // document, so a root inside a shadow tree still sees the landing (ADR-0008).
+  function landed(element: HTMLElement): boolean {
+    return (element.getRootNode() as Document | ShadowRoot).activeElement === element;
+  }
+
+  // Down through open shadow roots, so a focus the application moved inside one is not
+  // mistaken for a focus that never left: the document alone answers the host both times.
+  function deepActiveElement(): Element | null {
+    let node = doc()?.activeElement ?? null;
+    while (node?.shadowRoot?.activeElement) node = node.shadowRoot.activeElement;
+    return node;
+  }
+
+  function candidates(
+    container: HTMLElement,
+    root: HTMLElement,
+    refused: Set<HTMLElement>,
+    from?: HTMLElement,
+  ): NavNode[] {
+    return collectNavNodes(container, root).filter(
+      (node) => !refused.has(node.element) && !node.element.contains(from as Node | null),
+    );
+  }
+
+  /** Lands on what `pick` offers, and asks again after each refusal; `null` once it is out. */
+  function attempt(
+    from: HTMLElement | null,
+    origin: Rect,
+    direction: MoveDirection,
+    root: HTMLElement,
+    refused: Set<HTMLElement>,
+    pick: () => NavNode | null | undefined,
+  ): boolean | null {
+    for (let node = pick(); node; node = pick()) {
+      const result = land(from, node, origin, direction, root, refused);
+      if (result !== null) return result;
+    }
+    return null;
   }
 
   function enterContainer(
@@ -341,25 +395,35 @@ export function spatialPlugin(options: SpatialPluginOptions = {}): SpatialPlugin
     origin: Rect,
     direction: MoveDirection,
     root: HTMLElement,
+    refused: Set<HTMLElement>,
   ): HTMLElement | null {
     const strategy = entryStrategy(container.getAttribute(ENTER_ATTRIBUTE));
 
     if (strategy === "last") {
       const remembered = memory.get(container)?.deref() ?? null;
-      if (remembered !== null && container.contains(remembered) && isFocusable(remembered)) {
+      if (
+        remembered !== null &&
+        container.contains(remembered) &&
+        isFocusable(remembered) &&
+        !refused.has(remembered)
+      ) {
         return remembered;
       }
     }
 
-    const nodes = collectNavNodes(container, root);
-    const chosen =
-      strategy === "first"
-        ? (nodes[0] ?? null)
-        : (findBestCandidate(origin, nodes, direction, options.score) ?? nodes[0] ?? null);
-    if (chosen === null) return null;
-    return chosen.isContainer
-      ? enterContainer(chosen.element, origin, direction, root)
-      : chosen.element;
+    for (;;) {
+      const nodes = candidates(container, root, refused);
+      const chosen =
+        strategy === "first"
+          ? (nodes[0] ?? null)
+          : (findBestCandidate(origin, nodes, direction, options.score) ?? nodes[0] ?? null);
+      if (chosen === null) return null;
+      if (!chosen.isContainer) return chosen.element;
+      const inner = enterContainer(chosen.element, origin, direction, root, refused);
+      if (inner !== null) return inner;
+      // Nothing inside it will take the focus: refused as a unit, so the next one scores.
+      refused.add(chosen.element);
+    }
   }
 
   function land(
@@ -368,10 +432,14 @@ export function spatialPlugin(options: SpatialPluginOptions = {}): SpatialPlugin
     origin: Rect,
     direction: MoveDirection,
     root: HTMLElement,
-  ): boolean {
-    if (!node.isContainer) return commit(from, node.element, direction);
-    const target = enterContainer(node.element, origin, direction, root);
-    return target !== null && commit(from, target, direction);
+    refused: Set<HTMLElement>,
+  ): boolean | null {
+    const target = node.isContainer
+      ? enterContainer(node.element, origin, direction, root, refused)
+      : node.element;
+    if (target !== null) return commit(from, target, direction, refused);
+    refused.add(node.element);
+    return null;
   }
 
   /**
@@ -383,6 +451,7 @@ export function spatialPlugin(options: SpatialPluginOptions = {}): SpatialPlugin
     container: HTMLElement,
     root: HTMLElement,
     direction: MoveDirection,
+    refused: Set<HTMLElement>,
   ): boolean {
     if (rescanning) return false;
     const document = doc();
@@ -398,15 +467,20 @@ export function spatialPlugin(options: SpatialPluginOptions = {}): SpatialPlugin
     scroller.scrollBy(isHorizontal(direction) ? { left: delta } : { top: delta });
 
     rescanning = true;
+    // The same move, carried over the frame: what refused before the scroll stays skipped.
     cancelRescan = raf(win, () => {
       cancelRescan = null;
-      move(direction);
+      move(direction, refused);
       rescanning = false;
     });
     return true;
   }
 
-  function move(direction: MoveDirection): boolean {
+  /**
+   * `refused` lives as long as one move — across its rescan frame too — and is never
+   * kept on the plugin, so an element that refused the focus is not held past it.
+   */
+  function move(direction: MoveDirection, refused = new Set<HTMLElement>()): boolean {
     const root = rootOf();
     if (root === null) return false;
 
@@ -418,26 +492,30 @@ export function spatialPlugin(options: SpatialPluginOptions = {}): SpatialPlugin
     const redirect = active.getAttribute(directionAttribute(direction));
     if (redirect !== null) {
       const target = root.ownerDocument.querySelector<HTMLElement>(redirect);
-      if (isFocusable(target)) return commit(active, target as HTMLElement, direction);
+      if (isFocusable(target) && !refused.has(target as HTMLElement)) {
+        // A refusal falls through to the geometry, as an unfocusable target does.
+        const result = commit(active, target as HTMLElement, direction, refused);
+        if (result !== null) return result;
+      }
     }
 
     const origin = active.getBoundingClientRect();
     let container = containerOf(active, root);
 
     for (let depth = 0; depth < MAX_CONTAINER_DEPTH; depth++) {
-      const nodes = collectNavNodes(container, root).filter(
-        (node) => node.element !== active && !node.element.contains(active),
-      );
+      // Rescored after each refusal, so the next best comes before the wrap.
+      const result = attempt(active, origin, direction, root, refused, () => {
+        const nodes = candidates(container, root, refused, active);
+        return (
+          findBestCandidate(origin, nodes, direction, options.score) ??
+          (wrapsDirection(container.getAttribute(WRAP_ATTRIBUTE), direction)
+            ? findWrapCandidate(origin, nodes, direction)
+            : null)
+        );
+      });
+      if (result !== null) return result;
 
-      const best = findBestCandidate(origin, nodes, direction, options.score);
-      if (best !== null) return land(active, best, origin, direction, root);
-
-      if (wrapsDirection(container.getAttribute(WRAP_ATTRIBUTE), direction)) {
-        const wrapped = findWrapCandidate(origin, nodes, direction);
-        if (wrapped !== null) return land(active, wrapped, origin, direction, root);
-      }
-
-      if (scrollAndRescan(container, root, direction)) return true;
+      if (scrollAndRescan(container, root, direction, refused)) return true;
 
       if (container === root) break;
       if (container.hasAttribute(TRAP_ATTRIBUTE)) break;
@@ -453,10 +531,10 @@ export function spatialPlugin(options: SpatialPluginOptions = {}): SpatialPlugin
     const root = rootOf();
     if (root === null) return false;
     const scope = container ?? root;
-    const nodes = collectNavNodes(scope, root);
-    const first = nodes[0];
-    if (first === undefined) return false;
-    return land(activeElement(), first, scope.getBoundingClientRect(), "down", root);
+    const refused = new Set<HTMLElement>();
+    const origin = scope.getBoundingClientRect();
+    const pick = (): NavNode | undefined => candidates(scope, root, refused)[0];
+    return !!attempt(activeElement(), origin, "down", root, refused, pick);
   }
 
   function analogueScrollBy(intent: NavigationIntent, value: number): boolean {
@@ -520,7 +598,7 @@ export function spatialPlugin(options: SpatialPluginOptions = {}): SpatialPlugin
               const root = rootOf();
               if (root === null || !root.contains(target)) return;
               focusElement(target, { preventScroll: true });
-              remember(target, root);
+              if (landed(target)) remember(target, root);
             },
             { capture: true, passive: true },
           ),
@@ -548,7 +626,7 @@ export function spatialPlugin(options: SpatialPluginOptions = {}): SpatialPlugin
       };
     },
 
-    move,
+    move: (direction): boolean => move(direction),
     focusFirst,
 
     focus(target): boolean {
@@ -557,7 +635,8 @@ export function spatialPlugin(options: SpatialPluginOptions = {}): SpatialPlugin
       const element =
         typeof target === "string" ? root.ownerDocument.querySelector<HTMLElement>(target) : target;
       if (element === null) return false;
-      return commit(activeElement(), element, "down");
+      // A named target has no next best: a refusal is the answer.
+      return !!commit(activeElement(), element, "down", new Set());
     },
 
     onWillMove(listener): VoidFunction {

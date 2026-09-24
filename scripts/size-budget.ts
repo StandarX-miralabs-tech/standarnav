@@ -81,7 +81,7 @@ const LINES: readonly Line[] = [
   {
     name: "core",
     entries: ["index.js"],
-    cap: 3.25 * KB,
+    cap: 3.5 * KB,
     note: "intent bus, input system, keymap, engage mode, modality, tabbable, and the dom/event.js and dom/query.js they pull in — what every consumer pays",
   },
   {

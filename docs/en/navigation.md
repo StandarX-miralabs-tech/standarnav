@@ -23,11 +23,20 @@ For one direction, starting from `document.activeElement` (`src/spatial/spatial.
 When the walk ends with nothing, `onBoundsHit(direction)` fires and the move returns `false`.
 
 The browser has the last word on the landing. If the chosen element does not become the active
-element after `focus()` — a second `<summary>` in a `<details>` is one such element on chromium,
-firefox and webkit (Playwright, 2026-09-23) — the move returns `false` and writes nothing:
-`data-snav-focused` stays where it was, and no container remembers the refused element. Tests:
-"writes nothing when the focus does not land" and "reports a move whose target refused the focus
-as not made" (`src/spatial/spatial.browser.test.ts`).
+element after `focus()`, the engine writes nothing on it — `data-snav-focused` stays where it was,
+and no container remembers it — and, since 2026-09-24, goes on to the next candidate, in the order
+above: the next best in the same container, then its wrap candidate, the scroll and rescan, and the
+parent container. A redirect whose target refuses falls through to step 2 the same way.
+`onBoundsHit` fires when every candidate refused. `onWillMove` is asked once per candidate tried,
+and a veto still ends the move. If the focus lands somewhere else, because an application's own
+`focus` handler moved it, the move stops and returns `false`, and the focus stays where the
+application put it. `focus(target)` tries only the target it names. What every engine refuses is
+not a candidate to begin with (next section); what remains are refusals the engines split on — an
+`<embed>` with a `type` and no `src` on chromium and webkit, an empty `<object>` and a link with a
+`tabindex` inside an editing host on firefox (Playwright, 2026-09-24). Tests: "reports a move whose
+target refused the focus as not made" and the `describe` "spatialPlugin — a refused candidate hands
+the move on (ADR-0030)" (`src/spatial/spatial.browser.test.ts`); the reasoning is in
+[ADR-0030](../adr/0030-refused-focus-next-candidate.md).
 
 `@standarx/nav/spatial` publishes the two functions that walk that list — `containerOf` and
 `collectNavNodes` — so a diagnostic can score exactly what the engine scores rather than something
@@ -37,8 +46,10 @@ that looks like it. The attributes the walk reads are in [attributes.md](attribu
 
 - The engine sees what the platform sees: it collects elements matching the focusable selector —
   `input`, `select`, `textarea`, `button`, `a[href]`, `area[href]`, `iframe`, `object`, `embed`,
-  `audio[controls]`, `video[controls]`, `summary`, `[contenteditable]`, `[tabindex]`
-  (`src/tabbable.ts`).
+  `audio[controls]`, `video[controls]`, the first `<summary>` of a `<details>`,
+  `[contenteditable]`, `[tabindex]` (`src/tabbable.ts`). That list is exported as
+  `FOCUSABLE_SELECTOR`, whose string changed on 2026-09-24: its `summary` arm became
+  `details>summary:first-of-type`, and its arms were reordered.
 - A `div` with an `onclick` is not focusable. Give it `tabindex="0"`, or use a real `button`.
 - `[contenteditable]` counts only when it makes the element editable: `contenteditable="false"`,
   and `inherit` or an invalid value under a parent that is not editable, are not candidates, since
@@ -47,9 +58,18 @@ that looks like it. The attributes the walk reads are in [attributes.md](attribu
   carries `tabindex="-1"`; what is editable inside a host is not. Tests: "drops a contenteditable
   attribute that does not make its element editable" and "counts an editing host as a Tab stop,
   and not what is editable inside it" (`src/tabbable.browser.test.ts`).
+- Inside an editing host, a link and an element that is focusable only for being editable are not
+  candidates unless they carry a `tabindex`: chromium, firefox and webkit all refuse them the focus
+  (Playwright, 2026-09-24). A form control, a frame, an embedded object, a media element with
+  controls and a details summary stay candidates inside a host. A second `<summary>` in a
+  `<details>`, one nested deeper and one outside any `<details>` are not candidates either, for the
+  same reason. Tests: "drops a link and a nested editable of an editing host, unless they carry a
+  tabindex" and "takes only the first summary child of a details as focusable"
+  (`src/tabbable.browser.test.ts`).
 - `aria-hidden` is deliberately **not** filtered: it hides an element from a screen reader, not
   from the d-pad. `isFocusable` rejects a non-matching selector, a disabled element, a hidden
-  element and an inert one, and nothing else. Use `data-snav-ignore`, `inert`, or `display: none`.
+  element, an inert one, and the link or editable-only element of a host above, and nothing else.
+  Use `data-snav-ignore`, `inert`, or `display: none`.
 - Disabled means what the browser means: a form control with `disabled`, or one inside a
   `<fieldset disabled>` anywhere but in its first `<legend>`. A link or a `tabindex` element
   inside that fieldset stays a candidate, as it stays focusable in the browser. Tests: "drops what
@@ -78,7 +98,8 @@ that looks like it. The attributes the walk reads are in [attributes.md](attribu
   reasoning and where it goes in v1 are in [ADR-0008](../adr/0008-shadow-dom.md).
 
 When a move surprises you, read the scored list with `explainMove` from `@standarx/nav/debug`
-(`src/debug.ts`).
+(`src/debug.ts`). It does not focus anything, so it cannot see a refusal: when the browser refuses
+its winner, the engine lands on the next candidate instead.
 
 ## Native radios and ranges in `app` mode
 

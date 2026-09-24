@@ -87,7 +87,7 @@ not cover:
 
 | Test to add | Why |
 |---|---|
-| Scroll-and-rescan on a virtualised scroller | `scrollAndRescan` (`src/spatial/spatial.ts:382-407`) re-enters the move one frame of `raf` later, behind a `rescanning` lock, untested |
+| Scroll-and-rescan on a virtualised scroller | `scrollAndRescan` (`src/spatial/spatial.ts:450-477`) re-enters the move one frame of `raf` later, behind a `rescanning` lock, untested |
 | `pointerFollowsFocus` in `app` mode | default-on path, `followPointer` at `src/spatial/spatial.ts:239`, untested |
 | `data-snav-scroll="center"` | rail centring, the `SCROLL_ATTRIBUTE` read at `src/spatial/spatial.ts:300`, untested |
 | `explainMove` parity with the real winner | the diagnostic re-implemented the winner rule instead of sharing it, inherited from the predecessor implementation ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here |
@@ -124,7 +124,7 @@ the file that covers it.
 | Scroll-and-rescan on a virtualised scroller | `src/spatial/spatial.browser.test.ts:778-836` — two cases: it scrolls when nothing is reachable and lands a frame later (`:805`), and it scrolls four fifths of the viewport rather than a whole one (`:825`) |
 | `pointerFollowsFocus` in `app` mode | `src/spatial/spatial.browser.test.ts:577-610` — three cases, including that it is off in `composite` and that it bypasses the `onWillMove` veto |
 | `data-snav-scroll="center"` | `src/spatial/spatial.browser.test.ts:612-646` — centres when the container asks, stays at `nearest` when it does not |
-| `explainMove` parity with the real winner | `src/debug.browser.test.ts:56-111` and `:113-180` — see the reversal below |
+| `explainMove` parity with the real winner | `src/debug.browser.test.ts:56-111` and `:113-196` — see the reversal below |
 | The spatial plugin's handling of `scrollX` | `src/spatial/spatial.browser.test.ts:710-776` — five cases: both signs, a zero value, the 24-pixel rate at full and half deflection, and silence when scrolling is off |
 | Zero-size filter with one zero dimension | `src/spatial/spatial.browser.test.ts:648-696` — three cases pinning the `||` filter [ADR-0009](0009-hidden-candidates.md) C1 shipped in this pull request: no size at all (`:663`), flat on a single axis (`:672`), and a 1px hairline kept (`:686`), which is the bound that stops the rule reaching a real target |
 | `WeakRef` fallback path | `src/spatial/spatial.browser.test.ts:859-891` — the property is deleted from `globalThis` for the duration of the case, so the strong-reference branch actually runs |
@@ -137,7 +137,7 @@ re-implemented the winner rule instead of sharing it. That is no longer true: `s
 implementation, which is what [ADR-0010](0010-dev-mode-diagnostics.md) decision 4 asked for. The
 tests that remain are therefore not parity tests against a second implementation but assertions
 about where the *diagnostic* is meant to differ from the *engine* —
-`src/debug.browser.test.ts:113-180` pins three such places: `explainMove` does not model a
+`src/debug.browser.test.ts:113-179` pins three such places: `explainMove` does not model a
 directional redirection, scores one container while the engine walks out of it, and does not model
 wrapping. Those differences are now the interesting thing to assert, because the winner rule is
 shared and can no longer drift.

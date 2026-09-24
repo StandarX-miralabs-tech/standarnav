@@ -6,7 +6,7 @@ Deciders: Wesley Cormier
 
 ## Context
 
-`select:not([disabled])` is in `FOCUSABLE_SELECTOR` (`src/tabbable.ts:19`), so the engine treats a
+`select:not([disabled])` is in `FOCUSABLE_SELECTOR` (`src/tabbable.ts:20`), so the engine treats a
 native `<select>` as an ordinary candidate and focuses it like a button. Then A arrives: nothing in
 a scope claims it, so `activateFocused` clicks the focused element (`src/input-system.ts:119-133`),
 and a closed `<select>` answers a click by opening its options.
@@ -50,7 +50,7 @@ leaves the engine's sight.
 Two mechanics of the bus make that work, and both are easy to get wrong:
 
 - **The trapped scope does not confine the focus.** The spatial engine is pushed as a `base` scope
-  (`src/spatial/spatial.ts:510`) and a base scope is asked even through a trap — which is the case
+  (`src/spatial/spatial.ts:588`) and a base scope is asked even through a trap — which is the case
   `base` exists for. Confinement comes from `data-snav-trap` on the container. The scope silences
   the components in between; the attribute is what keeps the engine inside.
 - **Inside a trap, A does not click the focused element.** `select` is not one of the three intents

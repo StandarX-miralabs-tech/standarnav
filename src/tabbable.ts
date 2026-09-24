@@ -14,19 +14,24 @@
 
 import { isHTMLElement, queryAll } from "./dom/query";
 
-export const FOCUSABLE_SELECTOR: string = [
+// What takes the focus in its own right, inside an editing host as much as outside one.
+const NATIVE_SELECTOR = [
   "input:not([type='hidden']):not([disabled])",
   "select:not([disabled])",
   "textarea:not([disabled])",
   "button:not([disabled])",
-  "a[href]",
   "area[href]",
   "iframe",
   "object",
   "embed",
   "audio[controls]",
   "video[controls]",
-  "summary",
+  "details>summary:first-of-type",
+].join(",");
+
+export const FOCUSABLE_SELECTOR: string = [
+  NATIVE_SELECTOR,
+  "a[href]",
   // `:read-write`, not a list of values: `false`, `inherit` under a plain parent and an
   // invalid value all leave the element uneditable and unfocusable, in any letter case.
   "[contenteditable]:read-write",
@@ -61,6 +66,15 @@ export function isFocusable(node: HTMLElement | null | undefined): boolean {
   // `:disabled` reaches a control through a disabled `<fieldset>`; `[disabled]` keeps
   // the attribute an opt-out on elements the browser would still focus (ADR-0009, rule 6).
   if (node.matches(":disabled,[disabled]")) return false;
+  // Inside an editing host, a link and an element editable for no other reason refuse
+  // the focus on all three engines when they carry no tabindex (ADR-0030).
+  if (
+    !node.hasAttribute("tabindex") &&
+    node.parentElement?.isContentEditable &&
+    !node.matches(NATIVE_SELECTOR)
+  ) {
+    return false;
+  }
   // `aria-disabled` stays focusable on purpose: APG wants disabled menu items and
   // toolbar buttons reachable, unlike natively disabled form controls.
   return !isHidden(node) && !isInert(node);

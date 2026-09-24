@@ -32,12 +32,12 @@ export interface SpatialExplanation {
   /** Every candidate, scored, in document order. Lower is better. */
   readonly candidates: readonly ScoredCandidate<NavNode>[];
   /**
-   * What this container's scoring alone chooses — which is not always where the
-   * focus goes. The engine answers a directional redirection attribute before it
-   * scores anything; it walks out to the parent container when this one yields
-   * nothing; it wraps, and it scrolls and rescans a frame later, in cases where
-   * this is `null`; and when the choice is a nested container it descends into it
-   * and lands on a descendant rather than on the container itself.
+   * What this container's scoring alone chooses — which is not always where the focus
+   * goes. The engine answers a directional redirection attribute first; it walks out to
+   * the parent container when this one yields nothing; it wraps, and scrolls and rescans
+   * a frame later, where this is `null`; it descends into a nested container and lands on
+   * a descendant; and when the browser refuses the focus it goes on to the next candidate,
+   * which this cannot know without focusing, so it may name what the engine skips.
    */
   readonly winner: NavNode | null;
 }

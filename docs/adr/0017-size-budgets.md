@@ -607,6 +607,37 @@ the other three adapter lines.
 Fourteen lines, every built module charged to one: `size budgets passed for 14 lines, and all 32
 built modules are charged to one`, 2026-09-24.
 
+## Amendment, 2026-09-24 (third): the core cap goes to 3.50 kB, for the candidates every engine refuses
+
+`bun run build && bun run check:size`, run 2026-09-24 on the finished code of the pull request
+that closes issue #19, before any of it was committed. The exact bytes come from the same bundling
+with a byte column added.
+
+| Line | min | min+gzip | old cap | new cap |
+|---|---|---|---|---|
+| core | 8.14 kB | **3.27 kB** (3 346 B, was 3 310 B) | 3.25 kB (3 328 B) | **3.50 kB** (3 584 B), 93 % used |
+| spatial engine | 7.80 kB | 3.24 kB (3 318 B, was 3 142 B) | 3.25 kB (3 328 B) | 3.25 kB, unchanged, 10 bytes of room |
+
+**Rule 4, in its own commit.** The core line measured 3 310 B on the base of that pull request,
+18 bytes under its cap, and its fix goes 18 bytes over. This commit raises the cap and changes no
+code; the code lands in the commits after it.
+
+**What the 36 bytes buy.** `isFocusable` in `src/tabbable.ts`, which the core line carries, stops
+accepting what chromium, firefox and webkit all refuse to focus: a link inside an editing host, and
+an element inside one that is focusable only for being editable, when neither carries a tabindex.
+The selector's arms that take the focus in their own right become a named list the rule reads, and
+its `summary` arm becomes `details>summary:first-of-type`, since a second `<summary>`, an orphan one
+and a grandchild are refused on all three. The record of the rule, and of the refusals the engines
+split on, is ADR-0030, which the same pull request adds.
+
+**The spatial line does not move its cap.** The same pull request makes the spatial engine try
+the next candidate when the browser refuses one, which costs it 176 bytes and leaves 10 under the
+unchanged 3.25 kB; it is now among the lines where one more change can go red.
+
+**Rule 3 gives 3.50.** The next quarter kB above 3.27 is 3.50, 238 bytes of room. Every other line
+reads as it did in the amendment above: `size budgets passed for 14 lines, and all 32 built
+modules are charged to one`, 2026-09-24.
+
 ## Alternatives considered
 
 **A bundlephobia badge in the README.** Rejected: it is not blocking, it lags
