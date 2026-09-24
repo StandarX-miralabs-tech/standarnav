@@ -265,6 +265,43 @@ webkit, and `src/internal/scope-registry.ts` has its third importer. The gate ca
 Svelte's own code; what it did was make a test fixture honest: a component re-rendered with an
 equal value re-opened its host scope until the fixture read its props through `$derived`.
 
+## Amendment, 2026-09-24 (second): item 5 of the adapter order ships, `@standarx/nav/angular`
+
+Angular is built: `src/angular/angular.ts`, subpath `./angular` in the generated map
+(`package.json`, `:34`), an entry and its external in `tsdown.config.ts` (`:17`, `:36`) and the
+rename at `:52`, budget line `angular adapter` at 1.67 of 1.75 kB ([ADR-0017](0017-size-budgets.md),
+second amendment of 2026-09-24). Its design, and why its floor is 20.0, are
+[ADR-0029](0029-angular-adapter.md). No row of the table remains planned.
+
+**The table said "directives", and the adapter is functions.** The Angular row read `directives
+(planned)` from the day this record was written. A directive is a decorated class that Angular's
+compiler has to compile, and a library ships one partially compiled by ng-packagr, which needs
+TypeScript 6.0 where this repository is on 7.0.2, builds outside tsdown, and ties the floor to the
+Angular version it compiles with. What a directive would add is a template attribute and its host
+element, and the element is one `inject(ElementRef)` passed as `within`. So the row names
+`provideNav`, `injectIntentScopeHost` and functions, called in an injection context, and no
+directive ships.
+
+**The peer rule of this record holds for a fourth framework.** `@angular/core` is a peer at
+`>=20.0.0` (`package.json`, `:50`) with `"optional": true` (`:57`), and the only Angular peer:
+`DOCUMENT` has been exported from `@angular/core` since 20.0, so `@angular/common` is a
+devDependency for the tests and nothing more. The floor is kept by `angular-floor`
+(`.github/workflows/ci.yml:202-226`), exactly 20.0.0 of every Angular package the tests load, the
+unit project included.
+
+**The one adapter whose provider is a factory.** React, Vue and Svelte
+build a system because their provider is a component that mounts. An Angular provider is a factory
+created on its first request, so the application's or a route's `provideNav` carries an environment
+initializer that creates it with the injector, and a component's builds when something below asks
+([ADR-0029](0029-angular-adapter.md), decision 4).
+
+**The parity gate is now a four-adapter gate.** `runAdapterParitySuite` runs against React, Vue,
+Svelte and Angular (`src/angular/angular.browser.test.ts:1143`), all 16 cases, on chromium, firefox
+and webkit, and `src/internal/scope-registry.ts` has its fourth importer. What the gate found in
+Angular was an order: Angular runs the after-render hooks of one render parent first, and the
+suite's two cases with a composite inside a trapping surface failed until the scopes of one render
+were opened in DOM post-order.
+
 ## Alternatives considered
 
 **A monorepo with one package per adapter** (`@standarx/nav-core`, `@standarx/nav-react`, and so

@@ -58,16 +58,16 @@ Rules that go with that skeleton:
   in the prose so the mismatch is visible when it does.
 - Related records are linked by file name, relative to this directory:
   `[ADR-0003](0003-package-boundaries.md)`.
-- Length: 60 to 150 lines is the target **for a new record**. The twenty-seven below
-  run from 97 to 663 lines (`wc -l docs/adr/0*.md`, 2026-09-24), because an
+- Length: 60 to 150 lines is the target **for a new record**. The twenty-eight below
+  run from 98 to 690 lines (`wc -l docs/adr/0*.md`, 2026-09-24), because an
   accepted record grows by amendment. The target governs the first draft; an
   amendment is judged on whether it says something the record did not, not on the
   line count it adds.
 
 ## Adding one
 
-1. Take the next free number. The highest in use is ADR-0028, so the next is
-   ADR-0029. Numbers are never reused, and a superseded record keeps its number.
+1. Take the next free number. The highest in use is ADR-0029, so the next is
+   ADR-0030. Numbers are never reused, and a superseded record keeps its number.
    ADR-0004 is the one gap: it recorded a migration plan for the private
    predecessor rather than a decision of this repository, so it was withdrawn on
    2026-09-20 instead of superseded, its one design decision — the focus ring's
@@ -128,3 +128,4 @@ dated amendment in its record.
 | [0026](0026-native-handler-answer.md) | A scope may answer "native": the walk ends and the default acts | Accepted | Answers issue #15. A handler may return `"native"` beside `true` and `false`: it stops the walk, `base` scopes and the spatial engine included, and the dispatch reads as an intent nobody answered, so the browser keeps a key's default and a pad `select` keeps the emulated click. A trap still swallows what nobody it asked answered. No engine rule excludes native controls, since a remote's arrows arrive as keyboard arrows and a radio group wraps: the recipe answers on the control's own axis. |
 | [0027](0027-vue-adapter.md) | The Vue adapter, `@standarx/nav/vue`, and its 3.3 floor | Accepted | Item 3 of ADR-0011's order. React's surface as `defineComponent` over setup functions, no compiler; the system built on mount, never in setup, so a server render reads no document; scopes opened on mount through the ordered registry React now shares; `trapped` and `base` as a value, a ref or a getter, `within` as an element, a getter or a template ref. Optional peer `vue` at `>=3.3.0`, the release that ships `toValue`, `MaybeRefOrGetter` and the function form of `defineComponent`, kept by a `vue-floor` CI job on exactly 3.3.0. |
 | [0028](0028-svelte-adapter.md) | The Svelte adapter, `@standarx/nav/svelte`, and its 5.0 floor | Accepted | Item 4 of ADR-0011's order, as functions rather than the actions that order planned. `provideNav` and `provideNavDocument` stand for the two providers and are called in a component's `<script>`; plain TypeScript over Svelte's public runtime, no component, no rune, no compiler in the package. The system is built on mount, so a server render reads no document; options are a value or a getter, watched with `toStore` and compared by content; scopes open on mount through the shared ordered registry. Optional peer `svelte` at `>=5.0.0`, kept by a `svelte-floor` CI job on exactly 5.0.0. |
+| [0029](0029-angular-adapter.md) | The Angular adapter, `@standarx/nav/angular`, and its 20.0 floor | Accepted | Item 5 of ADR-0011's order, as functions rather than the directives that order planned. `provideNav` and `provideNavDocument` return `Provider[]` for an application, a route or a component, and `injectIntent`, `injectInputSystem`, `injectIntentScopeHost` and `injectInputModality` are called in an injection context; plain TypeScript over Angular's public runtime, no decorator, no compiler in the package. The system is built by an after-render effect, so a server render reads no document; an environment initializer creates the provider with an application's or a route's injector, and a component's builds when something asks; the scopes of one render open in DOM post-order through the shared ordered registry. Optional peer `@angular/core` at `>=20.0.0`, kept by an `angular-floor` CI job on exactly 20.0.0. |

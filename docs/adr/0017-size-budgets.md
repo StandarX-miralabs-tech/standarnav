@@ -580,6 +580,33 @@ the other two adapter lines.
 Thirteen lines, every built module charged to one: `size budgets passed for 13 lines, and all 31
 built modules are charged to one`, 2026-09-24.
 
+## Amendment, 2026-09-24 (second): a fourteenth line, for the Angular adapter
+
+`bun run build && bun run check:size`, run 2026-09-24. The Angular adapter is a subpath,
+`@standarx/nav/angular` ([ADR-0029](0029-angular-adapter.md)), so it gets a line; it is new, so no
+cap moves and rule 4 is not in play. The line went in with `cap: null` first and the run went red as
+rule 5 intends, `angular adapter: measured 1.67 kB min+gzip and has no cap`, then the cap was
+written.
+
+| Line | min | min+gzip | cap |
+|---|---|---|---|
+| angular adapter | 3.80 kB | **1.67 kB** (1 707 B) | **1.75 kB** (1 792 B), 95 % used |
+| svelte adapter | 3.19 kB | 1.45 kB (1 481 B), unchanged | 1.50 kB, unchanged, 96 % used |
+| vue adapter | 3.12 kB | 1.40 kB (1 434 B), unchanged | 1.50 kB, unchanged, 93 % used |
+| react adapter | 3.32 kB | 1.42 kB (1 452 B), unchanged | 1.50 kB, unchanged, 95 % used |
+
+**Rule 3 gives 1.75.** The next quarter above 1.67 kB is 1.75 kB, 85 bytes of room. It is the
+heaviest adapter line, 226 bytes above the svelte one; which part of the module those bytes are is
+not measured.
+
+**Its externals mirror the other adapter lines'.** `@angular/core`, the peer the consumer supplies,
+and `../input-system.js` and `../modality.js`, which the core already ships
+(`scripts/size-budget.ts:149-155`). The three `internal/` modules are charged here as they are to
+the other three adapter lines.
+
+Fourteen lines, every built module charged to one: `size budgets passed for 14 lines, and all 32
+built modules are charged to one`, 2026-09-24.
+
 ## Alternatives considered
 
 **A bundlephobia badge in the README.** Rejected: it is not blocking, it lags
