@@ -54,7 +54,7 @@ The engine moves the real DOM focus, and only the real DOM focus.
   `src/spatial/spatial.ts:113-141`). It is a hint for re-entry, never a source of
   truth: the engine re-checks that the remembered element is still contained and
   still focusable before landing on it (`contains` and `isFocusable`,
-  `src/spatial/spatial.ts:349`).
+  `src/spatial/spatial.ts:404-409`).
 - The attributes the engine writes (`data-snav-focused` on the focused element,
   `data-snav-active` on every container on the path) are styling hooks that
   mirror the real focus. They are never read back as state.
@@ -84,8 +84,8 @@ Consequence for the public surface: the library has no `getFocusedKey()` and no
 - Cost: every move queries and measures live DOM, and a focus call can trigger
   scrolling, focus events and framework effects the library does not control. The
   `onWillMove` veto exists for that, and it runs before the focus call
-  (the `onWillMove` block of `commit()`, `src/spatial/spatial.ts:312-327`; the
-  `focusElement` call is `:329`, after it).
+  (the `onWillMove` block of `commit()`, `src/spatial/spatial.ts:321-336`; the
+  `focusElement` call is `:339`, after it).
 - Cost: the engine cannot move focus into a closed shadow root or a cross-origin
   iframe, because `focus()` cannot either — see [ADR-0008](0008-shadow-dom.md).
 
@@ -201,10 +201,10 @@ modes), not this decision alone.
   a `closest("[inert]")` walk). `aria-disabled` stays focusable on purpose, and the comment
   saying why is at `:78-79`.
 - `commit()` is veto, then focus, then a check that the focus landed, then remember, then scroll
-  into view: `src/spatial/spatial.ts:308-337` — the `onWillMove` block at `:312-327`, the
-  `focusElement` call at `:329`, the landing check at `:333` (since 2026-09-23: the target must be
-  the active element of its own root, or nothing is written), `remember()` at `:334`,
-  `scrollFocusIntoView()` at `:335`.
+  into view: `src/spatial/spatial.ts:312-349` — the `onWillMove` block at `:321-336`, the
+  `focusElement` call at `:339`, the landing check at `:340` (since 2026-09-23: the target must be
+  the active element of its own root, or nothing is written), `remember()` at `:346`,
+  `scrollFocusIntoView()` at `:347`.
 - The focus query reads the document, not a stored field: `activeElement()` returns
   `doc()?.activeElement` narrowed by `isHTMLElement` (`src/spatial/spatial.ts:271-274`). The one
   `focused` field (`:259`) is written only by `remember()` (`:276-292`), which uses it to strip
@@ -213,7 +213,7 @@ modes), not this decision alone.
   `src/spatial/spatial.ts:248`, filled by `remember()` at `:286`. The handle is a `WeakRef` where
   the runtime has one and a self-releasing strong reference where it does not (`elementHandle`,
   `:127-141`). Re-entry re-validates the remembered element with `contains` and `isFocusable`
-  at `:349`.
+  at `:404-409`.
 - Everything the engine focuses is reached through real nodes: `queryAll`
   (`src/dom/query.ts:10-15`) is how `getFocusables` collects candidates, `getEventTarget`
   (`:45-48`) reads `composedPath()[0]` rather than the retargeted `event.target`, and `contains`

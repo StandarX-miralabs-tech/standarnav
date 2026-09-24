@@ -54,7 +54,7 @@ What is not tested, and where the rules are therefore only as good as a reading:
 | Outside the scroller's viewport | Kept | This is exactly how a long list works: the move lands, then `scrollFocusIntoView` brings it in with `scrollIntoView` (`src/spatial/spatial.ts:294-306`) |
 
 The last two are the reason this ADR is not "exclude everything you cannot see". `scrollAndRescan`
-(`src/spatial/spatial.ts:382-407`) scrolls by `SCROLL_STEP_RATIO` of the scroller and rescans one
+(`src/spatial/spatial.ts:450-477`) scrolls by `SCROLL_STEP_RATIO` of the scroller and rescans one
 frame later, precisely because a virtualised list mounts its next rows on the scroll. A visibility rule that drops
 off-screen candidates would break the feature that exists to reach them.
 
@@ -195,7 +195,7 @@ so it stays rejected: `src/spatial/spatial.browser.test.ts:451-507`.
   `hidden`, `display: none`, `inert`, `aria-disabled`.
 - `src/spatial/spatial.ts:188` — the zero-size filter, either dimension, inside `collectNavNodes`
   (`:170-193`).
-- `src/spatial/spatial.ts:294-306`, `:382-407` — `scrollFocusIntoView` on landing, and
+- `src/spatial/spatial.ts:294-306`, `:450-477` — `scrollFocusIntoView` on landing, and
   `scrollAndRescan` one frame later.
 - `src/spatial/spatial.browser.test.ts:451-507` — the `aria-hidden` decision and
   its three cases (the block comment at `:451-472`, then the cases at `:474`, `:486` and `:499`).
@@ -220,7 +220,7 @@ so it stays rejected: `src/spatial/spatial.browser.test.ts:451-507`.
   and `min-width`, because a Chromium UA button measures 16 x 6 at width 0 and would never reach the
   filter at all. `src/spatial/spatial.browser.test.ts:473-507`, the three `aria-hidden` cases,
   carrying the trap they pin. Suite state at HEAD: `bun run test:unit` → 121 passed in
-  14 files; `bun run test:browser` → 461 passed and 1 skipped in 18 files, the skip being the
+  14 files; `bun run test:browser` → 481 passed and 1 skipped in 18 files, the skip being the
   shadow-DOM fixture of [ADR-0008](0008-shadow-dom.md).
 - `checkVisibility` availability: Chrome 105, Safari 17.4, Firefox 106 (caniuse and MDN browser-compat
   data, fetched 2026-09-18; table with URLs in

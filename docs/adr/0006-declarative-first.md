@@ -105,8 +105,8 @@ Three rules complete the decision.
   that sub-tree through an attribute, and two mounted roots can steal from each
   other. Options: resolve within `root`, keep document scope and document it, or
   make it an option. Still not resolved: the behaviour is unchanged at HEAD
-  (`src/spatial/spatial.ts:418-422`, and `spatial.focus(target)` resolves a selector
-  the same way at `:558`). That is why this ADR is Accepted on
+  (`src/spatial/spatial.ts:492-500`, and `spatial.focus(target)` resolves a selector
+  the same way at `:636`). That is why this ADR is Accepted on
   the principle and this paragraph is flagged as pending.
 - The attribute constants themselves stay private to the package: they are read
   from the markup, so the contract is the attribute names of
@@ -148,11 +148,11 @@ than an invention. See the [competitor comparison](../research/competitors.md).
 - The imperative surface is exactly five members, and countably so: the
   `SpatialPlugin` interface at `src/spatial/spatial.ts:89-96` declares `move`, `focus`,
   `focusFirst`, `onWillMove` and `onBoundsHit` and nothing else, and the returned object
-  at `:551-571` implements those five — `move` and `focusFirst` delegated, the other
+  at `:629-650` implements those five — `move` and `focusFirst` delegated, the other
   three inline.
 - Redirection selectors are resolved on the document rather than on the configured
-  root: `src/spatial/spatial.ts:418-422`, and `focus(target)` resolves a string the
-  same way at `:554-561`.
+  root: `src/spatial/spatial.ts:492-500`, and `focus(target)` resolves a string the
+  same way at `:632-640`.
 - The written attributes are output and never read back as configuration: `remember()`
   clears the stale markers, sets `FOCUSED_ATTRIBUTE` on the element and
   `ACTIVE_ATTRIBUTE` on every container up the path to it —

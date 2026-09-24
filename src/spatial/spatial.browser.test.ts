@@ -974,3 +974,317 @@ describe("spatialPlugin — what every engine refuses is no candidate (ADR-0030)
     expect(document.querySelectorAll("[data-snav-focused]")).toHaveLength(1);
   });
 });
+
+describe("spatialPlugin — a refused candidate hands the move on (ADR-0030)", () => {
+  /** The same stub as `refusing()` above: a focus that never lands, on every engine. */
+  function refuse(view: Scene, ...ids: string[]): void {
+    for (const id of ids) view.at(id).focus = (): void => {};
+  }
+
+  /** Every `to` onWillMove is asked about from here on, which is once per attempt. */
+  function attempts(view: Scene): string[] {
+    const seen: string[] = [];
+    cleanups.push(view.plugin.onWillMove((event) => seen.push(event.to.id)));
+    return seen;
+  }
+
+  it("lands on the next best in the same container, asking onWillMove once per attempt", () => {
+    const view = scene(box("a", 0, 0) + box("b", 120, 0) + box("c", 240, 0));
+    refuse(view, "b");
+    view.plugin.focus("#a");
+    const seen = attempts(view);
+
+    expect(view.plugin.move("right")).toBe(true);
+
+    expect(view.active()).toBe("c");
+    expect(seen).toEqual(["b", "c"]);
+    expect(view.at("b").hasAttribute("data-snav-focused")).toBe(false);
+    expect(document.querySelector("[data-snav-focused]")?.id).toBe("c");
+  });
+
+  it("wraps past a refusal, on the same filtered list", () => {
+    const view = scene(
+      `<div id="rail" data-snav="container" data-snav-wrap="x" style="position:absolute;left:0;top:0;width:400px;height:40px">` +
+        box("w0", 0, 0) +
+        box("w1", 120, 0) +
+        box("w2", 240, 0) +
+        `</div>`,
+    );
+    refuse(view, "w0");
+    view.plugin.focus("#w2");
+    const seen = attempts(view);
+
+    view.move("right");
+
+    expect(view.active()).toBe("w1");
+    expect(seen).toEqual(["w0", "w1"]);
+  });
+
+  it("walks out to the parent container when nothing left in its own takes the focus", () => {
+    const view = scene(
+      `<div id="row" data-snav="container" style="position:absolute;left:0;top:0;width:230px;height:40px">` +
+        box("a", 0, 0) +
+        box("b", 120, 0) +
+        `</div>${box("c", 300, 0)}`,
+    );
+    refuse(view, "b");
+    view.plugin.focus("#a");
+
+    view.move("right");
+
+    expect(view.active()).toBe("c");
+  });
+
+  it("says the bounds are hit once every candidate refused", () => {
+    const view = scene(box("a", 0, 0) + box("b", 120, 0) + box("c", 240, 0));
+    refuse(view, "b", "c");
+    const onBounds = vi.fn();
+    cleanups.push(view.plugin.onBoundsHit(onBounds));
+    view.plugin.focus("#a");
+    const seen = attempts(view);
+
+    expect(view.plugin.move("right")).toBe(false);
+
+    expect(view.active()).toBe("a");
+    expect(seen).toEqual(["b", "c"]);
+    expect(onBounds).toHaveBeenCalledWith("right");
+  });
+
+  it("still ends the move on a veto, with no next candidate and no bounds hit", () => {
+    const view = scene(box("a", 0, 0) + box("b", 120, 0) + box("c", 240, 0));
+    const onBounds = vi.fn();
+    cleanups.push(view.plugin.onBoundsHit(onBounds));
+    view.plugin.focus("#a");
+    const seen = attempts(view);
+    cleanups.push(view.plugin.onWillMove((event) => event.preventDefault()));
+
+    expect(view.plugin.move("right")).toBe(false);
+
+    expect(view.active()).toBe("a");
+    expect(seen).toEqual(["b"]);
+    expect(onBounds).not.toHaveBeenCalled();
+  });
+
+  it("stops where an application's focus handler sent the focus, and never pulls it back", () => {
+    const view = scene(box("a", 0, 0) + box("b", 120, 0) + box("c", 240, 0) + box("z", 0, 200));
+    view.at("b").addEventListener("focus", () => view.at("z").focus());
+    view.plugin.focus("#a");
+    const seen = attempts(view);
+
+    expect(view.plugin.move("right")).toBe(false);
+
+    expect(view.active()).toBe("z");
+    expect(seen).toEqual(["b"]);
+    expect(document.querySelector("[data-snav-focused]")?.id).toBe("a");
+  });
+
+  it("falls through to the geometry when a redirection's target refuses", () => {
+    const view = scene(
+      box("a", 0, 0, 100, 40, 'data-snav-right="#far"') + box("near", 120, 0) + box("far", 240, 0),
+    );
+    refuse(view, "far");
+    view.plugin.focus("#a");
+    const seen = attempts(view);
+
+    view.move("right");
+
+    expect(view.active()).toBe("near");
+    expect(seen).toEqual(["far", "near"]);
+  });
+
+  it("stops on a vetoed redirection, and on one the application sent elsewhere", () => {
+    const view = scene(
+      box("a", 0, 0, 100, 40, 'data-snav-right="#far"') +
+        box("near", 120, 0) +
+        box("far", 240, 0) +
+        box("z", 0, 200),
+    );
+    view.plugin.focus("#a");
+    const veto = view.plugin.onWillMove((event) => event.preventDefault());
+
+    expect(view.plugin.move("right")).toBe(false);
+    expect(view.active()).toBe("a");
+
+    veto();
+    view.at("far").addEventListener("focus", () => view.at("z").focus());
+
+    expect(view.plugin.move("right")).toBe(false);
+    expect(view.active()).toBe("z");
+    expect(view.at("near").hasAttribute("data-snav-focused")).toBe(false);
+  });
+
+  it("enters by geometry when the remembered child refuses", () => {
+    const view = scene(columns);
+    view.plugin.focus("#r3");
+    view.plugin.focus("#l3");
+    refuse(view, "r3");
+
+    view.move("right");
+
+    expect(view.active()).toBe("r2");
+  });
+
+  it("enters at the next child when the first one refuses", () => {
+    const view = scene(
+      columns.replace(
+        'id="right" data-snav="container"',
+        'id="right" data-snav="container" data-snav-enter="first"',
+      ),
+    );
+    refuse(view, "r1");
+    view.plugin.focus("#l3");
+
+    view.move("right");
+
+    expect(view.active()).toBe("r2");
+  });
+
+  it("skips a nested container as a unit when nothing inside it takes the focus", () => {
+    const view = scene(
+      box("a", 0, 0) +
+        `<div id="dead" data-snav="container" style="position:absolute;left:120px;top:0;width:220px;height:40px">` +
+        box("d1", 0, 0) +
+        box("d2", 120, 0) +
+        `</div>${box("c", 380, 0)}`,
+    );
+    refuse(view, "d1", "d2");
+    view.plugin.focus("#a");
+    const seen = attempts(view);
+
+    view.move("right");
+
+    expect(view.active()).toBe("c");
+    expect(seen).toEqual(["d1", "d2", "c"]);
+  });
+
+  it("focuses the first child that takes the focus on focusFirst", () => {
+    const view = scene(columns);
+    refuse(view, "r1");
+
+    expect(view.plugin.focusFirst(view.at("right"))).toBe(true);
+
+    expect(view.active()).toBe("r2");
+  });
+
+  it("does not look further on focus(target), which names its one target", () => {
+    const view = scene(box("a", 0, 0) + box("b", 120, 0) + box("c", 240, 0));
+    refuse(view, "b");
+    view.plugin.focus("#a");
+
+    expect(view.plugin.focus("#b")).toBe(false);
+
+    expect(view.active()).toBe("a");
+  });
+
+  it("takes only the direction as a callback, never an index as its refused set", () => {
+    const view = scene(box("a", 0, 0) + box("b", 120, 0) + box("c", 240, 0) + box("d", 360, 0));
+    refuse(view, "b");
+    view.plugin.focus("#a");
+
+    (["right", "right"] as const).forEach(view.plugin.move);
+
+    expect(view.active()).toBe("d");
+  });
+
+  it("carries what refused over the rescan frame, so it is not tried twice", async () => {
+    const view = scene(
+      `<div id="list" data-snav="container" style="position:absolute;left:0;top:0;width:200px;height:100px;overflow:auto">` +
+        box("row0", 0, 0, 100, 40) +
+        box("stuck", 0, 50, 100, 40) +
+        `<div style="position:absolute;top:0;left:0;width:1px;height:900px"></div>` +
+        `<div id="late" style="display:none"></div>` +
+        `</div>`,
+    );
+    const list = view.at("list");
+    list.addEventListener("scroll", () => {
+      if (list.scrollTop <= 0) return;
+      const late = view.at("late");
+      late.innerHTML = box("row1", 0, 0, 100, 40);
+      late.style.cssText = `position:absolute;left:0;top:${list.scrollTop + 20}px;width:100px;height:40px`;
+    });
+    refuse(view, "stuck");
+    view.plugin.focus("#row0");
+    const seen = attempts(view);
+
+    view.move("down");
+    expect(list.scrollTop).toBeGreaterThan(0);
+
+    await new Promise<void>((resolve) => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()));
+    });
+    expect(view.active()).toBe("row1");
+    // The stuck row is still the nearest after the scroll: carried over, it is skipped.
+    expect(seen).toEqual(["stuck", "row1"]);
+  });
+
+  it("tells a focus sent out of a shadow root from a refusal inside it", () => {
+    const outer = document.createElement("div");
+    outer.id = "nav-root";
+    document.body.append(outer);
+    const shadow = outer.attachShadow({ mode: "open" });
+    shadow.innerHTML =
+      `<div id="inner" style="position:fixed;left:0;top:0;width:560px;height:340px">` +
+      `${box("s1", 0, 0)}${box("s2", 120, 0)}</div>`;
+    const start = document.createElement("button");
+    const away = document.createElement("button");
+    document.body.append(start, away);
+    const plugin = spatialPlugin({ root: shadow.querySelector<HTMLElement>("#inner") });
+    const input = createInputSystem({ plugins: [plugin] });
+    cleanups.push(() => {
+      input.destroy();
+      outer.remove();
+      start.remove();
+      away.remove();
+    });
+    shadow.querySelector("#s1")?.addEventListener("focus", () => away.focus());
+    start.focus();
+
+    // The shadow root's own active element is null before and after, which alone
+    // would read as a refusal and try #s2.
+    expect(plugin.focusFirst()).toBe(false);
+
+    expect(document.activeElement).toBe(away);
+    expect(shadow.activeElement).toBeNull();
+  });
+
+  it("tells a focus moved inside a shadow root from a refusal outside it", () => {
+    const view = scene(box("a", 0, 0) + box("b", 120, 0));
+    const holder = document.createElement("div");
+    document.body.append(holder);
+    cleanups.push(() => holder.remove());
+    const shadow = holder.attachShadow({ mode: "open" });
+    shadow.innerHTML = `<button id="i1">one</button><button id="i2">two</button>`;
+    const inner = (id: string): HTMLElement => shadow.querySelector(`#${id}`) as HTMLElement;
+    view.at("a").addEventListener("focus", () => inner("i2").focus());
+    inner("i1").focus();
+
+    // The document answers the host before and after, which alone would read as a
+    // refusal and try #b.
+    expect(view.plugin.focusFirst()).toBe(false);
+
+    expect(shadow.activeElement).toBe(inner("i2"));
+    expect(view.at("b").hasAttribute("data-snav-focused")).toBe(false);
+  });
+
+  for (const [name, markup] of [
+    [
+      "an <embed> with a type and no source, refused by chromium and webkit",
+      `<embed id="b" type="image/png" style="position:absolute;left:120px;top:0;width:100px;height:40px">`,
+    ],
+    [
+      "an empty <object>, refused by firefox",
+      `<object id="b" style="position:absolute;left:120px;top:0;width:100px;height:40px"></object>`,
+    ],
+  ] as const) {
+    it(`lands wherever the browser takes the focus: ${name}`, () => {
+      const view = scene(box("a", 0, 0) + markup + box("c", 240, 0));
+      view.at("b").focus();
+      const takes = document.activeElement === view.at("b");
+      view.plugin.focus("#a");
+
+      view.move("right");
+
+      expect(view.active()).toBe(takes ? "b" : "c");
+    });
+  }
+});

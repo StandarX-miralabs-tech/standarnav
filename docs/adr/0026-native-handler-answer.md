@@ -12,7 +12,7 @@ platform serves this key, leave it alone", and in `app` mode that is the answer 
 needs. [Issue #15](https://github.com/StandarX-miralabs-tech/standarnav/issues/15) reported it.
 
 In `app` mode the spatial engine takes every direction: the only keyboard direction it declines
-is one in `composite` mode (`src/spatial/spatial.ts:493`). The engine is a `base` scope at the
+is one in `composite` mode (`src/spatial/spatial.ts:571`). The engine is a `base` scope at the
 bottom of the stack, so a direction nobody above claimed reaches it, it moves the focus, and the
 keydown listener cancels the key because the dispatch came back consumed
 (`src/input-system.ts:183`). No composite scope is needed for the defect: on a plain page in

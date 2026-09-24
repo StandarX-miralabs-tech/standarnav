@@ -22,7 +22,7 @@ component does not read as "outside" its own trigger. `getEventTarget` (`src/dom
 reads `composedPath()[0]` rather than `event.target`, because the browser retargets `target` to the
 host. Neither is used by the spatial engine: `src/spatial/spatial.ts:16` imports only
 `isHTMLElement` from that module, and both `containerOf` (`src/spatial/spatial.ts:148-151`) and the
-root guard in `move` (`src/spatial/spatial.ts:414`) use `Node.contains`, which stops at the
+root guard in `move` (`src/spatial/spatial.ts:488`) use `Node.contains`, which stops at the
 boundary. The event path knows about shadow DOM; the candidate scan does not.
 
 What that produces, asserted by one fixture that ships skipped:
@@ -109,7 +109,7 @@ module.
 `querySelectorAll` does not cross a shadow boundary, so nothing inside a shadow root is ever a
 candidate. `collectNavNodes` builds every move from that list (`src/spatial/spatial.ts:170`), and
 `containerOf` (`src/spatial/spatial.ts:148-151`) and the root guard in `move`
-(`src/spatial/spatial.ts:414`) use `Node.contains`, which stops at the same boundary. A host
+(`src/spatial/spatial.ts:488`) use `Node.contains`, which stops at the same boundary. A host
 carrying `tabindex` is navigable as one node, because `[tabindex]` is in `FOCUSABLE_SELECTOR`
 (`src/tabbable.ts:38`). Everything inside its root is unreachable.
 
@@ -174,7 +174,7 @@ already the expected first one ([ADR-0010](0010-dev-mode-diagnostics.md)).
   with the header that says so at `:17-23`.
 - `src/dom/query.ts:45-48` — `getEventTarget`, `composedPath()[0]` for event targets.
 - `src/spatial/spatial.ts:16` — the spatial engine imports only `isHTMLElement` from `dom/query`.
-- `src/spatial/spatial.ts:148-151` (`containerOf`) and `:414` (the root guard in `move`) —
+- `src/spatial/spatial.ts:148-151` (`containerOf`) and `:488` (the root guard in `move`) —
   `Node.contains` in the containment checks.
 - `src/spatial/spatial.ts:170` — `collectNavNodes`, the whole candidate list; `:182-188`, the rect a
   node is scored on.
@@ -183,7 +183,7 @@ already the expected first one ([ADR-0010](0010-dev-mode-diagnostics.md)).
 - Only call sites of the shadow-aware `contains` at HEAD: `src/dom/dom.browser.test.ts:53-56`
   (`grep -rn "contains(" src/` — every other hit is `Node.contains`).
 - The skipped fixture: `src/spatial/spatial.browser.test.ts:920-942`, one `it.skip` at `:921`
-  naming this ADR. `bun run test:browser` → 461 passed, 1 skipped in 18 files; that skip is this
+  naming this ADR. `bun run test:browser` → 481 passed, 1 skipped in 18 files; that skip is this
   one, and it is the only one in the repository.
 - Shadow-DOM field of the 20 competitor fact sheets, adversarially verified; the `Shadowdomize`
   module in Tabster's own repository, and its README statement, are the single "supported, opt-in"

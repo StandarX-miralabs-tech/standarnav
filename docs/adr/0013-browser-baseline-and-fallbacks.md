@@ -31,7 +31,7 @@ below the supported tier on every engine, and which a runtime removes anyway.
 
 | API | Chrome | Safari | Firefox | Used at | Behaviour when absent |
 |---|---|---|---|---|---|
-| `WeakRef` | 84 | 14.1 | 79 | `src/spatial/spatial.ts:130` constructs it inside `elementHandle()` (`:127-131`); `:109-111` is the `WeakRefCtor` type position and erases; `:131` reads through `deref()`; the per-container `memory` at `:248` holds that handle, not a bare reference, and is read back at `:348` | `ReferenceError` on the **first successful move**, not at construction — the construction sits in `elementHandle()`, reached from `remember()` (`:276`, `memory.set(container, elementHandle(element))` at `:286`), so an unguarded build would mount, render and accept focus, then throw the first time the user pressed a direction. That timing is why the detection is at the call site (`:129`) and not at module scope |
+| `WeakRef` | 84 | 14.1 | 79 | `src/spatial/spatial.ts:130` constructs it inside `elementHandle()` (`:127-131`); `:109-111` is the `WeakRefCtor` type position and erases; `:131` reads through `deref()`; the per-container `memory` at `:248` holds that handle, not a bare reference, and is read back at `:403` | `ReferenceError` on the **first successful move**, not at construction — the construction sits in `elementHandle()`, reached from `remember()` (`:276`, `memory.set(container, elementHandle(element))` at `:286`), so an unguarded build would mount, render and accept focus, then throw the first time the user pressed a direction. That timing is why the detection is at the call site (`:129`) and not at module scope |
 | `Element.checkVisibility()` | 105 | 17.4 | 106 | `src/tabbable.ts:52-54`, in `isHidden` | Falls back to `offsetParent === null && getClientRects().length === 0` (`:56`), which reads layout boxes only and so does not see `visibility: hidden` |
 | `inert` attribute | 102 | 15.5 | 112 | `src/tabbable.ts:59-61`, in `isInert` | `closest("[inert]")` works everywhere; only the native focus-blocking effect is missing |
 | `Array.prototype.at` | 92 | 15.4 | 90 | Nowhere: the call was removed rather than guarded — `getTabbableEdges` does index arithmetic at `src/tabbable.ts:118-121` | `TypeError` — and the only row whose floor is **above** the supported tier below, so it would throw on Chromium 85-91, Safari 15.0-15.3 and Firefox 79-89: runtimes this ADR promises to support. Not a `lib` question |
@@ -246,7 +246,7 @@ not been reproduced here, so it gets no guard and no claim, only this sentence.
   real reference built at `:130` and read through at `:131`, and the self-releasing
   strong-reference fallback at `:134-140`; `:248` is the per-container focus memory
   (`new WeakMap<HTMLElement, ElementHandle>()`), written in `remember` at `:286` and read back
-  through `deref()` at `:348`. `src/tabbable.ts:41-57` (`isHidden`: `VisibilityCheck` with an
+  through `deref()` at `:403`. `src/tabbable.ts:41-57` (`isHidden`: `VisibilityCheck` with an
   optional method, the `unknown` cast and its comment, the detection and call at `:52-54`, and the
   `offsetParent`/`getClientRects` fallback at `:56`); `:59-61` (`isInert`, `closest("[inert]")`);
   `:114-122` (`getTabbableEdges`, `tabbables[tabbables.length - 1]` at `:121` with the comment naming

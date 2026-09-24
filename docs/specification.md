@@ -215,7 +215,7 @@ this working tree, run 2026-09-20.
   can tell them apart except by reading `source`, and the engine branches on it in exactly two
   places, both documented: the unclaimed `select` that a keyboard must not double-fire
   (R6, `src/input-system.ts:127`) and the composite-mode arrow rule (R29,
-  `src/spatial/spatial.ts:493`). `grep -rn "source ===" src` on 2026-09-20 returns five hits: those
+  `src/spatial/spatial.ts:571`). `grep -rn "source ===" src` on 2026-09-20 returns five hits: those
   two, one assertion in `src/input-system.browser.test.ts`, and two in `src/react/react.tsx` (`:96`,
   `:105`) that are an unrelated local of the same name in the adapter's value-or-thunk helper.
 - **R4.** Dispatch is a LIFO scope stack (`src/intent-bus.ts`);
@@ -316,7 +316,7 @@ this working tree, run 2026-09-20.
   recorded it. `commit()` now compares the target with the active element of the target's own root
   after the focus call — `to.getRootNode()`, so a root inside a shadow tree
   ([ADR-0008](adr/0008-shadow-dom.md)) still sees its landing — and on a refusal returns `false`
-  having written nothing: no attribute, no memory, no scroll (`src/spatial/spatial.ts:329-336`).
+  having written nothing: no attribute, no memory, no scroll (`src/spatial/spatial.ts:339-348`).
   The move is then reported as not made, and the engine does not try the next candidate. Tests:
   "writes nothing when the focus does not land" and "reports a move whose target refused the
   focus as not made" in `src/spatial/spatial.browser.test.ts`. Their witness is a second
@@ -361,14 +361,14 @@ this working tree, run 2026-09-20.
   (`spatial.ts`), which is what releases the elements the fallback path holds strongly.
 - **R27.** With no candidate, in order: wrap if the container wraps on that axis; else scroll one
   step and rescan; else bubble to the parent container, unless it traps or blocks that direction;
-  else no-op and emit `onBoundsHit` (`src/spatial/spatial.ts:427-449`). The rescan waits exactly one
+  else no-op and emit `onBoundsHit` (`src/spatial/spatial.ts:505-527`). The rescan waits exactly one
   frame, because a virtualised list mounts its next rows on the scroll (`spatial.ts`).
   An `onWillMove` veto fires before the real `focus()` call, so a component can refuse a move
   (`spatial.ts`).
 - **R28.** Explicit redirections `data-snav-up|down|left|right` take CSS selectors resolved against
   the whole document, read off the focused element and answered *before* anything is scored
-  (`src/spatial/spatial.ts:418-422`) — documented as the last resort for pathological layouts.
-  A redirect is taken only when its target passes `isFocusable` (`:421`). A selector that matches
+  (`src/spatial/spatial.ts:492-500`) — documented as the last resort for pathological layouts.
+  A redirect is taken only when its target passes `isFocusable` (`:495`). A selector that matches
   nothing, or a target that is disabled, hidden, inert or not focusable at all, is ignored, and
   the geometric search runs as if the attribute were absent — the owner's decision of 2026-09-23.
   Test: "ignores a redirection to a target that cannot take the focus" in
@@ -376,7 +376,7 @@ this working tree, run 2026-09-20.
 - **R29.** Two modes. `composite` (default): arrows are spatial only inside composites, as the APG
   requires, and only the gamepad crosses composite boundaries, so an ordinary site becomes
   pad-drivable without losing its keyboard conventions. In this package the rule is one line —
-  `mode === "composite" && event.source === "keyboard"` returns `false` (`src/spatial/spatial.ts:493`)
+  `mode === "composite" && event.source === "keyboard"` returns `false` (`src/spatial/spatial.ts:571`)
   — so the engine declines every keyboard arrow in that mode and the composite's own arrow handling
   belongs to whoever pushed a scope above it. This package ships no component layer, so under
   `composite` a keyboard arrow moves focus only if the application acts on
@@ -387,7 +387,7 @@ this working tree, run 2026-09-20.
   `tabNext`, `tabPrev`, `secondary` and `contextMenu`. The keymap and the pad mapping produce them
   (R8, R17), and `tabNext`/`tabPrev` are even allowed past a trap (R4), but no module in the
   extraction perimeter acts on any of them: the spatial engine handles the four moves and the two
-  scrolls and returns `false` for everything else (`src/spatial/spatial.ts:484-495`), the input
+  scrolls and returns `false` for everything else (`src/spatial/spatial.ts:562-573`), the input
   system acts on `select` alone (`src/input-system.ts:119-133`), and engage mode consumes `select`,
   `back` and its eight adjust intents (`src/engage.ts:18-26`, read at `:61-72`). `pageUp`,
   `pageDown`, `home` and `end` likewise do nothing

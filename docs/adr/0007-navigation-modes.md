@@ -154,15 +154,15 @@ above the engine answers first, which was already true of a scope answering `tru
 
 - The mechanism, with its comment: "APG-strict by default: arrow keys belong to
   whatever composite has the focus, and only Tab crosses between them. A gamepad has
-  no Tab, so it crosses anyway" — `handleIntent` in `src/spatial/spatial.ts:484-495`;
+  no Tab, so it crosses anyway" — `handleIntent` in `src/spatial/spatial.ts:562-573`;
   the mode test `if (mode === "composite" && event.source === "keyboard") return
-  false;` is at `:493`, one line, the whole of the filter.
+  false;` is at `:571`, one line, the whole of the filter.
 - Defaults: `mode` is `composite` and `followPointer` is `options.pointerFollowsFocus
   ?? mode === "app"` — `src/spatial/spatial.ts:238-239`. `SpatialPluginOptions`
   documents which world each mode is for at `:73-87`.
 - The pointer handler that `followPointer` installs, which focuses on `pointerover`
   and checks `isFocusable` and root containment before it does:
-  `src/spatial/spatial.ts:512-528`.
+  `src/spatial/spatial.ts:590-606`.
 - Unclaimed intents keep the native default: "The native default survives unless
   someone actually wanted the intent — otherwise arrow keys would stop scrolling a
   page that has no navigation", `src/input-system.ts:180-183`.
