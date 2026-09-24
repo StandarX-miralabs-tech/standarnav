@@ -14,7 +14,7 @@ This file is for an assistant helping someone use the package. The facts below a
 
 ## Entry points
 
-Twelve entry points in `package.json` `exports`; the root deliberately does not re-export the engines, so a consumer pays only for what it imports.
+Thirteen entry points in `package.json` `exports`; the root deliberately does not re-export the engines, so a consumer pays only for what it imports.
 
 - `@standarx/nav` — `createInputSystem`, `pushEngageScope`, `createIntentBus`, `createIntentEvent`, `resolveKeyIntent`, `isTextEntryTarget`, `isIntentAllowedInTextEntry`, modality helpers (`getInputModality`, `setInputModality`, `trackInputModality`, `isFocusVisible`, `isFocusVisibleModality`, `MODALITY_ATTRIBUTE`), focusability primitives (`FOCUSABLE_SELECTOR`, `focusElement`, `getFocusables`, `isFocusable`, `isTabbable`), and the types.
 - `@standarx/nav/spatial` — `spatialPlugin(options)`: the engine that turns `moveUp/Down/Left/Right` into a focus move. Without it, arrow keys and d-pads produce intents and nothing moves.

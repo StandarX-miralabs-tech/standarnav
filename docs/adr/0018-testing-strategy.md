@@ -47,7 +47,7 @@ The config declares one browser instance, chosen by `SNAV_BROWSER` and defaultin
 (`vitest.config.ts`). The three-browser matrix lives in CI instead: chromium, firefox
 and webkit (`.github/workflows/ci.yml:103-129`). The file suffix is the routing rule:
 `*.browser.test.ts` is excluded from the node project (`vitest.config.ts`). Both projects also
-take `.tsx`, because the React adapter and its tests are `.tsx` (`:22-23`, `:37`).
+take `.tsx`, because the React adapter and its tests are `.tsx` (`:26-27`, `:42`).
 
 **2. Fixtures are positioned with inline styles only, never with CSS classes.** A geometric test
 must read as its own specification: the numbers the assertion depends on are in the fixture string,
@@ -228,7 +228,7 @@ across 23 test files. The single skip is still the shadow-DOM fixture of
 
 - `vitest.config.ts` in this repository: projects `unit` and `browser`, provider
   `playwright()`, `SNAV_BROWSER` selector, include and exclude globs, `.tsx` in both projects, and
-  no `passWithNoTests` — the comment at `:13-16` records why it was there and why it is gone.
+  no `passWithNoTests` — the comment at `:14-17` records why it was there and why it is gone.
 - `.github/workflows/ci.yml`: seven jobs — `lint` (`:18`), `typecheck` (`:32`),
   `build` (`:42`), `test` (`:60`), `react-floor` (`:75`), `browser` (`:103`) fanned over
   chromium, firefox and webkit at `:103-129` with `fail-fast: false` (`:106`) and `SNAV_BROWSER` set

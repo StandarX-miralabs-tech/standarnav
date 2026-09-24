@@ -190,9 +190,9 @@ fixes.
 
 The build job of CI runs `bun run check:size` after the build, the drift gate
 and `check:package` (`.github/workflows/ci.yml:50-58`). The script is
-`scripts/size-budget.ts`. It measures twelve lines against the built `dist/`:
+`scripts/size-budget.ts`. It measures thirteen lines against the built `dist/`:
 the core (`index.js`), the gamepad engine, the spatial engine, the focus ring,
-the debug entry, the auto-mount helper, the React adapter, the Vue adapter, the on-screen
+the debug entry, the auto-mount helper, the React, Vue and Svelte adapters, the on-screen
 keyboard and one line per keyboard layout — each bundled with the sibling entries it
 also imports left external, so the number is the marginal cost of adding that
 subpath next to what it already sits beside. That is usually the core, but not

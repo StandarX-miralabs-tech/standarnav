@@ -35,12 +35,13 @@ src/  index.ts  intent-bus.ts  input-system.ts  keymap.ts  engage.ts
       auto/        auto.ts
       react/       react.tsx  react-harness.tsx
       vue/         vue.ts  vue-harness.ts
+      svelte/      svelte.ts  svelte-harness.ts  fixtures/
       keyboard/    keyboard.ts
                    layouts/  qwerty.ts  azerty.ts  alphabetic.ts
 ```
 
 The subpath exports map onto it directly — [ADR-0011](0011-package-layout-and-adapters.md).
-Twelve of these files are build entries (`tsdown.config.ts`); the rest are reached through them.
+Thirteen of these files are build entries (`tsdown.config.ts`); the rest are reached through them.
 `keyboard/layouts/` is the one directory whose files are entries without the directory being part
 of a subpath name: a consumer writes `@standarx/nav/keyboard/qwerty`
 ([ADR-0022](0022-virtual-keyboard.md)).

@@ -204,7 +204,7 @@ la console quand ils ne le sont pas. `@vitejs/plugin-vue` les définit dans son 
 consulté le 2026-09-23) ; une configuration Vite sans lui les définit elle-même, aux valeurs par
 défaut de Vue `true`, `false` et `false`
 (https://github.com/vuejs/core/tree/main/packages/vue#bundler-build-feature-flags, consulté le
-2026-09-23), comme le fait la configuration de test de ce dépôt (`vitest.config.ts`, `:30-34`).
+2026-09-23), comme le fait la configuration de test de ce dépôt (`vitest.config.ts`, `:35-39`).
 
 **Le plancher est 3.3.0, et il est exécuté.** L'adaptateur utilise `toValue`, `MaybeRefOrGetter` et
 la forme de `defineComponent` qui prend une fonction `setup`, tous trois apparus dans Vue 3.3. Un
