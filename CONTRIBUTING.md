@@ -73,8 +73,8 @@ bun run check:size
 ```
 
 All of those were run here on 2026-09-22 and pass. Between them they reproduce
-five of the nine checks CI runs (seven jobs, one of them a three-engine matrix);
-the firefox and webkit runs and the React 18.3 and Vue 3.3.0 floor jobs only exist in CI, which
+five of the ten checks CI runs (eight jobs, one of them a three-engine matrix);
+the firefox and webkit runs and the React 18.3, Vue 3.3.0 and Svelte 5.0.0 floor jobs only exist in CI, which
 reports them on the pull request. Measured on the same date: `bun run test:unit`
 is 110 tests in 11 files, `bun run test:browser` is 257 passed and 1 skipped in
 13 files — 367 passed and 1 skipped in total. The
@@ -184,6 +184,10 @@ fixes.
   The Vue adapter has the same guard, the `vue-floor` job
   (`.github/workflows/ci.yml:136-161`), which installs exactly `vue@3.3.0`: a change
   that needs a later Vue API raises the `>=3.3.0` peer range in the same pull request.
+  The Svelte adapter has it too, the `svelte-floor` job
+  (`.github/workflows/ci.yml:169-193`), which installs exactly `svelte@5.0.0` and runs the
+  unit project as well, for the server render: a change that needs a later Svelte API raises
+  the `>=5.0.0` peer range in the same pull request.
 - A pull request without a test for the behaviour it changes is not merged.
 
 ## Size budgets are blocking

@@ -11,7 +11,7 @@ concurrency:
 
 # The runner is pinned rather than tracking `ubuntu-latest`, which migrates to Ubuntu 26
 # on 2026-10-19. Every other form of drift here is already barred — build output, size
-# budgets, the React and Vue floors, the citation anchors — and an operating system that changes
+# budgets, the React, Vue and Svelte floors, the citation anchors — and an operating system that changes
 # under the browser matrix with no commit to point at is the same class of problem.
 # Moving it is a deliberate bump, reviewed like any other.
 jobs:
@@ -156,6 +156,38 @@ jobs:
           key: playwright-${{ steps.playwright.outputs.version }}-chromium
       - run: bun x playwright install --with-deps chromium
       # One engine: what is under test is the Vue version, as in `react-floor`.
+      - run: bun run test:browser
+        env:
+          SNAV_BROWSER: chromium
+
+  # The same promise for the Svelte adapter. `svelte` is an optional peer at `>=5.0.0` while the
+  # lockfile pins 5.57: this job installs exactly 5.0.0, the first release with everything the
+  # adapter calls — `setContext`, `getContext`, `getAllContexts`, `onMount` and `untrack`, and
+  # `writable`, `toStore` and `fromStore` from `svelte/store` (ADR-0028). The unit project runs
+  # too, because the server render is there. `@sveltejs/vite-plugin-svelte` declares a newer svelte
+  # peer and still compiles the test components on 5.0.0, which are plain JavaScript for that reason.
+  svelte-floor:
+    name: svelte 5.0.0 (the declared peer floor)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+      - run: bun install --frozen-lockfile
+      - name: Install the declared floor
+        run: bun add --dev svelte@5.0.0
+      - run: bun run typecheck
+      - run: bun run test:unit
+      - name: Resolve the playwright version
+        id: playwright
+        run: echo "version=$(bun pm ls | grep -oP '(?<![-\w])playwright@\K[0-9.]+' | head -1)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ steps.playwright.outputs.version }}-chromium
+      - run: bun x playwright install --with-deps chromium
+      # One engine: what is under test is the Svelte version, as in `react-floor`.
       - run: bun run test:browser
         env:
           SNAV_BROWSER: chromium

@@ -79,7 +79,7 @@ undefined; the browser project defines them to Vue's defaults (`vitest.config.ts
 ## Consequences
 
 - A `feat`: the next release is a minor, as with ADR-0026.
-- CI runs nine checks from seven jobs.
+- CI gained a ninth check, from a seventh job.
 - A template ref on a *component* resolves to an instance, not an element; `within` then needs a
   getter such as `() => card.value?.$el`.
 - `NavDocumentProvider`'s getter is re-read when something reactive it reads changes, not after
