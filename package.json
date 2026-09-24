@@ -31,6 +31,7 @@
   ],
   "exports": {
     ".": "./dist/index.js",
+    "./angular": "./dist/angular/angular.js",
     "./auto": "./dist/auto/auto.js",
     "./debug": "./dist/debug.js",
     "./focus-ring": "./dist/focus-ring/focus-ring.js",
@@ -46,12 +47,16 @@
     "./package.json": "./package.json"
   },
   "peerDependencies": {
+    "@angular/core": ">=20.0.0",
     "react": ">=18.3.0",
     "react-dom": ">=18.3.0",
     "svelte": ">=5.0.0",
     "vue": ">=3.3.0"
   },
   "peerDependenciesMeta": {
+    "@angular/core": {
+      "optional": true
+    },
     "react": {
       "optional": true
     },
@@ -85,6 +90,11 @@
     "check:docs": "bun run scripts/check-citations.ts"
   },
   "devDependencies": {
+    "@angular/common": "^22.2.0",
+    "@angular/compiler": "^22.2.0",
+    "@angular/core": "^22.2.0",
+    "@angular/platform-browser": "^22.2.0",
+    "@angular/platform-server": "^22.2.0",
     "@arethetypeswrong/cli": "^0.18.5",
     "@biomejs/biome": "2.5.14",
     "@sveltejs/vite-plugin-svelte": "^7.3.1",
@@ -97,6 +107,7 @@
     "publint": "^0.3.24",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
+    "rxjs": "^7.8.2",
     "svelte": "^5.57.1",
     "tsdown": "0.23.0",
     "typescript": "^7.0.2",

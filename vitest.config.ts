@@ -48,6 +48,17 @@ const config: ViteUserConfig = defineConfig({
             instances: [{ browser }],
           },
         },
+        // Listed rather than left to discovery, since CI always starts from a cold cache: a
+        // dependency found mid-run is optimised again and the page reloaded, and two copies of
+        // @angular/core on one page fail with NG0201.
+        optimizeDeps: {
+          include: [
+            "@angular/compiler",
+            "@angular/core",
+            "@angular/common",
+            "@angular/platform-browser",
+          ],
+        },
       },
     ],
   },

@@ -7,12 +7,12 @@ Deciders: Wesley Cormier
 ## Context
 
 [ADR-0011](0011-package-layout-and-adapters.md) puts a "vanilla auto-mount helper" second in
-the adapter order (`0011-package-layout-and-adapters.md:133`), after React and before Vue, and left its subpath name the one
+the adapter order (`0011-package-layout-and-adapters.md:132`), after React and before Vue, and left its subpath name the one
 open detail of that record — working name `@standarx/nav/auto`, not confirmed; the note at
 `0011-package-layout-and-adapters.md:7-8` is where that rider lived and where its closure is now recorded. The same record is
 emphatic that the thing is not an adapter: "`vanilla` is not an adapter, because the core is
 the vanilla API; the only vanilla-specific artefact is an auto-mount helper"
-(`0011-package-layout-and-adapters.md:91-93`).
+(`0011-package-layout-and-adapters.md:90-92`).
 
 That sentence sets the bar this record has to clear. The core already mounts in one call —
 `createInputSystem({ plugins: [spatialPlugin()] })` — and the spatial engine already reads the
@@ -92,7 +92,7 @@ run the suite; this is the record of why the one thing that is not an adapter do
 
 - One more entry, one more subpath, one more budget line, and a whole-package cap that moved
   from 12.50 to 12.75 kB for 0.23 kB of it. The generated `exports` map gained `./auto`
-  (`package.json:34`) and the drift gate makes that visible in review.
+  (`package.json:35`) and the drift gate makes that visible in review.
 - `data-snav-mode` is now part of the attribute contract of
   [ADR-0001](0001-name-scope-and-attribute-prefix.md), and renaming it is a breaking change.
   It is also the first attribute this package reads that no engine reads: a page that sets it
@@ -124,8 +124,8 @@ in the Evidence below are what was measured on the day they name.
 | **`@standarx/nav/mount`** | Reads as a verb with its object missing — `nav/mount` invites "mount what?". It is also not the name ADR-0011 wrote down, so choosing it would spend a rider on a rename that buys nothing. |
 | **`@standarx/nav/vanilla`** | ADR-0011:89-90 says "`vanilla` is not an adapter, because the core is the vanilla API". A subpath called `/vanilla` next to `/react` states the opposite in the one place a consumer reads first. |
 | **A bare side-effecting import, `import "@standarx/nav/auto"`** | The shortest possible start-up, and impossible here: `"sideEffects": false` (`package.json:26`) lets a bundler drop a module imported for its effects alone. Dropping the promise for this one entry would cost every other subpath its tree-shaking. |
-| **`autoMount()` with no arguments, constructing `spatialPlugin` itself** | The most convenient form, and the one that breaks the layout: `/auto` would import `/spatial`, so ADR-0011's "an entry the consumer never imports is never bundled" (`:41-43`) would stop holding, and the line would stop being about the helper: it would carry the spatial engine, measured at 3.04 kB min+gzip on its own line the same day, on top of the helper's 0.60. Rejected on that alone. |
-| **No attribute at all, `mode` as an option** | Honest and smaller, and it leaves the helper with one behaviour — the `DOMContentLoaded` wait — which does not earn a public subpath. It would also make ADR-0011's "attribute-driven start-up" (`0011-package-layout-and-adapters.md:133`) a description of nothing. |
+| **`autoMount()` with no arguments, constructing `spatialPlugin` itself** | The most convenient form, and the one that breaks the layout: `/auto` would import `/spatial`, so ADR-0011's "an entry the consumer never imports is never bundled" (`0011-package-layout-and-adapters.md:42-44`) would stop holding, and the line would stop being about the helper: it would carry the spatial engine, measured at 3.04 kB min+gzip on its own line the same day, on top of the helper's 0.60. Rejected on that alone. |
+| **No attribute at all, `mode` as an option** | Honest and smaller, and it leaves the helper with one behaviour — the `DOMContentLoaded` wait — which does not earn a public subpath. It would also make ADR-0011's "attribute-driven start-up" (`0011-package-layout-and-adapters.md:132`) a description of nothing. |
 | **Per-container `data-snav-mode`, the form ADR-0007 rejected** | Still rejected, for ADR-0007's own reason (`0007-navigation-modes.md:150`): the mode would depend on where the focus is and could change mid-move. The attribute here is read once, on one element, before the engine exists. |
 | **Running the adapter parity suite against it** | The suite's contract is a provider with a render pass and two nested scope components (`src/adapter-parity.ts:86-107`). Satisfying it would mean inventing that shape for an API that has none, which is a test asserting the fixture rather than the helper. |
 
@@ -133,9 +133,9 @@ in the Evidence below are what was measured on the day they name.
 
 - The rider this record closes, and the order it sits in:
   `0011-package-layout-and-adapters.md:7-8` (the rider, and the note recording its closure),
-  `:133` (second in the adapter order), `:91-93` (`vanilla` is not an adapter), `:42-44` (an entry
-  the consumer never imports is never bundled), `:72-77` (a subpath re-exports the types its
-  signatures name), `:174-177` (entries stay factory-based because `sideEffects: false` is a
+  `:132` (second in the adapter order), `:90-92` (`vanilla` is not an adapter), `:42-44` (an entry
+  the consumer never imports is never bundled), `:71-76` (a subpath re-exports the types its
+  signatures name), `:173-176` (entries stay factory-based because `sideEffects: false` is a
   promise).
 - The helper: `src/auto/auto.ts`, 120 lines — `MODE_ATTRIBUTE` (`:32`), `AutoConfig` (`:34-41`),
   `AutoPlugins` (`:47`), `AutoMountOptions` (`:49-56`), `AutoMount` (`:58-63`), `readMode`
