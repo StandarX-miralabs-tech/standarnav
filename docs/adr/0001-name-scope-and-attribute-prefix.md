@@ -40,10 +40,10 @@ One package, subpath exports: `@standarx/nav` (core), `/gamepad`, `/spatial`,
 `/focus-ring`, `/debug`, `/auto`, `/keyboard` with one subpath per layout
 (`/keyboard/qwerty`, `/keyboard/azerty`, `/keyboard/alphabetic`), the React
 adapter `/react`, since 2026-09-23 the Vue adapter `/vue` and since 2026-09-24 the Svelte
-adapter `/svelte` ([ADR-0011](0011-package-layout-and-adapters.md),
-[ADR-0027](0027-vue-adapter.md), [ADR-0028](0028-svelte-adapter.md)). The `/angular` name is
-reserved by this decision for an adapter that is planned and not built: this repository has no
-`src/angular`.
+adapter `/svelte` and the Angular adapter `/angular`
+([ADR-0011](0011-package-layout-and-adapters.md), [ADR-0027](0027-vue-adapter.md),
+[ADR-0028](0028-svelte-adapter.md), [ADR-0029](0029-angular-adapter.md)). Every adapter name this
+decision reserved is now built.
 `vanilla` is the core itself, and `/auto` is its start-up helper rather than an
 adapter ([ADR-0023](0023-vanilla-auto-mount.md)).
 `0.1.0` is on npm since 2026-09-22; v0 is in progress.

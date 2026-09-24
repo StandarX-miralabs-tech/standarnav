@@ -237,4 +237,5 @@ does, a base re-registered on a rerender without leaving its place, and the orde
 opened in kept across a system rebuild. `runAdapterParitySuite` runs them at
 `src/svelte/svelte.browser.test.ts:724`, and `bun run test:browser` passed them on chromium,
 firefox and webkit on 2026-09-24 ([React](react.md) and [Vue](vue.md) hold the same contract).
-Angular follows, in the order of [ADR-0011](../adr/0011-package-layout-and-adapters.md).
+[Angular](angular.md) followed the same day, in the order of
+[ADR-0011](../adr/0011-package-layout-and-adapters.md).

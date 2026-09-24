@@ -220,5 +220,6 @@ les deux passent `within` et réduit au silence quand aucun ne le fait, une base
 nouveau rendu sans quitter sa place, et l'ordre d'ouverture des portées conservé à travers une
 reconstruction du système. `runAdapterParitySuite` les exécute à
 `src/vue/vue.browser.test.ts:921`, et `bun run test:browser` les a passés sur chromium, firefox et
-webkit le 2026-09-23 ([React](react.md) tient le même contrat). [Svelte](svelte.md) a suivi le 2026-09-24, et Angular
-suit, dans l'ordre d'[ADR-0011](../adr/0011-package-layout-and-adapters.md).
+webkit le 2026-09-23 ([React](react.md) tient le même contrat). [Svelte](svelte.md) et
+[Angular](angular.md) ont suivi le 2026-09-24, dans l'ordre
+d'[ADR-0011](../adr/0011-package-layout-and-adapters.md).

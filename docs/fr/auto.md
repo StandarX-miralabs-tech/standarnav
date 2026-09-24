@@ -73,5 +73,5 @@ délibéré plutôt qu'un oubli. Cette suite affirme ce qu'un *fournisseur* de f
 un seul système et pas pendant le premier rendu, l'ordre des portées à travers un rerendu, une
 portée relâchée quand seul son propre sous-arbre est démonté. Il n'y a ici ni rendu ni fournisseur
 pour la satisfaire. `/auto` porte à la place quatorze cas navigateur qui lui sont propres ; Vue,
-Svelte et Angular sont des adaptateurs et feront tourner la suite
+Svelte et Angular sont des adaptateurs et font tourner la suite
 ([ADR-0023](../adr/0023-vanilla-auto-mount.md)).

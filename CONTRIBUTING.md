@@ -165,7 +165,7 @@ fixes.
   empty project means the globs stopped matching, which is a discovery
   breakage, and it has to be as red as a failing assertion rather than a green
   run of nothing. Do not add the flag to get past a red run.
-- A change to the React, the Vue or the Svelte adapter is held to the shared adapter suite in
+- A change to the React, the Vue, the Svelte or the Angular adapter is held to the shared adapter suite in
   `src/adapter-parity.ts`, not to tests of its own invention: one system and
   not during the first render, LIFO scope order, a scope released when only
   its own subtree unmounts, a trap that stops the walk, a base scope reached
@@ -175,7 +175,8 @@ fixes.
   rebuild. Each adapter
   implements `ParityAdapter` and runs the same suite: React in
   `src/react/react.browser.test.tsx`, Vue in `src/vue/vue.browser.test.ts`, Svelte in
-  `src/svelte/svelte.browser.test.ts`. Extend the suite rather
+  `src/svelte/svelte.browser.test.ts`, Angular in `src/angular/angular.browser.test.ts`. Extend
+  the suite rather
   than working around it. A separate CI job reinstalls React 18.3 over the
   lockfile's 19 and typechecks and runs the browser suite against it
   (the `react-floor` job, `.github/workflows/ci.yml:75-101`): the declared peer
@@ -319,7 +320,7 @@ English page until it is ready.
 
 Both directories exist since 2026-09-22, four pages each: `attributes.md`,
 `navigation.md`, `react.md` and `focus-ring.md`. `auto.md` joined them afterwards, `vue.md` on
-2026-09-23 and `svelte.md` on 2026-09-24. `docs/` also holds `adr/`,
+2026-09-23, and `svelte.md` and `angular.md` on 2026-09-24. `docs/` also holds `adr/`,
 `research/` and `specification.md`, all of which are English-only by the
 paragraph below. In a mirror, the prose is translated and everything that is
 the contract — code blocks, attribute and property names, cited paths, table

@@ -172,8 +172,8 @@ travers ce piège, un composite imbriqué dans une surface qui piège atteint qu
 sans quitter sa place, et l'ordre
 d'ouverture des portées conservé à travers une reconstruction du système. Les adaptateurs qui
 suivent, dans l'ordre d'[ADR-0011](../adr/0011-package-layout-and-adapters.md), passent la même
-suite avant d'être livrés : Vue la passe depuis le 2026-09-23 ([Vue](vue.md)), Svelte depuis le
-2026-09-24 ([Svelte](svelte.md)), et Angular vient ensuite. L'utilitaire d'auto-montage vanilla livré avant eux, non, et
+suite avant d'être livrés : Vue la passe depuis le 2026-09-23 ([Vue](vue.md)), et Svelte et
+Angular depuis le 2026-09-24 ([Svelte](svelte.md), [Angular](angular.md)). L'utilitaire d'auto-montage vanilla livré avant eux, non, et
 [ADR-0023](../adr/0023-vanilla-auto-mount.md) est le registre du pourquoi : la suite affirme
 ce que fait un fournisseur à travers un rendu, et cet utilitaire n'a ni l'un ni l'autre
 ([Auto-montage](auto.md)).

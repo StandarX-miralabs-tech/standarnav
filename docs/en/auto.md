@@ -71,5 +71,5 @@ The helper does **not** run the shared adapter parity suite, and that is deliber
 omission. That suite asserts what a framework *provider* must do — one system and not during the
 first render, scope order across a re-render, a scope released when only its own subtree unmounts.
 There is no render here and no provider to satisfy it with. `/auto` carries fourteen browser cases
-of its own instead; Vue, Svelte and Angular are adapters and will run the suite
+of its own instead; Vue, Svelte and Angular are adapters and run the suite
 ([ADR-0023](../adr/0023-vanilla-auto-mount.md)).
