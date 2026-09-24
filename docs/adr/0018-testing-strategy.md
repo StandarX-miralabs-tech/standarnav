@@ -199,9 +199,9 @@ across 23 test files. The single skip is still the shadow-DOM fixture of
 
 ## Consequences
 
-- CI runs the browser project three times, once per matrix entry (`ci.yml`), and three times more
-  on chromium alone, in the `react-floor`, `vue-floor` and `svelte-floor` jobs (`ci.yml`), the last
-  of which also runs the unit project a second time. It is the price
+- CI runs the browser project three times, once per matrix entry (`ci.yml`), and four times more
+  on chromium alone, in the `react-floor`, `vue-floor`, `svelte-floor` and `angular-floor` jobs
+  (`ci.yml`), the last two of which also run the unit project again. It is the price
   of testing focus in engines that disagree about focus, and it is what makes a webkit regression
   visible before a user finds it.
 - Playwright browsers must be installed in CI, and a test that needs a browser cannot run in a
@@ -230,16 +230,18 @@ across 23 test files. The single skip is still the shadow-DOM fixture of
 - `vitest.config.ts` in this repository: projects `unit` and `browser`, provider
   `playwright()`, `SNAV_BROWSER` selector, include and exclude globs, `.tsx` in both projects, and
   no `passWithNoTests` — the comment at `:14-17` records why it was there and why it is gone.
-- `.github/workflows/ci.yml`: eight jobs — `lint` (`:18`), `typecheck` (`:32`),
+- `.github/workflows/ci.yml`: nine jobs — `lint` (`:18`), `typecheck` (`:32`),
   `build` (`:42`), `test` (`:60`), `react-floor` (`:75`), `browser` (`:103`) fanned over
   chromium, firefox and webkit at `:103-129` with `fail-fast: false` (`:106`) and `SNAV_BROWSER` set
-  per entry (`:129`), `vue-floor` (`:136`) and `svelte-floor` (`:169`), which is ten checks. The `build` job runs `bun run build`, then
+  per entry (`:129`), `vue-floor` (`:136`), `svelte-floor` (`:169`) and `angular-floor` (`:202`), which is eleven checks. The `build` job runs `bun run build`, then
   `git diff --exit-code` as the exports-map drift gate, then `check:package`, then `check:size`
   (`:42-58`). `react-floor` installs `react@^18.3.1` over the lockfile and re-runs `typecheck` and
   the chromium browser project against the declared peer floor (`:75-101`), so the range
   `package.json` advertises is a range something actually runs. `vue-floor` does the same for the
   Vue peer with exactly `vue@3.3.0` (`.github/workflows/ci.yml:136-161`), and `svelte-floor` for the
-  Svelte peer with exactly `svelte@5.0.0`, the unit project included (`.github/workflows/ci.yml:169-193`).
+  Svelte peer with exactly `svelte@5.0.0`, the unit project included (`.github/workflows/ci.yml:169-193`),
+  and `angular-floor` for the Angular peer with exactly 20.0.0 of `@angular/core` and of the
+  Angular packages the tests load, the unit project included (`.github/workflows/ci.yml:202-226`).
 - Suite counts, this repository, 2026-09-21: `bun run test:unit` → 100 passed in 10 files;
   `bun run test:browser` → 243 passed, 1 skipped, in 12 files. The skip is
   `src/spatial/spatial.browser.test.ts:921` ([ADR-0008](0008-shadow-dom.md)).

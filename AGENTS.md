@@ -23,11 +23,12 @@ provenance attestation; it is documented in ADR-0012 and it is the only one.
 | `bun run check:size` | Fourteen min+gzip lines against their caps; needs `dist/` | After any change under `src/` |
 | `bun run dev` | Vite serves `playground/` on port 5173, importing `src/` directly | To verify a change on the real page |
 
-CI runs ten checks from eight jobs: lint (with `check:docs`), typecheck, build (with the
+CI runs eleven checks from nine jobs: lint (with `check:docs`), typecheck, build (with the
 drift gate, `check:package` and `check:size`), unit tests, a React 18.3 peer-floor job, a
-Vue 3.3.0 peer-floor job, a Svelte 5.0.0 peer-floor job, and the browser suite once each on
-chromium, firefox and webkit. Firefox, WebKit and the three floors exist only in CI; each floor
-is reproduced locally on a `git archive` copy with the job's own `bun add --dev` line.
+Vue 3.3.0 peer-floor job, a Svelte 5.0.0 peer-floor job, an Angular 20.0.0 peer-floor job, and
+the browser suite once each on chromium, firefox and webkit. Firefox, WebKit and the four floors
+exist only in CI; each floor is reproduced locally on a `git archive` copy with the job's own
+`bun add --dev` line.
 
 ## Size caps are a contract, not a setting
 

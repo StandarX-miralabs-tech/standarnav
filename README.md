@@ -82,7 +82,7 @@ The core is the vanilla API and needs no framework, and `@standarx/nav/auto` is 
 
 ## Contributing
 
-[CONTRIBUTING.md](CONTRIBUTING.md), in one line: conventional commits, `bun` never `npm`, a test with every behaviour change, blocking size budgets, English only, and no claim in a document without the command, date or URL that proves it. CI runs ten checks on every pull request: lint, typecheck, build with the packaging and size gates, unit tests, a React 18.3 floor, a Vue 3.3.0 floor, a Svelte 5.0.0 floor, and the browser suite on chromium, firefox and webkit. Conduct is [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md); a vulnerability goes through [SECURITY.md](SECURITY.md), never a public issue.
+[CONTRIBUTING.md](CONTRIBUTING.md), in one line: conventional commits, `bun` never `npm`, a test with every behaviour change, blocking size budgets, English only, and no claim in a document without the command, date or URL that proves it. CI runs eleven checks on every pull request: lint, typecheck, build with the packaging and size gates, unit tests, a React 18.3 floor, a Vue 3.3.0 floor, a Svelte 5.0.0 floor, an Angular 20.0.0 floor, and the browser suite on chromium, firefox and webkit. Conduct is [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md); a vulnerability goes through [SECURITY.md](SECURITY.md), never a public issue.
 
 ## License
 
