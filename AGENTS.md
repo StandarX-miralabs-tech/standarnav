@@ -62,7 +62,7 @@ write the amendment commit before the code commit.
   the next one below it. The pull request body follows the same rule: sections are dated
   and appended.
 - Test counts are written in prose in several documents. After adding or removing a test,
-  grep the tree for the old totals (`602 passed`, `603`, `32 files`, and the per-project
+  grep the tree for the old totals (`605 passed`, `606`, `32 files`, and the per-project
   figures) and fix every one in the same commit. A count that carries its own date —
   "on 2026-09-21", or a dated amendment — is a measurement, not a stale claim: leave it.
 - Numbers, `sed` and scripted replacements corrupt Markdown and TypeScript in ways a diff

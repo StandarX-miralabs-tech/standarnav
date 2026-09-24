@@ -1288,3 +1288,48 @@ describe("spatialPlugin — a refused candidate hands the move on (ADR-0030)", (
     });
   }
 });
+
+describe("spatialPlugin — a hover marks only what took the focus (ADR-0005)", () => {
+  function hover(element: HTMLElement): void {
+    element.dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
+  }
+
+  it("writes nothing on a hovered element that refuses, and the marker stays where it was", () => {
+    const view = scene(grid(), { mode: "app" });
+    view.plugin.focus("#c00");
+    view.at("c22").focus = (): void => {};
+
+    hover(view.at("c22"));
+
+    expect(view.active()).toBe("c00");
+    expect(view.at("c22").hasAttribute("data-snav-focused")).toBe(false);
+    expect(document.querySelector("[data-snav-focused]")?.id).toBe("c00");
+  });
+
+  it("writes nothing when an application's focus handler sends the focus elsewhere", () => {
+    const view = scene(grid(), { mode: "app" });
+    view.plugin.focus("#c00");
+    view.at("c22").addEventListener("focus", () => view.at("c11").focus());
+
+    hover(view.at("c22"));
+
+    expect(view.active()).toBe("c11");
+    expect(view.at("c22").hasAttribute("data-snav-focused")).toBe(false);
+    expect(document.querySelector("[data-snav-focused]")?.id).toBe("c00");
+  });
+
+  it("leaves a container's memory on the child that had the focus", () => {
+    const view = scene(columns, { mode: "app" });
+    view.plugin.focus("#r2");
+    view.plugin.focus("#l3");
+    view.at("r3").focus = (): void => {};
+    hover(view.at("r3"));
+    const seen: string[] = [];
+    cleanups.push(view.plugin.onWillMove((event) => seen.push(event.to.id)));
+
+    view.move("right");
+
+    expect(view.active()).toBe("r2");
+    expect(seen).toEqual(["r2"]);
+  });
+});

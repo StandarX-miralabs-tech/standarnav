@@ -598,7 +598,7 @@ export function spatialPlugin(options: SpatialPluginOptions = {}): SpatialPlugin
               const root = rootOf();
               if (root === null || !root.contains(target)) return;
               focusElement(target, { preventScroll: true });
-              remember(target, root);
+              if (landed(target)) remember(target, root);
             },
             { capture: true, passive: true },
           ),
