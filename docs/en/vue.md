@@ -212,5 +212,5 @@ nested in a trapping surface reached when both pass `within` and silenced when n
 re-registered on a rerender without leaving its place, and the order scopes were opened in kept
 across a system rebuild. `runAdapterParitySuite` runs them at `src/vue/vue.browser.test.ts:921`,
 and `bun run test:browser` passed them on chromium, firefox and webkit on 2026-09-23
-([React](react.md) holds the same contract). Svelte and Angular follow, in the order of
-[ADR-0011](../adr/0011-package-layout-and-adapters.md).
+([React](react.md) holds the same contract). [Svelte](svelte.md) followed on 2026-09-24, and
+Angular follows, in the order of [ADR-0011](../adr/0011-package-layout-and-adapters.md).
