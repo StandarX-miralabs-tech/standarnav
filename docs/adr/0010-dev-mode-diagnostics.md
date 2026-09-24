@@ -194,6 +194,25 @@ geometry, silently — so the warning it describes is still the only way an auth
 attribute is doing nothing. What it no longer has to report is a successful move onto an element
 that never took the focus.
 
+## Amendment, 2026-09-24: a fourth documented difference, the refusal `explainMove` cannot see
+
+Since 2026-09-24 the engine goes on to the next candidate when the browser refuses the focus to
+the one it chose ([ADR-0030](0030-refused-focus-next-candidate.md)). `explainMove` does not focus
+anything, and a refusal cannot be known without focusing, so its `winner` may name an element the
+engine then skips. That is not the drift decision 4 forbids: the winner rule is still the engine's
+own `findBestCandidate`, and what differs is what the browser does after it. So it joins the
+differences the diagnostic is meant to have — a redirection answered first, the walk out to the
+parent, the wrap and the rescan, the descent into a nested container — in the doc comment of
+`SpatialExplanation.winner` (`src/debug.ts:34-41`, rewritten on the same lines, so the debug line
+stays at 499 bytes), and in a fourth case of the `describe` that pins them, "names a winner the
+browser refuses, where the engine goes on to the next" (`src/debug.browser.test.ts:181-195`),
+which fails at cc0b219.
+
+The redirect of the amendment above moves with it: a redirect whose target refuses the focus now
+falls through to the geometry too, like one whose target `isFocusable` refuses, and a redirect that
+is vetoed or that an application's focus handler sends elsewhere ends the move. Point 3's warning
+still cannot see the refusal; it is a scan and does not focus either.
+
 ## Alternatives considered
 
 **Console warnings in the production build, behind `process.env.NODE_ENV`.** Rejected. The package is

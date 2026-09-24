@@ -130,12 +130,15 @@ compile error rather than a review catch. `bun run typecheck` is its own CI job.
 **Focusable in the platform's sense = navigable.** If the browser would focus an element, the engine
 will move to it. Nothing has to be registered, wrapped in a hook, or listed in a tree. There is no
 `useFocusable`, no `focusKey`, no `MutationObserver`: candidates are queried and measured at each
-move, so a virtualised or freshly mutated DOM needs no cache invalidation.
+move, so a virtualised or freshly mutated DOM needs no cache invalidation. When the browser refuses
+the focus to a candidate all the same, the engine goes on to the next one (R21).
 
 "Focusable in the platform's sense" is the selector at `src/tabbable.ts:18-39`:
 `input` (also excluding `[type='hidden']`), `select`, `textarea` and `button`; then `a[href]`,
-`area[href]`, `iframe`, `object`, `embed`, `audio[controls]`, `video[controls]`, `summary`,
-`[contenteditable]` that makes its element editable, and anything carrying `[tabindex]` — minus
+`area[href]`, `iframe`, `object`, `embed`, `audio[controls]`, `video[controls]`, the first
+`<summary>` child of a `<details>` (`details>summary:first-of-type` since 2026-09-24: a second one,
+a deeper one and an orphan are refused on chromium, firefox and webkit), `[contenteditable]` that
+makes its element editable, and anything carrying `[tabindex]` — minus
 hidden, inert and disabled elements. Disabled is what the browser calls `:disabled` — a form
 control carrying `disabled`, or one inside a `<fieldset disabled>` anywhere but in that fieldset's
 first `<legend>` — plus exception 5 below: `isFocusable` rejects `:disabled,[disabled]`
@@ -157,6 +160,19 @@ Chrome 1, Safari 4 and Firefox 78, under the floor of §3.1 (MDN browser-compat-
 `https://github.com/mdn/browser-compat-data/blob/main/css/selectors/read-write.json`, fetched
 2026-09-23). Test: "drops a contenteditable attribute that does not make its element editable"
 in `src/tabbable.browser.test.ts`.
+
+Inside an editing host, a link and an element that is focusable only for being editable are not
+focusable unless they carry a `tabindex` (`src/tabbable.ts:69-77`, since 2026-09-24): chromium,
+firefox and webkit all refuse them the focus, while a control, a frame, an embedded object, a media
+element with controls and a details summary take it, with a `contenteditable` of their own or
+without (Playwright, 2026-09-24; [ADR-0030](adr/0030-refused-focus-next-candidate.md)). The arms
+that take the focus in their own right are a named list, `NATIVE_SELECTOR` (`:18-30`), and the
+exported `FOCUSABLE_SELECTOR` string changed with it on 2026-09-24. With a `tabindex` a nested
+editable is focused on all three and stays a candidate; a link with one is focused on chromium and
+webkit and refused on firefox, so it stays a candidate too and the retry of R21 answers firefox.
+Tests: "drops a link and a nested editable of an editing host, unless they carry a tabindex",
+"keeps a link with a tabindex in an editing host, which the engines split on" and "takes only the
+first summary child of a details as focusable" in `src/tabbable.browser.test.ts`.
 
 Tabbable is focusable and in the sequential order: `tabIndex >= 0`, or an **editing host** — an
 editable element whose parent is not editable — that carries no `tabindex` attribute
@@ -315,14 +331,24 @@ this working tree, run 2026-09-20.
   successful move, `data-snav-focused` was written on an unfocused element and the container memory
   recorded it. `commit()` now compares the target with the active element of the target's own root
   after the focus call — `to.getRootNode()`, so a root inside a shadow tree
-  ([ADR-0008](adr/0008-shadow-dom.md)) still sees its landing — and on a refusal returns `false`
-  having written nothing: no attribute, no memory, no scroll (`src/spatial/spatial.ts:339-348`).
-  The move is then reported as not made, and the engine does not try the next candidate. Tests:
-  "writes nothing when the focus does not land" and "reports a move whose target refused the
-  focus as not made" in `src/spatial/spatial.browser.test.ts`. Their witness is a second
-  `<summary>` in an open `<details>`: it matches the selector, is visible and sized, and `focus()`
-  leaves it alone on chromium, firefox and webkit (Playwright, 2026-09-23). An `onWillMove`
-  listener is still called before the focus, so it can hear of a move the browser then refuses.
+  ([ADR-0008](adr/0008-shadow-dom.md)) still sees its landing — and on a refusal writes nothing:
+  no attribute, no memory, no scroll (`src/spatial/spatial.ts:339-348`). **A refusal hands the
+  move on since 2026-09-24** ([ADR-0030](adr/0030-refused-focus-next-candidate.md)); from
+  2026-09-23 to then, the move was reported as not made and the engine did not try the next
+  candidate. `commit()` reads the deepest active element, through open shadow roots, before and
+  after the focus call. On the target, the move landed. Unchanged, the browser refused, and the
+  engine goes on to the next candidate in the order of R27. Anywhere else, an application's focus
+  handler moved it: the move ends, `false`, nothing written, the focus left where the application
+  put it. The set of refused elements lives for one operation and its rescan frame, never on the
+  plugin. `focus(target)` names one target and does not look further: a refusal is its answer. An
+  `onWillMove` listener is called before each attempt, so it hears of every candidate tried,
+  including one the browser then refuses, and a veto still ends the move. Tests: "writes nothing
+  when the focus does not land", "reports a move whose target refused the focus as not made" and
+  the `describe` "spatialPlugin — a refused candidate hands the move on (ADR-0030)" in
+  `src/spatial/spatial.browser.test.ts`. Their witness is an element whose `focus` method does
+  nothing, which the engine cannot tell from a refusal; the second `<summary>` that was the witness
+  until 2026-09-24 is no longer a candidate (§4), and the refusals that split by engine are pinned
+  on a real `<embed>` and a real empty `<object>` in the same `describe`.
 - **R22.** Declarative containers, attributes renamed to this project's prefix — the owner's decision
   of 2026-09-18, recorded in [ADR-0001](adr/0001-name-scope-and-attribute-prefix.md). Read:
   `data-snav="container"`, `data-snav-enter`, `data-snav-wrap`, `data-snav-block`, `data-snav-trap`,
@@ -359,12 +385,19 @@ this working tree, run 2026-09-20.
   (`spatial.ts`, where it is also read back). The handle is the indirection the `WeakRef`
   fallback of §3.1 needed, and it is written: the map is also dropped whole on teardown
   (`spatial.ts`), which is what releases the elements the fallback path holds strongly.
+  Since 2026-09-24 a remembered child that refuses the focus is skipped and the container entered
+  by geometry, `first` goes on to the next node, and a nested container in which nothing lands
+  counts as refused as a unit (R21).
 - **R27.** With no candidate, in order: wrap if the container wraps on that axis; else scroll one
   step and rescan; else bubble to the parent container, unless it traps or blocks that direction;
   else no-op and emit `onBoundsHit` (`src/spatial/spatial.ts:505-527`). The rescan waits exactly one
   frame, because a virtualised list mounts its next rows on the scroll (`spatial.ts`).
-  An `onWillMove` veto fires before the real `focus()` call, so a component can refuse a move
-  (`spatial.ts`).
+  Since 2026-09-24 a candidate the browser refuses is taken out and the search goes on in the same
+  order: the next best of the container, rescored without it, then that list's wrap candidate, the
+  scroll and rescan, which carries what refused over its frame, and the parent; `onBoundsHit` fires
+  when everything refused (R21).
+  An `onWillMove` veto fires before the real `focus()` call, once per candidate tried, so a
+  component can refuse a move; a veto ends it (`spatial.ts`).
 - **R28.** Explicit redirections `data-snav-up|down|left|right` take CSS selectors resolved against
   the whole document, read off the focused element and answered *before* anything is scored
   (`src/spatial/spatial.ts:492-500`) — documented as the last resort for pathological layouts.
@@ -372,7 +405,11 @@ this working tree, run 2026-09-20.
   nothing, or a target that is disabled, hidden, inert or not focusable at all, is ignored, and
   the geometric search runs as if the attribute were absent — the owner's decision of 2026-09-23.
   Test: "ignores a redirection to a target that cannot take the focus" in
-  `src/spatial/spatial.browser.test.ts`.
+  `src/spatial/spatial.browser.test.ts`. Since 2026-09-24 a target that refuses the focus falls
+  through to the geometry too, and a redirect that is vetoed, or whose focus an application's
+  handler sends elsewhere, ends the move (R21; tests "falls through to the geometry when a
+  redirection's target refuses" and "stops on a vetoed redirection, and on one the application sent
+  elsewhere").
 - **R29.** Two modes. `composite` (default): arrows are spatial only inside composites, as the APG
   requires, and only the gamepad crosses composite boundaries, so an ordinary site becomes
   pad-drivable without losing its keyboard conventions. In this package the rule is one line —
@@ -400,6 +437,9 @@ this working tree, run 2026-09-20.
   (`src/spatial/spatial.ts:239`), so mouse and pad do not fight over two cursors. Covered by the
   browser fixtures at `src/spatial/spatial.browser.test.ts:577` — it is no longer the untested
   option it was in the predecessor implementation ([ADR-0002](adr/0002-license-and-copyright.md)).
+  Since 2026-09-24 a hover writes `data-snav-focused` and the container memory only when the focus
+  landed on the hovered element; a refusal, or a focus sent elsewhere, writes nothing
+  ([ADR-0005](adr/0005-real-dom-focus.md), amendment of that date).
 - **R31.** Visible limits, documented because a user meets them: container nesting is bounded at
   `MAX_CONTAINER_DEPTH = 16` (`src/spatial/spatial.ts:60`), and the zero-size filter is
   `width === 0 || height === 0` (`spatial.ts`) — **either** dimension, so a 0×40 element

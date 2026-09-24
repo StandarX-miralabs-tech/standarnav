@@ -169,6 +169,34 @@ The status line moves from Proposed to Accepted with this amendment. The decisio
 carries is a decision, not a question: rules 3 to 6 were never in doubt, rule 5 is a divergence
 removal rather than a behaviour change, and the two riders that held the status open are closed.
 
+## Amendment, 2026-09-24: the candidate set drops what every engine refuses
+
+This record is about what the engine drops for being invisible. [Issue #19](https://github.com/StandarX-miralabs-tech/standarnav/issues/19)
+showed the candidate set also kept elements that are visible and that no engine will focus, which
+the d-pad then chose and could not land on. Two changes to the first row of the Context table,
+measured on chromium, firefox and webkit on 2026-09-24 and recorded in
+[ADR-0030](0030-refused-focus-next-candidate.md):
+
+- The `summary` arm is `details>summary:first-of-type`. A second `<summary>`, one nested deeper in
+  its `<details>` and one outside any `<details>` are refused on all three; the first child
+  `<summary>` is the only one the browser treats as the control.
+- `isFocusable` rejects an element with no `tabindex` inside an editing host that is a link, or
+  that is focusable only for being editable (`src/tabbable.ts:69-77`). The arms that take the focus
+  in their own right, which such an element does not match, are now a named list
+  (`NATIVE_SELECTOR`, `:18-30`), and `FOCUSABLE_SELECTOR` is that list followed by `a[href]`,
+  `[contenteditable]:read-write` and `[tabindex]` (`:32-39`).
+
+So the row's list now reads: form controls without `disabled`, `area[href]`, `iframe`, `object`,
+`embed`, `audio/video[controls]`, the first `<summary>` of a `<details>`, then `a[href]`,
+`[contenteditable]` and `[tabindex]`, minus a link and an editable-only element inside a host that
+carry no `tabindex`. The rule is one rule in one place still: the d-pad and the Tab key read the same
+`isFocusable`, and `isTabbable` stopped calling such a link a Tab stop. What some engines refuse and
+others focus — an `<embed>` with a `type` and no `src`, an empty `<object>`, a link with a
+`tabindex` inside a host on firefox — stays a candidate, and the spatial engine goes on to the next
+one when the browser refuses it (ADR-0030). Tests: "drops a link and a nested editable of an
+editing host, unless they carry a tabindex" and "takes only the first summary child of a details as
+focusable" in `src/tabbable.browser.test.ts`, which fail at cc0b219.
+
 ## Alternatives considered
 
 **IntersectionObserver-based visibility.** Observe every candidate, keep a live set of what is on

@@ -166,6 +166,24 @@ cursor is not in the package. It is a consumer of it, built on `assign`
 written at all without the engine growing a mode is the argument this record has been making since
 the Decision: real focus composes with anything, a virtual one composes with nothing.
 
+## Amendment, 2026-09-24: the pointer path verifies the landing too
+
+The Decision says the attributes the engine writes mirror the real focus. Since 2026-09-23 the
+d-pad path checked that before writing; the pointer path did not. With `pointerFollowsFocus` on,
+the `pointerover` handler called `focusElement` and then `remember`, so a hovered element that
+refused the focus got `data-snav-focused` while the focus stayed where it was, and its container
+remembered a child that never had it ([issue #19](https://github.com/StandarX-miralabs-tech/standarnav/issues/19)).
+
+The handler now writes the marker and the memory only when the focus landed on the hovered element,
+through the same `landed` check as `commit()` (`src/spatial/spatial.ts:601`, the check at
+`:354-356`). A refusal, or an application focus handler that sends the focus elsewhere, writes
+nothing and leaves the previous marker where it was. The hover still bypasses `onWillMove`, as
+"bypasses the onWillMove veto, which a hover is not subject to" requires. Three cases pin it, in the
+`describe` "spatialPlugin — a hover marks only what took the focus (ADR-0005)" of
+`src/spatial/spatial.browser.test.ts`; all three fail at cc0b219. The same day the d-pad path
+learnt to go on to the next candidate after a refusal, recorded in
+[ADR-0030](0030-refused-focus-next-candidate.md).
+
 ## Alternatives considered
 
 | Option | Why not |
