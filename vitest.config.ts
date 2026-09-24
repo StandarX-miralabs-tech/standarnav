@@ -1,3 +1,4 @@
+import { svelte } from "@sveltejs/vite-plugin-svelte";
 import { playwright } from "@vitest/browser-playwright";
 import { defineConfig, type ViteUserConfig } from "vitest/config";
 
@@ -16,6 +17,9 @@ const config: ViteUserConfig = defineConfig({
     // that must be as red as a failing assertion, not a green run of nothing.
     projects: [
       {
+        // Compiles the Svelte adapter's test components, and only those: the adapter itself is
+        // plain TypeScript. `unit` needs it too, for the server render in `src/svelte/svelte.test.ts`.
+        plugins: [svelte({ configFile: false })],
         test: {
           name: "unit",
           environment: "node",
@@ -24,6 +28,7 @@ const config: ViteUserConfig = defineConfig({
         },
       },
       {
+        plugins: [svelte({ configFile: false })],
         // The esm-bundler build of Vue expects its bundler to define these, and says so
         // on every run when none does. The values are Vue's own defaults, and only the
         // Vue adapter's tests load that build; `unit` gets Vue's CommonJS build from Node.

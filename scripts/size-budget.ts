@@ -140,6 +140,13 @@ const LINES: readonly Line[] = [
     note: "opt-in subpath next to the core; vue itself is a peer and never bundled, and the internal/ helpers are charged here as they are to react",
   },
   {
+    name: "svelte adapter",
+    entries: ["svelte/svelte.js"],
+    cap: 1.5 * KB,
+    external: ["svelte", "svelte/store", "../input-system.js", "../modality.js"],
+    note: "opt-in subpath next to the core; svelte itself is a peer and never bundled, and the internal/ helpers are charged here as they are to react and vue",
+  },
+  {
     name: "keyboard",
     entries: ["keyboard/keyboard.js"],
     cap: 3 * KB,

@@ -197,7 +197,7 @@ not. `@vitejs/plugin-vue` defines them in its `config` hook
 (https://raw.githubusercontent.com/vitejs/vite-plugin-vue/main/packages/plugin-vue/src/index.ts,
 fetched 2026-09-23); a Vite config without it defines them itself, to Vue's defaults `true`,
 `false` and `false` (https://github.com/vuejs/core/tree/main/packages/vue#bundler-build-feature-flags,
-fetched 2026-09-23), as this repository's test config does (`vitest.config.ts`, `:30-34`).
+fetched 2026-09-23), as this repository's test config does (`vitest.config.ts`, `:35-39`).
 
 **The floor is 3.3.0, and it is run.** The adapter uses `toValue`, `MaybeRefOrGetter` and the
 setup-function form of `defineComponent`, all three first shipped in Vue 3.3. A CI job installs
@@ -212,5 +212,5 @@ nested in a trapping surface reached when both pass `within` and silenced when n
 re-registered on a rerender without leaving its place, and the order scopes were opened in kept
 across a system rebuild. `runAdapterParitySuite` runs them at `src/vue/vue.browser.test.ts:921`,
 and `bun run test:browser` passed them on chromium, firefox and webkit on 2026-09-23
-([React](react.md) holds the same contract). Svelte and Angular follow, in the order of
-[ADR-0011](../adr/0011-package-layout-and-adapters.md).
+([React](react.md) holds the same contract). [Svelte](svelte.md) followed on 2026-09-24, and
+Angular follows, in the order of [ADR-0011](../adr/0011-package-layout-and-adapters.md).

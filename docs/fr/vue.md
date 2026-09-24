@@ -204,7 +204,7 @@ la console quand ils ne le sont pas. `@vitejs/plugin-vue` les définit dans son 
 consulté le 2026-09-23) ; une configuration Vite sans lui les définit elle-même, aux valeurs par
 défaut de Vue `true`, `false` et `false`
 (https://github.com/vuejs/core/tree/main/packages/vue#bundler-build-feature-flags, consulté le
-2026-09-23), comme le fait la configuration de test de ce dépôt (`vitest.config.ts`, `:30-34`).
+2026-09-23), comme le fait la configuration de test de ce dépôt (`vitest.config.ts`, `:35-39`).
 
 **Le plancher est 3.3.0, et il est exécuté.** L'adaptateur utilise `toValue`, `MaybeRefOrGetter` et
 la forme de `defineComponent` qui prend une fonction `setup`, tous trois apparus dans Vue 3.3. Un
@@ -220,5 +220,5 @@ les deux passent `within` et réduit au silence quand aucun ne le fait, une base
 nouveau rendu sans quitter sa place, et l'ordre d'ouverture des portées conservé à travers une
 reconstruction du système. `runAdapterParitySuite` les exécute à
 `src/vue/vue.browser.test.ts:921`, et `bun run test:browser` les a passés sur chromium, firefox et
-webkit le 2026-09-23 ([React](react.md) tient le même contrat). Svelte et Angular suivent, dans
-l'ordre d'[ADR-0011](../adr/0011-package-layout-and-adapters.md).
+webkit le 2026-09-23 ([React](react.md) tient le même contrat). [Svelte](svelte.md) a suivi le 2026-09-24, et Angular
+suit, dans l'ordre d'[ADR-0011](../adr/0011-package-layout-and-adapters.md).
