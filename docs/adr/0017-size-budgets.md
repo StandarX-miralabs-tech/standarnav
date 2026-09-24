@@ -555,6 +555,31 @@ out of the React adapter so that both adapters share it. That move is the React 
 Twelve lines, every built module charged to one: `size budgets passed for 12 lines, and all 30
 built modules are charged to one`, 2026-09-23.
 
+## Amendment, 2026-09-24: a thirteenth line, for the Svelte adapter
+
+`bun run build && bun run check:size`, run 2026-09-24. The Svelte adapter is a subpath,
+`@standarx/nav/svelte` ([ADR-0028](0028-svelte-adapter.md)), so it gets a line; it is new, so no cap
+moves and rule 4 is not in play. The line went in with `cap: null` first and the run went red as
+rule 5 intends, `svelte adapter: measured 1.45 kB min+gzip and has no cap`, then the cap was
+written.
+
+| Line | min | min+gzip | cap |
+|---|---|---|---|
+| svelte adapter | 3.19 kB | **1.45 kB** (1 481 B) | **1.50 kB** (1 536 B), 96 % used |
+| vue adapter | 3.12 kB | 1.40 kB (1 434 B), unchanged | 1.50 kB, unchanged, 93 % used |
+| react adapter | 3.32 kB | 1.42 kB (1 452 B), unchanged | 1.50 kB, unchanged, 95 % used |
+
+**Rule 3 gives 1.50.** The next quarter above 1.45 kB is 1.50 kB, 55 bytes of room — less than
+either sibling has, and the reason the adapter's development warning is one short sentence.
+
+**Its externals mirror the React and Vue lines'.** `svelte` and `svelte/store`, peers the consumer
+supplies, and `../input-system.js` and `../modality.js`, which the core already ships
+(`scripts/size-budget.ts:142-148`). The three `internal/` modules are charged here as they are to
+the other two adapter lines.
+
+Thirteen lines, every built module charged to one: `size budgets passed for 13 lines, and all 31
+built modules are charged to one`, 2026-09-24.
+
 ## Alternatives considered
 
 **A bundlephobia badge in the README.** Rejected: it is not blocking, it lags

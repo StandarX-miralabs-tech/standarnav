@@ -234,6 +234,38 @@ choice paid off in one concrete way: every React correction since publication â€
 across a rebuild, `within`, the `"native"` answer â€” arrived in Vue as a case it had to pass on its
 first day rather than as a bug found later.
 
+## Amendment, 2026-09-24: item 4 of the adapter order ships, `@standarx/nav/svelte`
+
+Svelte is built: `src/svelte/svelte.ts`, subpath `./svelte` in the generated map (`package.json`,
+`:44`), an entry and its externals in `tsdown.config.ts` (`:16`, `:28`) and the rename at `:42`,
+budget line `svelte adapter` at 1.45 of 1.50 kB ([ADR-0017](0017-size-budgets.md), amendment of
+2026-09-24). Its design, and why its floor is 5.0, are [ADR-0028](0028-svelte-adapter.md). One row
+of the table remains planned, Angular.
+
+**The table said "actions", and the adapter is functions.** The Svelte row read `actions
+(planned)` from the day this record was written, before anyone asked what a Svelte provider is. A
+`use:` action is called when its element mounts, and a provider has to set context while its
+component initialises, which an action cannot do; the one thing an action would add to `useIntent`
+is the element, which `bind:this` already hands over as a getter. And Svelte's own page on actions
+tells 5.29 and newer to consider attachments instead, which would lift the floor. So the row now
+names `provideNav`, `useIntentScopeHost` and functions, called in a component's `<script>`, and no
+action ships.
+
+**The peer rule of this record holds for a third framework.** `svelte` is a peer at `>=5.0.0`
+(`package.json`, `:51`) with `"optional": true` (`:61`), and the floor is kept the way React's and
+Vue's are, by `svelte-floor` (`.github/workflows/ci.yml:169-193`), exactly `svelte@5.0.0`. That job
+runs the unit project too, since the server render is a unit case.
+
+**One framework, two externals.** The adapter imports `svelte` and `svelte/store`, and both are
+named in the `external` list rather than matched by a pattern (`tsdown.config.ts`, `:28`), as they are
+on the budget line: a name that is not imported, `svelte/reactivity`, is not listed.
+
+**The parity gate is now a three-adapter gate.** `runAdapterParitySuite` runs against React, Vue
+and Svelte (`src/svelte/svelte.browser.test.ts:724`), all 16 cases, on chromium, firefox and
+webkit, and `src/internal/scope-registry.ts` has its third importer. The gate caught nothing new in
+Svelte's own code; what it did was make a test fixture honest: a component re-rendered with an
+equal value re-opened its host scope until the fixture read its props through `$derived`.
+
 ## Alternatives considered
 
 **A monorepo with one package per adapter** (`@standarx/nav-core`, `@standarx/nav-react`, and so
