@@ -32,9 +32,9 @@ below the supported tier on every engine, and which a runtime removes anyway.
 | API | Chrome | Safari | Firefox | Used at | Behaviour when absent |
 |---|---|---|---|---|---|
 | `WeakRef` | 84 | 14.1 | 79 | `src/spatial/spatial.ts:130` constructs it inside `elementHandle()` (`:127-131`); `:109-111` is the `WeakRefCtor` type position and erases; `:131` reads through `deref()`; the per-container `memory` at `:248` holds that handle, not a bare reference, and is read back at `:348` | `ReferenceError` on the **first successful move**, not at construction — the construction sits in `elementHandle()`, reached from `remember()` (`:276`, `memory.set(container, elementHandle(element))` at `:286`), so an unguarded build would mount, render and accept focus, then throw the first time the user pressed a direction. That timing is why the detection is at the call site (`:129`) and not at module scope |
-| `Element.checkVisibility()` | 105 | 17.4 | 106 | `src/tabbable.ts:47-49`, in `isHidden` | Falls back to `offsetParent === null && getClientRects().length === 0` (`:51`), which reads layout boxes only and so does not see `visibility: hidden` |
-| `inert` attribute | 102 | 15.5 | 112 | `src/tabbable.ts:54-56`, in `isInert` | `closest("[inert]")` works everywhere; only the native focus-blocking effect is missing |
-| `Array.prototype.at` | 92 | 15.4 | 90 | Nowhere: the call was removed rather than guarded — `getTabbableEdges` does index arithmetic at `src/tabbable.ts:104-107` | `TypeError` — and the only row whose floor is **above** the supported tier below, so it would throw on Chromium 85-91, Safari 15.0-15.3 and Firefox 79-89: runtimes this ADR promises to support. Not a `lib` question |
+| `Element.checkVisibility()` | 105 | 17.4 | 106 | `src/tabbable.ts:52-54`, in `isHidden` | Falls back to `offsetParent === null && getClientRects().length === 0` (`:56`), which reads layout boxes only and so does not see `visibility: hidden` |
+| `inert` attribute | 102 | 15.5 | 112 | `src/tabbable.ts:59-61`, in `isInert` | `closest("[inert]")` works everywhere; only the native focus-blocking effect is missing |
+| `Array.prototype.at` | 92 | 15.4 | 90 | Nowhere: the call was removed rather than guarded — `getTabbableEdges` does index arithmetic at `src/tabbable.ts:118-121` | `TypeError` — and the only row whose floor is **above** the supported tier below, so it would throw on Chromium 85-91, Safari 15.0-15.3 and Firefox 79-89: runtimes this ADR promises to support. Not a `lib` question |
 
 Versions from caniuse / MDN BCD, fetched 2026-09-18; URLs in the Evidence section.
 
@@ -92,8 +92,8 @@ detection can rescue a file the engine refused to read.
      forgotten for free; `isConnected` on read gives the same observable behaviour, at the cost of
      holding one element per container until the next read.
    - `checkVisibility` → the fallback already written here, inside `isHidden`: the detection and
-     call at `src/tabbable.ts:47-49`, the fallback expression at `:51`, kept as is, including its
-     known blind spot for `visibility: hidden` — `:51` reads layout boxes and nothing else.
+     call at `src/tabbable.ts:52-54`, the fallback expression at `:56`, kept as is, including its
+     known blind spot for `visibility: hidden` — `:56` reads layout boxes and nothing else.
    - `inert` → `closest("[inert]")` is an attribute read and works on every engine we target; only
      the native effect differs, and the library does not rely on it.
    - `Array.prototype.at` → index arithmetic (`list[list.length - 1]`).
@@ -161,9 +161,9 @@ line numbers are local and one row is no longer a fallback at all.
 | API | What the code does here | Read at |
 |---|---|---|
 | `WeakRef` | Feature-detected at call time, not at module scope, and the constructor is read off `globalThis` so a test can delete it. Present → a real `WeakRef`; absent → a strong reference that drops itself on the first read finding the element detached | `src/spatial/spatial.ts:109-141` |
-| `Element.checkVisibility()` | Feature-detected through an `unknown` cast to an interface whose method is optional, with the comment saying the cast exists so the fallback does not read as dead code. Present → `checkVisibility({ contentVisibilityAuto: true, visibilityProperty: true })`; absent → `offsetParent === null && getClientRects().length === 0` | `src/tabbable.ts:36-52` |
-| `inert` | `closest("[inert]")`, an attribute read with no detection and no fallback, because the attribute is readable on every engine in the tier and only the native focus-blocking effect differs | `src/tabbable.ts:54-56` |
-| `Array.prototype.at` | **Not detected — removed.** `getTabbableEdges` uses `tabbables[tabbables.length - 1]`, with a comment naming this ADR's tier as the reason | `src/tabbable.ts:100-108` |
+| `Element.checkVisibility()` | Feature-detected through an `unknown` cast to an interface whose method is optional, with the comment saying the cast exists so the fallback does not read as dead code. Present → `checkVisibility({ contentVisibilityAuto: true, visibilityProperty: true })`; absent → `offsetParent === null && getClientRects().length === 0` | `src/tabbable.ts:41-57` |
+| `inert` | `closest("[inert]")`, an attribute read with no detection and no fallback, because the attribute is readable on every engine in the tier and only the native focus-blocking effect differs | `src/tabbable.ts:59-61` |
+| `Array.prototype.at` | **Not detected — removed.** `getTabbableEdges` uses `tabbables[tabbables.length - 1]`, with a comment naming this ADR's tier as the reason | `src/tabbable.ts:114-122` |
 
 The last row is the one that changed category. Decision 2 listed `.at` among the APIs with a
 fallback; there is no fallback, because there is no call. That is the stronger outcome and it is
@@ -246,11 +246,11 @@ not been reproduced here, so it gets no guard and no claim, only this sentence.
   real reference built at `:130` and read through at `:131`, and the self-releasing
   strong-reference fallback at `:134-140`; `:248` is the per-container focus memory
   (`new WeakMap<HTMLElement, ElementHandle>()`), written in `remember` at `:286` and read back
-  through `deref()` at `:348`. `src/tabbable.ts:36-52` (`isHidden`: `VisibilityCheck` with an
-  optional method, the `unknown` cast and its comment, the detection and call at `:47-49`, and the
-  `offsetParent`/`getClientRects` fallback at `:51`); `:54-56` (`isInert`, `closest("[inert]")`);
-  `:100-108` (`getTabbableEdges`, `tabbables[tabbables.length - 1]` at `:107` with the comment naming
-  this ADR's tier at `:104-106`). The fallback that has a test:
+  through `deref()` at `:348`. `src/tabbable.ts:41-57` (`isHidden`: `VisibilityCheck` with an
+  optional method, the `unknown` cast and its comment, the detection and call at `:52-54`, and the
+  `offsetParent`/`getClientRects` fallback at `:56`); `:59-61` (`isInert`, `closest("[inert]")`);
+  `:114-122` (`getTabbableEdges`, `tabbables[tabbables.length - 1]` at `:121` with the comment naming
+  this ADR's tier at `:118-120`). The fallback that has a test:
   `src/spatial/spatial.browser.test.ts:859-891`.
 - The `"target": "es2022"` and `"lib": ["es2023", "dom", "dom.iterable"]` that this code was first
   compiled under: inherited from the predecessor implementation

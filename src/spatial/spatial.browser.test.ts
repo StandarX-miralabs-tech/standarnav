@@ -164,22 +164,22 @@ describe("spatialPlugin — a focus the browser refuses", () => {
   });
 
   /**
-   * A second `<summary>` in an open `<details>` matches the selector, is visible and
-   * sized, and `focus()` leaves it alone on chromium, firefox and webkit alike —
-   * measured with Playwright on 2026-09-23. It is the honest witness of a target the
-   * engine accepts and the browser does not.
+   * A `focus` method that does nothing: the engine cannot tell it from a browser that
+   * refuses, and it refuses the same way on every engine. The second `<summary>` that
+   * was the witness here until 2026-09-24 is no candidate any more (ADR-0030), and no
+   * other element was measured that chromium, firefox and webkit all refuse while the
+   * selector still accepts it: the `<embed>` and `<object>` that refuse do so on some
+   * engines only, as ADR-0030 records.
    */
-  function refusing(): string {
-    return (
-      `${box("a", 0, 0)}<details open>` +
-      `<summary id="first" style="position:absolute;left:0;top:200px;width:100px;height:40px">one</summary>` +
-      `<summary id="second" style="position:absolute;left:120px;top:0;width:100px;height:40px">two</summary>` +
-      `</details>`
-    );
+  function refusing(): Scene {
+    const view = scene(`${box("a", 0, 0)}${box("second", 120, 0)}`);
+    // Replaced, not spied on: a spy would call through, and nothing is to happen.
+    view.at("second").focus = (): void => {};
+    return view;
   }
 
   it("writes nothing when the focus does not land", () => {
-    const view = scene(refusing());
+    const view = refusing();
     view.plugin.focus("#a");
 
     expect(view.plugin.focus("#second")).toBe(false);
@@ -189,7 +189,7 @@ describe("spatialPlugin — a focus the browser refuses", () => {
   });
 
   it("reports a move whose target refused the focus as not made", () => {
-    const view = scene(refusing());
+    const view = refusing();
     view.plugin.focus("#a");
 
     expect(view.plugin.move("right")).toBe(false);
@@ -938,5 +938,39 @@ describe("spatialPlugin — shadow DOM", () => {
     view.move("right");
 
     expect(shadow.activeElement?.id).toBe("inner");
+  });
+});
+
+describe("spatialPlugin — what every engine refuses is no candidate (ADR-0030)", () => {
+  it("steps over a second summary, which chromium, firefox and webkit all refuse", () => {
+    const view = scene(
+      `${box("a", 0, 0)}<details open>` +
+        `<summary id="first" style="position:absolute;left:0;top:200px;width:100px;height:40px">one</summary>` +
+        `<summary id="second" style="position:absolute;left:120px;top:0;width:100px;height:40px">two</summary>` +
+        `</details>${box("c", 240, 0)}`,
+    );
+    view.plugin.focus("#a");
+
+    expect(view.plugin.move("right")).toBe(true);
+
+    expect(view.active()).toBe("c");
+    expect(view.at("second").hasAttribute("data-snav-focused")).toBe(false);
+  });
+
+  it("steps over a link and a nested editable inside an editing host", () => {
+    // The host sits below the row, and its two children are placed in it.
+    const view = scene(
+      box("a", 0, 0) +
+        `<div id="editor" contenteditable style="position:absolute;left:0;top:200px;width:100px;height:40px">` +
+        `<a id="link" href="#x" style="position:absolute;left:120px;top:-200px;width:100px;height:40px">link</a>` +
+        `<span id="nested" contenteditable="true" style="position:absolute;left:240px;top:-200px;width:100px;height:40px">nested</span>` +
+        `</div>${box("c", 360, 0)}`,
+    );
+    view.plugin.focus("#a");
+
+    expect(view.plugin.move("right")).toBe(true);
+
+    expect(view.active()).toBe("c");
+    expect(document.querySelectorAll("[data-snav-focused]")).toHaveLength(1);
   });
 });

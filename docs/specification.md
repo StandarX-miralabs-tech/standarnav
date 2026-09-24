@@ -116,9 +116,9 @@ Feature detection required by this tiering (browser support from caniuse and MDN
 | API | Available from | Fallback |
 |---|---|---|
 | `WeakRef` | Chrome 84, Safari 14.1, Firefox 79 | Written. `elementHandle` returns a `WeakRef` where the constructor exists and a strong reference that drops itself on the first read finding the element detached — `isConnected` — where it does not (`src/spatial/spatial.ts:127-141`). The constructor is read per call rather than at module scope, so a test can delete the global and exercise the fallback |
-| `checkVisibility` | Chrome 105, Safari 17.4, Firefox 106 | `offsetParent === null && getClientRects().length === 0` (`src/tabbable.ts:51`) |
-| `inert` | Chrome 102, Safari 15.5, Firefox 112 | `closest("[inert]")` reads the attribute everywhere (`src/tabbable.ts:55`) |
-| `Array.prototype.at` | Chrome 92, Safari 15.4, Firefox 90, Samsung Internet 16.0 (`https://caniuse.com/mdn-javascript_builtins_array_at`) | Avoided outright, and the rewrite is done: `getTabbableEdges` indexes `tabbables[tabbables.length - 1]` (`src/tabbable.ts:104-107`). Unlike every other row its floor is **above** the supported tier, so the use it replaced threw on Chromium 85-91, Safari 15.0-15.3 and Firefox 79-89, and `getTabbableEdges` is the entry point for `getFirstTabbable` and `getLastTabbable`. A `lib` bump would have hidden the break rather than fixed it |
+| `checkVisibility` | Chrome 105, Safari 17.4, Firefox 106 | `offsetParent === null && getClientRects().length === 0` (`src/tabbable.ts:56`) |
+| `inert` | Chrome 102, Safari 15.5, Firefox 112 | `closest("[inert]")` reads the attribute everywhere (`src/tabbable.ts:60`) |
+| `Array.prototype.at` | Chrome 92, Safari 15.4, Firefox 90, Samsung Internet 16.0 (`https://caniuse.com/mdn-javascript_builtins_array_at`) | Avoided outright, and the rewrite is done: `getTabbableEdges` indexes `tabbables[tabbables.length - 1]` (`src/tabbable.ts:118-121`). Unlike every other row its floor is **above** the supported tier, so the use it replaced threw on Chromium 85-91, Safari 15.0-15.3 and Firefox 79-89, and `getTabbableEdges` is the entry point for `getFirstTabbable` and `getLastTabbable`. A `lib` bump would have hidden the break rather than fixed it |
 
 `tsconfig.json` declares `target: "es2020"` and `lib: ["es2020", "dom", "dom.iterable"]` (read
 2026-09-20), so neither `WeakRef` nor `Array.prototype.at` type-checks by accident: `WeakRef` is
@@ -132,14 +132,14 @@ will move to it. Nothing has to be registered, wrapped in a hook, or listed in a
 `useFocusable`, no `focusKey`, no `MutationObserver`: candidates are queried and measured at each
 move, so a virtualised or freshly mutated DOM needs no cache invalidation.
 
-"Focusable in the platform's sense" is the selector at `src/tabbable.ts:17-34`:
+"Focusable in the platform's sense" is the selector at `src/tabbable.ts:18-39`:
 `input` (also excluding `[type='hidden']`), `select`, `textarea` and `button`; then `a[href]`,
 `area[href]`, `iframe`, `object`, `embed`, `audio[controls]`, `video[controls]`, `summary`,
 `[contenteditable]` that makes its element editable, and anything carrying `[tabindex]` — minus
 hidden, inert and disabled elements. Disabled is what the browser calls `:disabled` — a form
 control carrying `disabled`, or one inside a `<fieldset disabled>` anywhere but in that fieldset's
 first `<legend>` — plus exception 5 below: `isFocusable` rejects `:disabled,[disabled]`
-(`src/tabbable.ts:61-63`).
+(`src/tabbable.ts:66-68`).
 A link or a `[tabindex]` element inside such a fieldset is not disabled and stays a candidate.
 Tests: "drops what a disabled fieldset disables, and keeps its first legend and its links" and
 "reports the edges of a surface that ends in a disabled fieldset" in `src/tabbable.browser.test.ts`,
@@ -148,7 +148,7 @@ The browser agrees: a `<button>` in the first `<legend>` takes the focus, one in
 `<legend>` or in the fieldset body does not, and the link and the `[tabindex]` element do, on
 chromium, firefox and webkit (Playwright, 2026-09-23).
 
-The `contenteditable` arm is `[contenteditable]:read-write` (`src/tabbable.ts:30-32`), so it keeps
+The `contenteditable` arm is `[contenteditable]:read-write` (`src/tabbable.ts:35-37`), so it keeps
 exactly the elements `isContentEditable` calls editable: `false` in any letter case, and `inherit`
 or an invalid value under a parent that is not editable, are left out. On chromium, firefox and
 webkit (Playwright, 2026-09-23) `:read-write` and `isContentEditable` agreed on all thirteen
@@ -160,7 +160,7 @@ in `src/tabbable.browser.test.ts`.
 
 Tabbable is focusable and in the sequential order: `tabIndex >= 0`, or an **editing host** — an
 editable element whose parent is not editable — that carries no `tabindex` attribute
-(`inTabOrder`, `src/tabbable.ts:71-78`, shared by `isTabbable` and `getTabbables`). A host
+(`inTabOrder`, `src/tabbable.ts:85-92`, shared by `isTabbable` and `getTabbables`). A host
 reports `tabIndex` -1 and is a Tab stop all the same; what is editable inside it is not a stop,
 and `tabindex="-1"` takes a host out. Measured on chromium, firefox and webkit (Playwright,
 2026-09-23, with Alt+Tab on webkit, whose plain Tab skips links): a host's `tabIndex` is -1 on all
@@ -179,12 +179,12 @@ its French mirror — because each surprises someone.
    The fix is `tabindex="-1"` or `tabindex="0"`, which is also the fix for keyboard users; the engine
    does not invent focusability the platform withholds.
 2. **`aria-hidden` elements stay reachable.** `isFocusable` does not filter `aria-hidden`
-   (`src/tabbable.ts:58-67`). Hiding a subtree from assistive technology while leaving it focusable
+   (`src/tabbable.ts:63-81`). Hiding a subtree from assistive technology while leaving it focusable
    is already an authoring error; an element that should not be reached is removed, made `inert`, or
    marked `data-snav-ignore`. See [ADR-0009](adr/0009-hidden-candidates.md) and open question 1
    below: the candidate filters of that ADR are settled (R31), `aria-hidden` itself is not.
 3. **`aria-disabled` stays focusable.** The APG wants disabled menu items and toolbar buttons
-   reachable, unlike natively disabled form controls (comment at `src/tabbable.ts:64-65`).
+   reachable, unlike natively disabled form controls (comment at `src/tabbable.ts:78-79`).
 4. **Light DOM only.** Elements inside a shadow root are not collected; a component that needs it
    passes its own root (§2).
 5. **`disabled` on an element that is not a form control is rejected, although the browser
@@ -192,7 +192,7 @@ its French mirror — because each surprises someone.
    still take the focus on chromium, firefox and webkit (Playwright, 2026-09-23). `isFocusable`
    drops them anyway, because `disabled` is the opt-out [ADR-0009](adr/0009-hidden-candidates.md)
    rule 6 gives an `aria-disabled` item; that is why the test is `:disabled,[disabled]` and not
-   `:disabled` alone (`src/tabbable.ts:61-63`). Test: "still rejects disabled on an element the
+   `:disabled` alone (`src/tabbable.ts:66-68`). Test: "still rejects disabled on an element the
    browser would focus, ADR-0009 rule 6" in `src/tabbable.browser.test.ts`.
 
 ## 5. Functional requirements
@@ -338,7 +338,7 @@ this working tree, run 2026-09-20.
   created, and `aria-hidden` is the only ARIA attribute the package writes anywhere — never on
   markup it did not create (`grep -rn "aria-" src` on 2026-09-20: twelve hits, of which two are
   outside the tests — the write at `src/focus-ring/focus-ring.ts:241` and the `aria-disabled`
-  comment at `src/tabbable.ts:64` — and the other ten are fixtures). The attribute **names** are
+  comment at `src/tabbable.ts:78` — and the other ten are fixtures). The attribute **names** are
   the public contract; the constants that hold them are module-internal and no entry point
   publishes them (`src/spatial/containers.ts:10-18`, reachable from no path in the exports map).
   `./spatial` publishes `containerOf` and

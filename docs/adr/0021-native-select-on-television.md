@@ -6,7 +6,7 @@ Deciders: Wesley Cormier
 
 ## Context
 
-`select:not([disabled])` is in `FOCUSABLE_SELECTOR` (`src/tabbable.ts:19`), so the engine treats a
+`select:not([disabled])` is in `FOCUSABLE_SELECTOR` (`src/tabbable.ts:20`), so the engine treats a
 native `<select>` as an ordinary candidate and focuses it like a button. Then A arrives: nothing in
 a scope claims it, so `activateFocused` clicks the focused element (`src/input-system.ts:119-133`),
 and a closed `<select>` answers a click by opening its options.
