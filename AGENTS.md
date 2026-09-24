@@ -20,14 +20,15 @@ provenance attestation; it is documented in ADR-0012 and it is the only one.
 | `bun run test` | Unit project in Node, browser project on Chromium | Before every commit; `SNAV_BROWSER=firefox` or `webkit` to reproduce a red CI engine |
 | `bun run build` then `git diff --exit-code` | tsdown output, and the exports map it rewrites in `package.json` must leave the tree byte-identical | Before a pull request, and after touching an entry point |
 | `bun run check:package` | No runtime dependency; the packed tarball passes `publint --strict` and `attw` | After touching `package.json` or an entry point |
-| `bun run check:size` | Thirteen min+gzip lines against their caps; needs `dist/` | After any change under `src/` |
+| `bun run check:size` | Fourteen min+gzip lines against their caps; needs `dist/` | After any change under `src/` |
 | `bun run dev` | Vite serves `playground/` on port 5173, importing `src/` directly | To verify a change on the real page |
 
-CI runs ten checks from eight jobs: lint (with `check:docs`), typecheck, build (with the
+CI runs eleven checks from nine jobs: lint (with `check:docs`), typecheck, build (with the
 drift gate, `check:package` and `check:size`), unit tests, a React 18.3 peer-floor job, a
-Vue 3.3.0 peer-floor job, a Svelte 5.0.0 peer-floor job, and the browser suite once each on
-chromium, firefox and webkit. Firefox, WebKit and the three floors exist only in CI; each floor
-is reproduced locally on a `git archive` copy with the job's own `bun add --dev` line.
+Vue 3.3.0 peer-floor job, a Svelte 5.0.0 peer-floor job, an Angular 20.0.0 peer-floor job, and
+the browser suite once each on chromium, firefox and webkit. Firefox, WebKit and the four floors
+exist only in CI; each floor is reproduced locally on a `git archive` copy with the job's own
+`bun add --dev` line.
 
 ## Size caps are a contract, not a setting
 
@@ -61,12 +62,12 @@ write the amendment commit before the code commit.
   the next one below it. The pull request body follows the same rule: sections are dated
   and appended.
 - Test counts are written in prose in several documents. After adding or removing a test,
-  grep the tree for the old totals (`522 passed`, `523`, `30 files`, and the per-project
+  grep the tree for the old totals (`577 passed`, `578`, `32 files`, and the per-project
   figures) and fix every one in the same commit. A count that carries its own date —
   "on 2026-09-21", or a dated amendment — is a measurement, not a stale claim: leave it.
 - Numbers, `sed` and scripted replacements corrupt Markdown and TypeScript in ways a diff
   hides. Reread the whole diff before committing.
-- ADRs: one per pull request, next free number is ADR-0029, the skeleton and the index are
+- ADRs: one per pull request, next free number is ADR-0030, the skeleton and the index are
   in `docs/adr/README.md`. ADR-0004 was withdrawn on 2026-09-20 and its number is not reused.
 
 ## What never reaches a committed file

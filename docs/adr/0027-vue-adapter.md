@@ -102,8 +102,8 @@ undefined; the browser project defines them to Vue's defaults (`vitest.config.ts
 ## Evidence
 
 - Code: `src/vue/vue.ts`, anchors above; `src/internal/scope-registry.ts` (`openOn`, `register`,
-  `release`, `reopen`); `tsdown.config.ts`, `:15`, `:28`, `:41` (entry, external, subpath);
-  `package.json`, `:45`, `:52`, `:64`, `:106` (export, peer, optional, devDependency).
+  `release`, `reopen`); `tsdown.config.ts`, `:15`, `:33`, `:50` (entry, external, subpath);
+  `package.json`, `:46`, `:54`, `:69`, `:117` (export, peer, optional, devDependency).
 - Tests, `src/vue/vue.browser.test.ts`: 27 cases of its own and `runAdapterParitySuite(parity)` at
   `:921`, 16 cases, among them "keeps a nested composite under the trap of the dialog around it"
   (`:384`), "re-opens a scope in its place when a ref it was given for trapped changes" (`:443`),

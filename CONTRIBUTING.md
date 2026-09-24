@@ -73,8 +73,8 @@ bun run check:size
 ```
 
 All of those were run here on 2026-09-22 and pass. Between them they reproduce
-five of the ten checks CI runs (eight jobs, one of them a three-engine matrix);
-the firefox and webkit runs and the React 18.3, Vue 3.3.0 and Svelte 5.0.0 floor jobs only exist in CI, which
+five of the eleven checks CI runs (nine jobs, one of them a three-engine matrix);
+the firefox and webkit runs and the React 18.3, Vue 3.3.0, Svelte 5.0.0 and Angular 20.0.0 floor jobs only exist in CI, which
 reports them on the pull request. Measured on the same date: `bun run test:unit`
 is 110 tests in 11 files, `bun run test:browser` is 257 passed and 1 skipped in
 13 files — 367 passed and 1 skipped in total. The
@@ -165,7 +165,7 @@ fixes.
   empty project means the globs stopped matching, which is a discovery
   breakage, and it has to be as red as a failing assertion rather than a green
   run of nothing. Do not add the flag to get past a red run.
-- A change to the React, the Vue or the Svelte adapter is held to the shared adapter suite in
+- A change to the React, the Vue, the Svelte or the Angular adapter is held to the shared adapter suite in
   `src/adapter-parity.ts`, not to tests of its own invention: one system and
   not during the first render, LIFO scope order, a scope released when only
   its own subtree unmounts, a trap that stops the walk, a base scope reached
@@ -175,7 +175,8 @@ fixes.
   rebuild. Each adapter
   implements `ParityAdapter` and runs the same suite: React in
   `src/react/react.browser.test.tsx`, Vue in `src/vue/vue.browser.test.ts`, Svelte in
-  `src/svelte/svelte.browser.test.ts`. Extend the suite rather
+  `src/svelte/svelte.browser.test.ts`, Angular in `src/angular/angular.browser.test.ts`. Extend
+  the suite rather
   than working around it. A separate CI job reinstalls React 18.3 over the
   lockfile's 19 and typechecks and runs the browser suite against it
   (the `react-floor` job, `.github/workflows/ci.yml:75-101`): the declared peer
@@ -189,15 +190,19 @@ fixes.
   (`.github/workflows/ci.yml:169-193`), which installs exactly `svelte@5.0.0` and runs the
   unit project as well, for the server render: a change that needs a later Svelte API raises
   the `>=5.0.0` peer range in the same pull request.
+  The Angular adapter has it too, the `angular-floor` job
+  (`.github/workflows/ci.yml:202-226`), which installs exactly 20.0.0 of `@angular/core` and of
+  the four Angular packages the tests load, and runs the unit project as well: a change that
+  needs a later Angular API raises the `>=20.0.0` peer range in the same pull request.
 - A pull request without a test for the behaviour it changes is not merged.
 
 ## Size budgets are blocking
 
 The build job of CI runs `bun run check:size` after the build, the drift gate
 and `check:package` (`.github/workflows/ci.yml:50-58`). The script is
-`scripts/size-budget.ts`. It measures thirteen lines against the built `dist/`:
+`scripts/size-budget.ts`. It measures fourteen lines against the built `dist/`:
 the core (`index.js`), the gamepad engine, the spatial engine, the focus ring,
-the debug entry, the auto-mount helper, the React, Vue and Svelte adapters, the on-screen
+the debug entry, the auto-mount helper, the React, Vue, Svelte and Angular adapters, the on-screen
 keyboard and one line per keyboard layout — each bundled with the sibling entries it
 also imports left external, so the number is the marginal cost of adding that
 subpath next to what it already sits beside. That is usually the core, but not
@@ -315,7 +320,7 @@ English page until it is ready.
 
 Both directories exist since 2026-09-22, four pages each: `attributes.md`,
 `navigation.md`, `react.md` and `focus-ring.md`. `auto.md` joined them afterwards, `vue.md` on
-2026-09-23 and `svelte.md` on 2026-09-24. `docs/` also holds `adr/`,
+2026-09-23, and `svelte.md` and `angular.md` on 2026-09-24. `docs/` also holds `adr/`,
 `research/` and `specification.md`, all of which are English-only by the
 paragraph below. In a mirror, the prose is translated and everything that is
 the contract — code blocks, attribute and property names, cited paths, table

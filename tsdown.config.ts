@@ -14,6 +14,7 @@ const config: UserConfig = defineConfig({
     "src/react/react.tsx",
     "src/vue/vue.ts",
     "src/svelte/svelte.ts",
+    "src/angular/angular.ts",
     "src/keyboard/keyboard.ts",
     // One entry per layout, never one module holding them all: a French application must
     // not ship Cyrillic (ADR-0022, decision 4).
@@ -25,7 +26,15 @@ const config: UserConfig = defineConfig({
   platform: "neutral",
   // Optional peers: an application that never imports an adapter must not pull a framework
   // into its graph, and one that does already has its own copy.
-  external: ["react", "react-dom", "react/jsx-runtime", "vue", "svelte", "svelte/store"],
+  external: [
+    "react",
+    "react-dom",
+    "react/jsx-runtime",
+    "vue",
+    "svelte",
+    "svelte/store",
+    "@angular/core",
+  ],
   unbundle: true,
   dts: true,
   clean: true,
@@ -40,6 +49,7 @@ const config: UserConfig = defineConfig({
         "./react/react": "./react",
         "./vue/vue": "./vue",
         "./svelte/svelte": "./svelte",
+        "./angular/angular": "./angular",
         "./keyboard/keyboard": "./keyboard",
         // `layouts/` is a directory, not a subpath: a consumer writes
         // `@standarx/nav/keyboard/qwerty`.

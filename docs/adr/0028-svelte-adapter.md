@@ -113,8 +113,8 @@ for the false positives it documents plus `useHookAtTopLevel`, which reads `use*
 ## Evidence
 
 - Code: `src/svelte/svelte.ts`, anchors above; `src/internal/scope-registry.ts` (`openOn`,
-  `register`, `release`, `reopen`); `tsdown.config.ts`, `:16`, `:28`, `:42` (entry, external,
-  subpath); `package.json`, `:44`, `:51`, `:61`, `:100` (export, peer, optional, devDependency).
+  `register`, `release`, `reopen`); `tsdown.config.ts`, `:16`, `:34-35`, `:51` (entry, external,
+  subpath); `package.json`, `:45`, `:53`, `:66`, `:111` (export, peer, optional, devDependency).
 - Tests, `src/svelte/svelte.browser.test.ts`: 28 cases of its own and `runAdapterParitySuite(parity)`
   at `:724`, 16 cases, among them "keeps a nested composite under the trap of the dialog around
   it" (`:362`), "re-opens a scope in its place when a getter it was given for trapped changes"

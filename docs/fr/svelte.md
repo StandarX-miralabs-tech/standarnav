@@ -246,4 +246,5 @@ nouveau rendu sans quitter sa place, et l'ordre d'ouverture des portées conserv
 reconstruction du système. `runAdapterParitySuite` les exécute à
 `src/svelte/svelte.browser.test.ts:724`, et `bun run test:browser` les a passés sur chromium,
 firefox et webkit le 2026-09-24 ([React](react.md) et [Vue](vue.md) tiennent le même contrat).
-Angular suit, dans l'ordre d'[ADR-0011](../adr/0011-package-layout-and-adapters.md).
+[Angular](angular.md) a suivi le même jour, dans l'ordre
+d'[ADR-0011](../adr/0011-package-layout-and-adapters.md).

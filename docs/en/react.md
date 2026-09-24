@@ -164,8 +164,8 @@ surface reached when both pass `within` and silenced when neither does, a base r
 rerender without leaving its place, and the order scopes were opened in kept across a system
 rebuild. The adapters that follow, in the order of
 [ADR-0011](../adr/0011-package-layout-and-adapters.md), run the same suite before they ship: Vue
-passes it since 2026-09-23 ([Vue](vue.md)), Svelte since 2026-09-24 ([Svelte](svelte.md)), and
-Angular comes next. The
+passes it since 2026-09-23 ([Vue](vue.md)), and Svelte and Angular since 2026-09-24
+([Svelte](svelte.md), [Angular](angular.md)). The
 vanilla auto-mount helper that shipped before them does not, and
 [ADR-0023](../adr/0023-vanilla-auto-mount.md) is the record of why: the suite asserts what a
 provider does across a render, and that helper has neither ([Auto-mount](auto.md)).

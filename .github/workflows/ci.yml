@@ -11,7 +11,7 @@ concurrency:
 
 # The runner is pinned rather than tracking `ubuntu-latest`, which migrates to Ubuntu 26
 # on 2026-10-19. Every other form of drift here is already barred — build output, size
-# budgets, the React, Vue and Svelte floors, the citation anchors — and an operating system that changes
+# budgets, the React, Vue, Svelte and Angular floors, the citation anchors — and an operating system that changes
 # under the browser matrix with no commit to point at is the same class of problem.
 # Moving it is a deliberate bump, reviewed like any other.
 jobs:
@@ -188,6 +188,39 @@ jobs:
           key: playwright-${{ steps.playwright.outputs.version }}-chromium
       - run: bun x playwright install --with-deps chromium
       # One engine: what is under test is the Svelte version, as in `react-floor`.
+      - run: bun run test:browser
+        env:
+          SNAV_BROWSER: chromium
+
+  # The same promise for the Angular adapter. `@angular/core` is an optional peer at `>=20.0.0`
+  # while the lockfile pins 22.2: this job installs exactly 20.0.0 of every Angular package the
+  # tests load, the first release that exports `DOCUMENT` from `@angular/core` and the first where
+  # `effect`, `afterRenderEffect` and the callback form of `afterNextRender` are public API, all of
+  # which the adapter uses (ADR-0029). The unit project runs too, because the server render is
+  # there. Angular 20 still defaults to Zone.js, so the test harness asks for zoneless change
+  # detection; the adapter needs neither.
+  angular-floor:
+    name: angular 20.0.0 (the declared peer floor)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version-file: .bun-version
+      - run: bun install --frozen-lockfile
+      - name: Install the declared floor
+        run: bun add --dev @angular/core@20.0.0 @angular/compiler@20.0.0 @angular/common@20.0.0 @angular/platform-browser@20.0.0 @angular/platform-server@20.0.0
+      - run: bun run typecheck
+      - run: bun run test:unit
+      - name: Resolve the playwright version
+        id: playwright
+        run: echo "version=$(bun pm ls | grep -oP '(?<![-\w])playwright@\K[0-9.]+' | head -1)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ steps.playwright.outputs.version }}-chromium
+      - run: bun x playwright install --with-deps chromium
+      # One engine: what is under test is the Angular version, as in `react-floor`.
       - run: bun run test:browser
         env:
           SNAV_BROWSER: chromium

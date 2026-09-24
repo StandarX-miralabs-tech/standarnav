@@ -147,6 +147,13 @@ const LINES: readonly Line[] = [
     note: "opt-in subpath next to the core; svelte itself is a peer and never bundled, and the internal/ helpers are charged here as they are to react and vue",
   },
   {
+    name: "angular adapter",
+    entries: ["angular/angular.js"],
+    cap: 1.75 * KB,
+    external: ["@angular/core", "../input-system.js", "../modality.js"],
+    note: "opt-in subpath next to the core; @angular/core itself is a peer and never bundled, and the internal/ helpers are charged here as they are to the other adapters",
+  },
+  {
     name: "keyboard",
     entries: ["keyboard/keyboard.js"],
     cap: 3 * KB,
