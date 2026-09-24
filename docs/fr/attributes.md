@@ -11,13 +11,13 @@ et le CHANGELOG le dit quand c'est le cas.
 | Attribut | Posé sur | Valeur | Effet |
 |---|---|---|---|
 | `data-snav="container"` | n'importe quel élément | fixe | Déclare un conteneur de navigation ; les déplacements sont d'abord évalués à l'intérieur. |
-| `data-snav-enter` | un conteneur | `last` \| `first` \| `nearest` | Quel élément prend le focus quand un déplacement entre. Par défaut `last`, qui retombe sur `nearest` quand l'élément mémorisé a disparu. |
+| `data-snav-enter` | un conteneur | `last` \| `first` \| `nearest` | Quel élément prend le focus quand un déplacement entre. Par défaut `last`, qui retombe sur `nearest` quand l'élément mémorisé a disparu ou refuse le focus ; avec `first`, un premier enfant qui refuse passe la main au suivant. |
 | `data-snav-wrap` | un conteneur | `x` \| `y` \| `both`, ou nu | Reboucle sur le bord opposé au lieu de quitter le conteneur. |
 | `data-snav-block` | un conteneur | des directions séparées par des espaces, ou nu | Bloque ces sorties ; nu, bloque toutes. |
 | `data-snav-trap` | un conteneur | nu | Un déplacement ne quitte jamais ce conteneur. |
 | `data-snav-scroll` | un conteneur | `center` | Fait défiler un élément nouvellement focalisé au centre plutôt qu'au plus proche (`nearest`). |
 | `data-snav-ignore` | n'importe quel élément | nu | Exclut l'élément de la liste des candidats. |
-| `data-snav-up` / `-down` / `-left` / `-right` | un élément focalisable | un sélecteur CSS | Envoie cette direction vers la première correspondance dans le document, avant toute géométrie. Une correspondance qui ne peut pas prendre le focus, ou aucune correspondance, est ignorée et la géométrie s'applique comme si l'attribut était absent. |
+| `data-snav-up` / `-down` / `-left` / `-right` | un élément focalisable | un sélecteur CSS | Envoie cette direction vers la première correspondance dans le document, avant toute géométrie. Une correspondance qui ne peut pas prendre le focus ou que le navigateur refuse, ou aucune correspondance, est ignorée et la géométrie s'applique comme si l'attribut était absent. |
 
 Un conteneur est n'importe quel élément portant `data-snav="container"`, et `body` est le conteneur
 par défaut quand aucun ancêtre n'en déclare ([ADR-0006](../adr/0006-declarative-first.md)). Un
@@ -29,7 +29,7 @@ lors d'un déplacement est décrite dans [navigation.md](navigation.md).
 
 | Attribut | Écrit sur | Valeurs |
 |---|---|---|
-| `data-snav-focused` | l'élément focalisé | nu |
+| `data-snav-focused` | l'élément focalisé, une fois le focus arrivé sur lui, par un déplacement ou par un survol sous `pointerFollowsFocus` | nu |
 | `data-snav-active` | chaque conteneur sur le chemin vers l'élément focalisé | nu |
 | `data-snav-input` | `<html>` | `keyboard` \| `pointer` \| `touch` \| `gamepad` |
 | `data-snav-focus-ring` | l'élément de superposition de l'anneau de focus, quand le plugin d'anneau est monté | nu |

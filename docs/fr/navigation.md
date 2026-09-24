@@ -26,11 +26,21 @@ Quand le parcours se termine sans rien, `onBoundsHit(direction)` est déclenché
 renvoie `false`.
 
 Le navigateur a le dernier mot sur l'atterrissage. Si l'élément choisi ne devient pas l'élément
-actif après `focus()` — un second `<summary>` dans un `<details>` en est un sur chromium, firefox
-et webkit (Playwright, 2026-09-23) — le déplacement renvoie `false` et n'écrit rien :
-`data-snav-focused` reste où il était, et aucun conteneur ne mémorise l'élément refusé. Tests :
-« writes nothing when the focus does not land » et « reports a move whose target refused the
-focus as not made » (`src/spatial/spatial.browser.test.ts`).
+actif après `focus()`, le moteur n'écrit rien sur lui — `data-snav-focused` reste où il était, et
+aucun conteneur ne le mémorise — et, depuis le 2026-09-24, passe au candidat suivant, dans l'ordre
+ci-dessus : le meilleur suivant du même conteneur, puis son candidat de rebouclage, le défilement
+et nouveau balayage, et le conteneur parent. Une redirection dont la cible refuse passe à l'étape 2
+de la même façon. `onBoundsHit` est déclenché quand tous les candidats ont refusé. `onWillMove`
+est consulté une fois par candidat essayé, et un veto termine toujours le déplacement. Si le focus
+atterrit ailleurs, parce que le propre gestionnaire `focus` d'une application l'a déplacé, le
+déplacement s'arrête et renvoie `false`, et le focus reste où l'application l'a mis.
+`focus(target)` n'essaie que la cible qu'il nomme. Ce que tous les moteurs refusent n'est pas un
+candidat au départ (section suivante) ; restent les refus sur lesquels les moteurs divergent — un
+`<embed>` avec un `type` et sans `src` sur chromium et webkit, un `<object>` vide et un lien avec un
+`tabindex` dans un hôte d'édition sur firefox (Playwright, 2026-09-24). Tests : « reports a move
+whose target refused the focus as not made » et le `describe` « spatialPlugin — a refused
+candidate hands the move on (ADR-0030) » (`src/spatial/spatial.browser.test.ts`) ; le
+raisonnement est dans [ADR-0030](../adr/0030-refused-focus-next-candidate.md).
 
 `@standarx/nav/spatial` publie les deux fonctions qui parcourent cette liste — `containerOf` et
 `collectNavNodes` — pour qu'un diagnostic évalue exactement ce que le moteur évalue, et non quelque
@@ -40,8 +50,10 @@ chose qui y ressemble. Les attributs que le parcours lit sont dans [attributes.m
 
 - Le moteur voit ce que la plateforme voit : il collecte les éléments correspondant au sélecteur
   des focalisables — `input`, `select`, `textarea`, `button`, `a[href]`, `area[href]`, `iframe`,
-  `object`, `embed`, `audio[controls]`, `video[controls]`, `summary`, `[contenteditable]`,
-  `[tabindex]` (`src/tabbable.ts`).
+  `object`, `embed`, `audio[controls]`, `video[controls]`, le premier `<summary>` d'un
+  `<details>`, `[contenteditable]`, `[tabindex]` (`src/tabbable.ts`). Cette liste est exportée
+  sous le nom `FOCUSABLE_SELECTOR`, dont la chaîne a changé le 2026-09-24 : son bras `summary` est
+  devenu `details>summary:first-of-type`, et ses bras ont été réordonnés.
 - Un `div` avec un `onclick` n'est pas focalisable. Donnez-lui `tabindex="0"`, ou utilisez un vrai
   `button`.
 - `[contenteditable]` ne compte que s'il rend l'élément éditable : `contenteditable="false"`, et
@@ -52,10 +64,18 @@ chose qui y ressemble. Les attributs que le parcours lit sont dans [attributes.m
   Tests : « drops a contenteditable attribute that does not make its element editable » et
   « counts an editing host as a Tab stop, and not what is editable inside it »
   (`src/tabbable.browser.test.ts`).
+- Dans un hôte d'édition, un lien et un élément qui n'est focalisable que parce qu'il est éditable
+  ne sont pas des candidats, sauf s'ils portent un `tabindex` : chromium, firefox et webkit leur
+  refusent tous le focus (Playwright, 2026-09-24). Un contrôle de formulaire, un cadre, un objet
+  embarqué, un élément média avec contrôles et le résumé d'un `<details>` restent des candidats
+  dans un hôte. Un second `<summary>` dans un `<details>`, un autre plus profond et un autre hors
+  de tout `<details>` ne sont pas des candidats non plus, pour la même raison. Tests : « drops a
+  link and a nested editable of an editing host, unless they carry a tabindex » et « takes only
+  the first summary child of a details as focusable » (`src/tabbable.browser.test.ts`).
 - `aria-hidden` n'est délibérément **pas** filtré : il cache un élément à un lecteur d'écran, pas
   à la croix directionnelle. `isFocusable` rejette un sélecteur non correspondant, un élément
-  désactivé, un élément caché et un élément inerte, et rien d'autre. Utilisez `data-snav-ignore`,
-  `inert`, ou `display: none`.
+  désactivé, un élément caché, un élément inerte, et le lien ou l'élément seulement éditable d'un
+  hôte ci-dessus, et rien d'autre. Utilisez `data-snav-ignore`, `inert`, ou `display: none`.
 - Désactivé veut dire ce que le navigateur entend par là : un contrôle de formulaire portant
   `disabled`, ou placé dans un `<fieldset disabled>` ailleurs que dans sa première `<legend>`. Un
   lien ou un élément à `tabindex` dans ce fieldset reste un candidat, comme il reste focalisable
@@ -87,7 +107,8 @@ chose qui y ressemble. Les attributs que le parcours lit sont dans [attributes.m
   [ADR-0008](../adr/0008-shadow-dom.md).
 
 Quand un déplacement vous surprend, lisez la liste évaluée avec `explainMove` de
-`@standarx/nav/debug` (`src/debug.ts`).
+`@standarx/nav/debug` (`src/debug.ts`). Il ne focalise rien, et ne peut donc pas voir un refus :
+quand le navigateur refuse son gagnant, le moteur atterrit sur le candidat suivant.
 
 ## Radios et curseurs natifs en mode `app`
 
