@@ -77,8 +77,8 @@ element" (`:207`) and "keeps silencing that composite when neither scope passes 
 
 ## Consequences
 
-- Non-breaking: nothing changes for a scope that does not pass `within`. It is a `feat`, so the
-  next release is 0.3.0.
+- Non-breaking: nothing changes for a scope that does not pass `within`. It is a `feat`, and it
+  shipped in `0.3.0` on 2026-09-26.
 - The Dialog recipe of the React page passes `within: ref` on the trap, and a composite inside it
   passes its own. [ADR-0021](0021-native-select-on-television.md)'s listbox passes none, and its
   amendment of this date says why nothing changes for it.

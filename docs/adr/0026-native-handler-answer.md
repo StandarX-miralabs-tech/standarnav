@@ -82,8 +82,8 @@ the answer unchanged; `IntentHandler` is re-exported from `./react` with its new
 ## Consequences
 
 - Non-breaking for every existing handler. The return type widens, which only a consumer that
-  *calls* an `IntentHandler` and treats the result as a boolean can notice. It is a `feat`, so the
-  next release is 0.3.0.
+  *calls* an `IntentHandler` and treats the result as a boolean can notice. It is a `feat`, and it
+  shipped in `0.3.0` on 2026-09-26.
 - A pad route given to `assign(padIndex, route)` bypasses the bus and its return value is ignored
   (`src/gamepad/gamepad.ts:185`), so `"native"` there means what `false` means: nothing.
 - Bytes (`bun run build && bun run check:size`, 2026-09-23): core 3290 to 3310 bytes min+gzip,

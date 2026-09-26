@@ -5,7 +5,7 @@ browser version that supports each one, and the TV runtime versions that ship
 those browsers. Every table below is dated **fetched 2026-09-18**, and every
 version number carries the URL it was read from.
 
-standarnav is on npm since 2026-09-22 (`0.1.0`). Nothing in this document
+standarnav is on npm since 2026-09-22, `0.3.0` since 2026-09-26. Nothing in this document
 implies the package has been tested on a physical TV or device; see
 `../adr/0013-browser-baseline-and-fallbacks.md` for the baseline decision and
 its status.

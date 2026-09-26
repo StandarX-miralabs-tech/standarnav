@@ -1,8 +1,8 @@
 # Product specification
 
 Project: standarnav — the input and spatial navigation engine published as `@standarx/nav`.
-Status: draft, v0 in progress. The engine is extracted and lives in `src/`; `0.1.0` is on npm since
-2026-09-22, and nothing has been run on a television.
+Status: draft, v0 in progress. The engine is extracted and lives in `src/`; `0.3.0` is on npm since
+2026-09-26, after `0.1.0` on 2026-09-22, and nothing has been run on a television.
 Date: 2026-09-18, revised 2026-09-20 against the extracted tree. Owner: Wesley Cormier.
 
 This document states the problem, the boundaries, the user contract, the functional requirements and

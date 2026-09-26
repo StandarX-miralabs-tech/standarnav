@@ -88,7 +88,7 @@ for the false positives it documents plus `useHookAtTopLevel`, which reads `use*
 
 ## Consequences
 
-- A `feat`: the next release is a minor.
+- A `feat`: it shipped in the minor `0.3.0` on 2026-09-26.
 - CI gains a tenth check, from an eighth job; `svelte-floor` runs the plugin below its declared peer
   (`svelte` `^5.46.4`), which is safe only while it keeps compiling 5.0.0, and the job says so.
 - No `<NavProvider>` tag. A subtree that needs its own provider takes a two-line wrapper
