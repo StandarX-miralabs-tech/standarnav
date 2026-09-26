@@ -102,7 +102,7 @@ const LINES: readonly Line[] = [
     name: "focus ring",
     entries: ["focus-ring/focus-ring.js"],
     cap: 2 * KB,
-    external: ["../dom/event.js", "../dom/query.js", "../modality.js"],
+    external: ["../dom/event.js", "../dom/query.js", "../modality.js", "../tabbable.js"],
     note: "opt-in subpath next to the core; dom/platform.js is charged here as it is to spatial, which is correct for a marginal cost",
   },
   {

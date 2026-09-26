@@ -248,7 +248,7 @@ so it stays rejected: `src/spatial/spatial.browser.test.ts:451-507`.
   and `min-width`, because a Chromium UA button measures 16 x 6 at width 0 and would never reach the
   filter at all. `src/spatial/spatial.browser.test.ts:473-507`, the three `aria-hidden` cases,
   carrying the trap they pin. Suite state at HEAD: `bun run test:unit` → 121 passed in
-  14 files; `bun run test:browser` → 495 passed and 1 skipped in 18 files, the skip being the
+  14 files; `bun run test:browser` → 496 passed and 1 skipped in 18 files, the skip being the
   shadow-DOM fixture of [ADR-0008](0008-shadow-dom.md).
 - `checkVisibility` availability: Chrome 105, Safari 17.4, Firefox 106 (caniuse and MDN browser-compat
   data, fetched 2026-09-18; table with URLs in
