@@ -1535,4 +1535,56 @@ describe("spatialPlugin — an image-map area is scored by its shape over its im
     expect(view.active()).toBe("under");
     expect(document.querySelector("[data-snav-focused]")?.id).toBe("under");
   });
+
+  it("lays the coords over an image scaled by CSS as written, unscaled", () => {
+    // Every engine hit-tests the coords in CSS pixels from the image's corner whatever size CSS
+    // gives the image (2026-09-26), and so does the engine: scaled with the image, the area would
+    // sit level with `low-left` rather than with `left`.
+    const view = scene(
+      picture("scaled-image", "scaled", 160, 100, 200, 100).replace(
+        'style="',
+        'style="width:400px;height:200px;',
+      ) +
+        map("scaled", area("stretched", "rect", "20,40,60,70")) +
+        box("left", 20, 140) +
+        box("low-left", 20, 200),
+    );
+    view.plugin.focus("#stretched");
+
+    view.move("left");
+
+    expect(view.active()).toBe("left");
+  });
+
+  it("reaches the area of a second map of the same name, where the engine focuses it", () => {
+    // Every engine wires the image to the first map of its name; chromium and webkit focus the
+    // areas of the second all the same, and firefox refuses them, so the move goes on.
+    const view = scene(
+      box("before", 0, 100) +
+        picture("twice-image", "twice", 120, 60) +
+        map("twice", area("first-of-two", "rect", "10,10,90,110")) +
+        map("twice", area("second-of-two", "rect", "210,10,290,110")) +
+        box("after", 440, 100),
+    );
+    view.at("second-of-two").focus();
+    const takes = document.activeElement === view.at("second-of-two");
+    view.plugin.focus("#before");
+
+    expect(walk(view, "right", 2)).toEqual(["first-of-two", takes ? "second-of-two" : "after"]);
+  });
+
+  it("does not offer an area whose usemap has no leading #", () => {
+    // Without the `#`, no engine wires the map, and none focuses its area.
+    const view = scene(
+      box("before", 0, 100) +
+        picture("unhashed-image", "unhashed", 120, 60).replace('usemap="#', 'usemap="') +
+        map("unhashed", area("unwired", "rect", "10,10,90,110")) +
+        box("after", 440, 100),
+    );
+    view.plugin.focus("#before");
+
+    view.move("right");
+
+    expect(view.active()).toBe("after");
+  });
 });
