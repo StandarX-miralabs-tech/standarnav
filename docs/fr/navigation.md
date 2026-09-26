@@ -85,7 +85,8 @@ chose qui y ressemble. Les attributs que le parcours lit sont dans [attributes.m
   over an image scaled by CSS as written, unscaled » et « reaches the area of a second map of the
   same name, where the engine focuses it » (`src/spatial/spatial.browser.test.ts`).
 - Un `div` avec un `onclick` n'est pas focalisable. Donnez-lui `tabindex="0"`, ou utilisez un vrai
-  `button`.
+  `button`. Test : « never counts a clickable div without a tabindex, until it is given one »
+  (`src/tabbable.browser.test.ts`).
 - `[contenteditable]` ne compte que s'il rend l'élément éditable : `contenteditable="false"`, et
   `inherit` ou une valeur invalide sous un parent non éditable, ne sont pas des candidats, puisque
   le navigateur ne les focalise pas non plus. Un hôte d'édition — un élément éditable dont le
@@ -123,7 +124,10 @@ chose qui y ressemble. Les attributs que le parcours lit sont dans [attributes.m
   la carte à la fois.
 - `aria-disabled` reste un candidat, à dessein, parce que l'APG veut que les éléments désactivés
   restent atteignables. Les ancêtres `inert` et les éléments cachés selon `checkVisibility` sont
-  écartés.
+  écartés. Là où le navigateur n'a pas `checkVisibility`, le repli lit les boîtes de mise en page
+  et, depuis le 2026-09-26, la `visibility` calculée, donc `visibility: hidden` est écarté sur les
+  deux chemins (règle 5 d'[ADR-0009](../adr/0009-hidden-candidates.md)). Test : « drops
+  visibility: hidden on the fallback path, as checkVisibility does » (`src/tabbable.browser.test.ts`).
 - Un élément dont **l'une ou l'autre** dimension est à zéro est écarté — le filtre des candidats
   teste `rect.width === 0 || rect.height === 0`, donc un élément de 0 sur 40 n'est pas un
   candidat. C'est le filtre C1 d'[ADR-0009](../adr/0009-hidden-candidates.md) : il inverse un `&&`

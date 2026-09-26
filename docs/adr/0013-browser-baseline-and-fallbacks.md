@@ -32,7 +32,7 @@ below the supported tier on every engine, and which a runtime removes anyway.
 | API | Chrome | Safari | Firefox | Used at | Behaviour when absent |
 |---|---|---|---|---|---|
 | `WeakRef` | 84 | 14.1 | 79 | `src/spatial/spatial.ts:130` constructs it inside `elementHandle()` (`:127-131`); `:109-111` is the `WeakRefCtor` type position and erases; `:131` reads through `deref()`; the per-container `memory` at `:248` holds that handle, not a bare reference, and is read back at `:403` | `ReferenceError` on the **first successful move**, not at construction — the construction sits in `elementHandle()`, reached from `remember()` (`:276`, `memory.set(container, elementHandle(element))` at `:286`), so an unguarded build would mount, render and accept focus, then throw the first time the user pressed a direction. That timing is why the detection is at the call site (`:129`) and not at module scope |
-| `Element.checkVisibility()` | 105 | 17.4 | 106 | `src/tabbable.ts:56-58`, in `isHidden` | Falls back to `offsetParent === null && getClientRects().length === 0` (`:60`), which reads layout boxes only and so does not see `visibility: hidden` |
+| `Element.checkVisibility()` | 105 | 17.4 | 106 | `src/tabbable.ts:55-57`, in `isHidden` | Falls back to `offsetParent === null && getClientRects().length === 0` (`:59`), which reads layout boxes only and so does not see `visibility: hidden` — **no longer** since 2026-09-26: the fallback then reads the computed `visibility` too (`:60`), rule 5 of [ADR-0009](0009-hidden-candidates.md), amendment of that date |
 | `inert` attribute | 102 | 15.5 | 112 | `src/tabbable.ts:63-65`, in `isInert` | `closest("[inert]")` works everywhere; only the native focus-blocking effect is missing |
 | `Array.prototype.at` | 92 | 15.4 | 90 | Nowhere: the call was removed rather than guarded — `getTabbableEdges` does index arithmetic at `src/tabbable.ts:122-125` | `TypeError` — and the only row whose floor is **above** the supported tier below, so it would throw on Chromium 85-91, Safari 15.0-15.3 and Firefox 79-89: runtimes this ADR promises to support. Not a `lib` question |
 
@@ -92,8 +92,10 @@ detection can rescue a file the engine refused to read.
      forgotten for free; `isConnected` on read gives the same observable behaviour, at the cost of
      holding one element per container until the next read.
    - `checkVisibility` → the fallback already written here, inside `isHidden`: the detection and
-     call at `src/tabbable.ts:56-58`, the fallback expression at `:60`, kept as is, including its
-     known blind spot for `visibility: hidden` — `:60` reads layout boxes and nothing else.
+     call at `src/tabbable.ts:55-57`, the fallback expression at `:59`, kept as is, including its
+     known blind spot for `visibility: hidden` — `:59` reads layout boxes and nothing else. **No
+     longer** since 2026-09-26: `:60` reads the computed `visibility` after the boxes, rule 5 of
+     [ADR-0009](0009-hidden-candidates.md), written with the fixture that measures it.
    - `inert` → `closest("[inert]")` is an attribute read and works on every engine we target; only
      the native effect differs, and the library does not rely on it.
    - `Array.prototype.at` → index arithmetic (`list[list.length - 1]`).
@@ -147,7 +149,10 @@ it work on a 2021 Tizen set" is "no, and there is no work in progress".
   child, which is the only thing that ever runs the strong-reference branch. The other two rows
   have no such test: nothing hides `checkVisibility` from `src/tabbable.ts`, and the
   `Array.prototype.at` row cannot have one because the rewrite removed the call rather than
-  guarding it.
+  guarding it. **No longer** for the first, since 2026-09-26: "drops visibility: hidden on the
+  fallback path, as checkVisibility does" in `src/tabbable.browser.test.ts` deletes the method from
+  `Element.prototype` for the case, the way the `WeakRef` case deletes the constructor, and the
+  fallback it runs is the one rule 5 of [ADR-0009](0009-hidden-candidates.md) rewrote that day.
 - The documented floor and the tested floor are different numbers, and both go in the README. The
   library is built to parse on Chromium 80; the suite runs on whatever engines the pinned Playwright
   release ships.
@@ -247,8 +252,9 @@ not been reproduced here, so it gets no guard and no claim, only this sentence.
   strong-reference fallback at `:134-140`; `:248` is the per-container focus memory
   (`new WeakMap<HTMLElement, ElementHandle>()`), written in `remember` at `:286` and read back
   through `deref()` at `:403`. `src/tabbable.ts:41-61` (`isHidden`: `VisibilityCheck` with an
-  optional method, the `unknown` cast and its comment, the detection and call at `:56-58`, and the
-  `offsetParent`/`getClientRects` fallback at `:60`); `:63-65` (`isInert`, `closest("[inert]")`);
+  optional method, the `unknown` cast and its comment, the detection and call at `:55-57`, the
+  `offsetParent`/`getClientRects` fallback at `:59` and, since 2026-09-26, the computed
+  `visibility` read after it at `:60`); `:63-65` (`isInert`, `closest("[inert]")`);
   `:118-126` (`getTabbableEdges`, `tabbables[tabbables.length - 1]` at `:125` with the comment naming
   this ADR's tier at `:122-124`). The fallback that has a test:
   `src/spatial/spatial.browser.test.ts:859-891`.
@@ -256,7 +262,7 @@ not been reproduced here, so it gets no guard and no claim, only this sentence.
   compiled under: inherited from the predecessor implementation
   ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here.
 - No television, console browser or handheld has been tested here: `ROADMAP.md` records that
-  nothing has been run on a television, and `:139-140` keeps one verified set, Tizen or webOS, with a
+  nothing has been run on a television, and `:131-132` keeps one verified set, Tizen or webOS, with a
   dated device report, open ([ROADMAP.md](../../ROADMAP.md)). There is no hardware for it here and no
   emulator.
 - Syntax floor for `es2020` output, fetched 2026-09-18 — optional chaining `?.` Chrome 80, Safari 13.1, Firefox 74, Samsung Internet 13.0: https://caniuse.com/mdn-javascript_operators_optional_chaining · nullish coalescing `??` Chrome 80, Safari 13.1, Firefox 72, Samsung Internet 13.0: https://caniuse.com/mdn-javascript_operators_nullish_coalescing · the two combined give Chrome 80, Safari 13.1, Firefox 74, Samsung Internet 13.0.

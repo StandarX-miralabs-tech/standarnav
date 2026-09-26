@@ -18,7 +18,7 @@ paths in the "Used at" column are paths in this repository.
 | API | Chrome | Safari | Firefox | Used at | Behaviour if absent |
 |---|---|---|---|---|---|
 | `WeakRef` | 84 | 14.1 | 79 | `src/spatial/spatial.ts:127-141` (`elementHandle`) | No failure: `elementHandle` reads `globalThis.WeakRef` and, when it is absent, returns a strong reference that drops itself on the first read finding the element detached (`element.isConnected`) — the fallback recorded in `../adr/0013-browser-baseline-and-fallbacks.md`. |
-| `Element.checkVisibility()` | 105 | 17.4 | 106 | `src/tabbable.ts:56-60` (`isHidden`) | Fallback already present: `offsetParent === null && getClientRects().length === 0`. Degrades cleanly; this fallback does not detect `visibility: hidden`. |
+| `Element.checkVisibility()` | 105 | 17.4 | 106 | `src/tabbable.ts:55-60` (`isHidden`) | Fallback already present: `offsetParent === null && getClientRects().length === 0`, then the computed `visibility` since 2026-09-26. Degrades cleanly; until that date this fallback did not detect `visibility: hidden` (`../adr/0009-hidden-candidates.md`, rule 5). |
 | `[inert]` attribute effect | 102 | 15.5 | 112 | `src/tabbable.ts:63-65` (`isInert`) | `closest("[inert]")` works everywhere as an attribute check; only the browser's native inert *behaviour* (blocking focus/pointer/AOM automatically) is missing. Degrades cleanly. |
 | `Array.prototype.at` | 92 | 15.4 | 90 | Nowhere: `src/tabbable.ts:122-125` (`getTabbableEdges`) uses index arithmetic instead | Nothing to degrade, because the call is not made. `.at()` is avoided deliberately — see `../adr/0013-browser-baseline-and-fallbacks.md`. The `lib: ["es2020", "dom", "dom.iterable"]` of `tsconfig.json` keeps it that way: a call to `.at()` is a type error here as well as a runtime risk. First Samsung Internet version: 16.0. |
 | ES2020 syntax (optional chaining `?.`, nullish coalescing `??`) | 80 | 13.1 | 74 | Whole build output. The `es2020` TypeScript target is declared at `tsconfig.json` and decided in `../adr/0013-browser-baseline-and-fallbacks.md` | Below this floor the whole bundle fails to parse (`SyntaxError`) before any fallback logic runs. The floor is the higher of the two operators: `?.` is Chrome 80 / Safari 13.1 / Firefox 74, `??` is Chrome 80 / Safari 13.1 / Firefox 72. First Samsung Internet version for both: 13.0. |
@@ -81,8 +81,10 @@ consequence. The resulting compatibility tiers of
   single floor.
 - **`checkVisibility()` absent**: no functional risk. The existing fallback in
   `tabbable.ts` is a strict subset of what `checkVisibility()` detects
-  (it misses `visibility: hidden`), so visibility-filtering degrades in
-  precision, not correctness of the happy path.
+  (it missed `visibility: hidden` until 2026-09-26, when rule 5 of
+  `../adr/0009-hidden-candidates.md` had it read the computed property too),
+  so visibility-filtering degrades in precision, not correctness of the happy
+  path.
 - **`inert` attribute effect absent**: no functional risk for this engine's
   own logic, because it reads the attribute directly (`closest("[inert]")`)
   rather than relying on the browser's native inert behaviour. Pages that
