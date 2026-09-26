@@ -1,5 +1,43 @@
 # Changelog
 
+## [0.3.0](https://github.com/StandarX-miralabs-tech/standarnav/compare/v0.2.0...v0.3.0) (2026-09-26)
+
+
+### Features
+
+* **angular:** add @standarx/nav/angular, an Angular adapter held to the parity suite ([cc0b219](https://github.com/StandarX-miralabs-tech/standarnav/commit/cc0b2197bb02fde219a7707dbeae5e7f79b833fd))
+* **angular:** add @standarx/nav/angular, an Angular adapter held to the parity suite ([d77360f](https://github.com/StandarX-miralabs-tech/standarnav/commit/d77360f457b826150227d81d79d7cb8c3ebaff47))
+* **intent-bus:** a scope can answer "native", ending the walk with the default kept ([db852d8](https://github.com/StandarX-miralabs-tech/standarnav/commit/db852d823a4dfc1f10f3e1e1d266904168a7fec2))
+* **intent-bus:** a scope can answer "native", ending the walk with the default kept ([c664911](https://github.com/StandarX-miralabs-tech/standarnav/commit/c6649117e86968865ec1a3c448a7e46573b7d99b))
+* **intent-bus:** a trap that names its surface still asks the scopes inside it ([16692d2](https://github.com/StandarX-miralabs-tech/standarnav/commit/16692d2ee81847e5db1470deb7808750f4e967ef))
+* **intent-bus:** a trap that names its surface still asks the scopes inside it ([ba253a1](https://github.com/StandarX-miralabs-tech/standarnav/commit/ba253a15cb50bb92687979a67d42841f2c5b0e79))
+* **playground:** an image map with four areas, to drive on the real page ([9fc443f](https://github.com/StandarX-miralabs-tech/standarnav/commit/9fc443fccc0bd698b11223709f061f6fc1be1398))
+* **react:** useIntent takes `within` as an element, a getter or a ref ([d4d78b5](https://github.com/StandarX-miralabs-tech/standarnav/commit/d4d78b56465a68701061eddb5b364b0e5d1a1e1e))
+* **svelte:** add @standarx/nav/svelte, a Svelte 5 adapter held to the parity suite ([58c3c24](https://github.com/StandarX-miralabs-tech/standarnav/commit/58c3c24331e5fcb669ec66d3f4604da03e5cb891))
+* **svelte:** add @standarx/nav/svelte, a Svelte 5 adapter held to the parity suite ([1a5a9c5](https://github.com/StandarX-miralabs-tech/standarnav/commit/1a5a9c576650eab19058d2cd668ee79cc05a762b))
+* **vue:** add @standarx/nav/vue, a Vue 3 adapter held to the parity suite ([53d674b](https://github.com/StandarX-miralabs-tech/standarnav/commit/53d674b188da55680bf9762b623362b24482a4dd))
+* **vue:** add @standarx/nav/vue, a Vue 3 adapter held to the parity suite ([e4b7e9c](https://github.com/StandarX-miralabs-tech/standarnav/commit/e4b7e9c3a8b28d18e699908258d97999ce291e41))
+
+
+### Bug Fixes
+
+* **focus-ring:** no fade when the resolved duration is zero ([e36ed4b](https://github.com/StandarX-miralabs-tech/standarnav/commit/e36ed4bc5ebf475c4fe0a49f9bff9785547328df))
+* **focus-ring:** no fade when the resolved duration is zero ([b69c4c2](https://github.com/StandarX-miralabs-tech/standarnav/commit/b69c4c27b8a5330bcf348202cbbcd3333e6b9760))
+* **focus-ring:** the ring wears the shape of an area over its image ([843da66](https://github.com/StandarX-miralabs-tech/standarnav/commit/843da6639f405c6a4559b66b8898089b11077da7))
+* **react:** keep scope open order across a system rebuild ([2534f0a](https://github.com/StandarX-miralabs-tech/standarnav/commit/2534f0ac72b9daab9da8a3ff000fa9ed0f91ab2b))
+* **react:** keep scope open order across a system rebuild ([67b257d](https://github.com/StandarX-miralabs-tech/standarnav/commit/67b257d79e8e316c9fd39063daae94cc195e74e7))
+* **spatial:** a hover marks nothing the focus did not reach ([261097f](https://github.com/StandarX-miralabs-tech/standarnav/commit/261097f455e3ae48b4e26b07f7023e8e9f4831d7))
+* **spatial:** a refused candidate hands the move to the next one ([f7340ed](https://github.com/StandarX-miralabs-tech/standarnav/commit/f7340edba769c21e3ce01ac1a4fadd3f97a4ec0d))
+* **spatial:** a refused focus hands the move to the next candidate, and what every engine refuses is not focusable ([cf28e57](https://github.com/StandarX-miralabs-tech/standarnav/commit/cf28e571f62e79c13b2aef4c8fc4daed035953bc))
+* **spatial:** a refused focus writes nothing, and a redirect to an unfocusable target is ignored ([3ee1aac](https://github.com/StandarX-miralabs-tech/standarnav/commit/3ee1aaca30ff34a632f94574247f35df2b2e1d60))
+* **spatial:** an area is scored by its shape over its image ([108a1d9](https://github.com/StandarX-miralabs-tech/standarnav/commit/108a1d9e936cae9375073126b5defc9fd7467263))
+* **spatial:** an image-map area is a candidate, scored by its shape over its image ([fdae90e](https://github.com/StandarX-miralabs-tech/standarnav/commit/fdae90e20913b5d8cd9212538fd4f66ab2fd613d))
+* **tabbable:** a control disabled by its fieldset is not focusable ([0106098](https://github.com/StandarX-miralabs-tech/standarnav/commit/01060984d25448af2d9354d542001b56d7617245))
+* **tabbable:** an area of an image map in use is focusable, by its image ([c1523f9](https://github.com/StandarX-miralabs-tech/standarnav/commit/c1523f910a118989e5c2aff0bd1fd88021b19320))
+* **tabbable:** an editing host is a Tab stop, and an uneditable contenteditable is no candidate ([5f9ba9c](https://github.com/StandarX-miralabs-tech/standarnav/commit/5f9ba9c0519c7d69210d59c72b60c3fbcd4096e1))
+* **tabbable:** disabled fieldsets, editing hosts, and a focus the browser refuses ([b986e7f](https://github.com/StandarX-miralabs-tech/standarnav/commit/b986e7f89ab54db38fdbbefa753cea5c5e6b5a96))
+* **tabbable:** what every engine refuses to focus is not focusable ([eb33202](https://github.com/StandarX-miralabs-tech/standarnav/commit/eb332025cda090894d21f6291f13d8dd808d297e))
+
 ## [0.2.0](https://github.com/StandarX-miralabs-tech/standarnav/compare/v0.1.0...v0.2.0) (2026-09-22)
 
 
