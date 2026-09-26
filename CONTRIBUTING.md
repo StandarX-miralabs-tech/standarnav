@@ -1,9 +1,10 @@
 # Contributing to standarnav
 
-standarnav (npm package `@standarx/nav`) is published — `0.1.0` since
-2026-09-22 — and v0 is in progress: the public API is not frozen. This
-document explains how to set up the project, what is expected of a pull
-request, and how to report a bug. Read it before opening a pull request.
+standarnav (npm package `@standarx/nav`) is published — `0.3.0` since
+2026-09-26, after `0.2.0` on 2026-09-23 and `0.1.0` on 2026-09-22 — and v0
+is in progress: the public API is not frozen. This document explains how to
+set up the project, what is expected of a pull request, and how to report a
+bug. Read it before opening a pull request.
 
 ## Prerequisites
 
@@ -12,12 +13,13 @@ request, and how to report a bug. Read it before opening a pull request.
   `oven-sh/setup-bun` (`.github/workflows/ci.yml:22-24`). Use that version or
   a newer one. Never use `npm` or `npx` in this repository — every command
   below is a `bun` command. The release workflow carries the one documented
-  exception: its publish step calls the npm CLI (`npm publish --provenance` in
-  `.github/workflows/release.yml`), because publication has to happen from CI
-  *with* a provenance attestation and the `bun` client emits none. That
-  exception is recorded, with the issue it turns on and the dates, in
-  [ADR-0012](docs/adr/0012-versioning-and-release.md) — nothing else here may
-  reach for npm.
+  exception: its publish step calls the npm CLI (`npm publish --access public
+  --loglevel verbose` in `.github/workflows/release.yml`), because publication
+  has to happen from CI *with* a provenance attestation and the `bun` client
+  emits none; the attestation comes with the trusted publisher's token
+  exchange. That exception is recorded, with the issue it turns on and the
+  dates, in [ADR-0012](docs/adr/0012-versioning-and-release.md) — nothing else
+  here may reach for npm.
 - A Playwright browser for the browser test project. The default engine is
   Chromium (`vitest.config.ts`):
 
@@ -82,6 +84,11 @@ one skip is a documented shadow-DOM fixture
 (`src/spatial/spatial.browser.test.ts:921`, [ADR-0008](docs/adr/0008-shadow-dom.md)),
 not a test someone silenced. A red CI is about your change; treat it that way.
 
+Measured again on 2026-09-26 with the same commands: `bun run test:unit` is
+121 tests in 14 files, `bun run test:browser` is 501 passed and 1 skipped in
+18 files — 622 passed and 1 skipped in 32 files in total, the one skip being
+the same fixture at the same line.
+
 ## Conventional commits
 
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/):
@@ -128,14 +135,21 @@ which is why the commit rules above are load-bearing rather than cosmetic.
 
 The wiring exists — `release-please-config.json`, `.release-please-manifest.json`
 and `.github/workflows/release.yml` — and has released: `0.1.0` reached npm on
-2026-09-22 from that workflow, and the CHANGELOG at the root is what it wrote.
+2026-09-22 from that workflow, `0.2.0` on 2026-09-23 and `0.3.0` on 2026-09-26,
+and the CHANGELOG at the root is what it wrote.
 
-The release note is the squashed commit subject. A pull request that changes
-anything a consumer can observe carries one sentence saying what changed for
-that consumer, in English, naming the affected subpath rather than the file;
-that sentence becomes the subject of the squash merge, and so the CHANGELOG
-entry. A documentation-only or internal-refactor pull request says so
-explicitly instead of leaving the line out, and is typed accordingly.
+The release notes are the commit subjects. A commit that changes anything a
+consumer can observe carries one sentence saying what changed for that
+consumer, in English, naming the affected subpath rather than the file; that
+sentence is the CHANGELOG entry. A documentation-only or internal-refactor
+commit says so explicitly instead of leaving the line out, and is typed
+accordingly. A pull request is merged with a merge commit whose body is empty,
+`gh pr merge N --merge --body ""`, never squashed: release-please splits a
+commit message on every blank line followed by a conventional type, so a merge
+commit whose body repeats a conventional title is read as one more entry —
+which is how the `0.3.0` section of the CHANGELOG came to list twenty-eight
+lines for eighteen changes ([ADR-0012](docs/adr/0012-versioning-and-release.md),
+amendment of 2026-09-26).
 
 ## Tests are required for every behaviour change
 

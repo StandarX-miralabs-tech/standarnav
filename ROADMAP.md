@@ -1,8 +1,8 @@
 # Roadmap
 
-Status: `@standarx/nav@0.2.0` is on npm since 2026-09-23, after `0.1.0` on 2026-09-22
-([ADR-0012](docs/adr/0012-versioning-and-release.md), sixth and seventh amendments). Nothing has
-been run on a television, and no demo exists yet.
+Status: `@standarx/nav@0.3.0` is on npm since 2026-09-26, after `0.2.0` on 2026-09-23 and `0.1.0`
+on 2026-09-22 ([ADR-0012](docs/adr/0012-versioning-and-release.md), sixth to eighth amendments).
+Nothing has been run on a television, and no demo exists yet.
 
 This file lists what is still open. What is done is in the git history and, from `0.1.0` on, in the
 CHANGELOG release-please writes.
@@ -19,7 +19,7 @@ The engine navigates between focusable elements, the five controls that hold a v
 `<select>` question is answered, the on-screen keyboard is built, and the first version is
 published. What follows is what v0 still owes, and none of it blocks the next release: the
 keyboard's open items are limitations of a shipped module, documented rather than discovered, and
-the release section has no open item since `0.2.0` went out through the trusted publisher.
+the release section has one open item, the merge rule set the day `0.3.0` went out, 2026-09-26.
 
 Controls that hold a value were the last gap to close before the first publication. The grammar was always public —
 `pushEngageScope` takes hold of a control, the directional intents become adjustments, confirm
@@ -92,9 +92,10 @@ The wiring is in place: `release-please-config.json`, `.release-please-manifest.
 verify that replays every gate on the tag, then a publish that calls the npm CLI, the one
 documented exception to the no-`npm` rule. It released `0.1.0` on 2026-09-22 with a signed
 provenance statement, 116.6 kB packed and 99 files by its own log
-([ADR-0012](docs/adr/0012-versioning-and-release.md), sixth amendment), and `0.2.0` on 2026-09-23
+([ADR-0012](docs/adr/0012-versioning-and-release.md), sixth amendment), `0.2.0` on 2026-09-23
 through the trusted publisher with no secret in the run, 113.7 kB packed and 103 files (seventh
-amendment).
+amendment), and `0.3.0` on 2026-09-26 on its first attempt, the verbose log showing the token
+exchange, 140.8 kB packed and 115 files (eighth amendment).
 
 Two things about its shape are worth knowing before reading it. The publish job lives in the
 **same run** as release-please rather than in a tag-triggered workflow, because GitHub does not
@@ -102,6 +103,12 @@ trigger workflows on events made with the default token — the same rule that l
 pull request with no checks would have left a tag-triggered publish never running at all. And the
 verify job exists precisely because of that missing-checks half: the version bump and the CHANGELOG
 that land on `main` were never seen by CI.
+
+- [ ] Prove the merge rule of ADR-0012's amendment of 2026-09-26. The first pull request merged
+      with `gh pr merge N --merge --body ""` shows, in `git log -1 --format=%B` on its merge
+      commit, a body that is empty, and the release pull request that follows lists each change
+      once. If GitHub writes its default body regardless, the fallback is a plain sentence, and
+      the amendment after that one says which.
 
 ### Test fixtures still missing
 

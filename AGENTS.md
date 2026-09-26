@@ -108,6 +108,13 @@ from a widget's name is not its data. Read the widget before asserting anything 
 
 ## What is the owner's, not the agent's
 
-Merging a pull request, tagging, publishing to npm, enabling anything on the GitHub
-organisation, and the decision recorded in ADR-0012 about the first version number. Deliver
-the change, the report and the green checks; hand the merge back.
+Merging the release pull request — that merge is the publication — tagging, publishing to
+npm, enabling anything on the GitHub organisation, and the decision recorded in ADR-0012
+about the first version number. An ordinary pull request is the agent's to merge, the
+owner's standing instruction since 2026-09-23, once its eleven checks are green, with
+`gh pr merge N --merge --body ""` and nothing else: a merge commit, never a squash, and an
+empty body, so that release-please reads only the branch's commits — whether GitHub honours
+the empty body is proven by the first merge under the rule, and ROADMAP.md carries the item
+(ADR-0012, amendment of 2026-09-26); no `--delete-branch`, GitHub deletes the head branch
+itself and the flag closes a pull request stacked on it. Deliver the change, the report and the green checks; the
+release is handed back.

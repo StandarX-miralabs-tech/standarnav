@@ -22,11 +22,11 @@ Closes #
 ## User-facing change
 
 <!--
-One sentence describing what changed for someone consuming the package, naming the
-affected subpath. It becomes the subject of the squash merge, which is what release-please
-writes the CHANGELOG entry from (ADR-0012), so write it as the release note it is.
-Documentation-only or internal changes: write "internal only" instead, and type the
-commit `docs`, never `fix(docs)`: `fix` publishes a release.
+One sentence on what changed for a consumer of the package, naming the affected subpath.
+release-please writes the CHANGELOG from the commits on the branch, not from this title: the
+pull request is merged with a merge commit whose body is empty (ADR-0012, amendment of
+2026-09-26; CONTRIBUTING.md, "Release notes"). Documentation-only or internal changes: write
+"internal only" instead, and type the commit `docs`, never `fix(docs)`: `fix` publishes a release.
 -->
 
 ## Checklist
