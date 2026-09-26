@@ -79,6 +79,8 @@ that looks like it. The attributes the walk reads are in [attributes.md](attribu
   "lays the coords over an image scaled by CSS as written, unscaled" and "reaches the area of a
   second map of the same name, where the engine focuses it" (`src/spatial/spatial.browser.test.ts`).
 - A `div` with an `onclick` is not focusable. Give it `tabindex="0"`, or use a real `button`.
+  Test: "never counts a clickable div without a tabindex, until it is given one"
+  (`src/tabbable.browser.test.ts`).
 - `[contenteditable]` counts only when it makes the element editable: `contenteditable="false"`,
   and `inherit` or an invalid value under a parent that is not editable, are not candidates, since
   the browser does not focus them either. An editing host — an editable element whose parent is
@@ -113,7 +115,11 @@ that looks like it. The attributes the walk reads are in [attributes.md](attribu
   although chromium, firefox and webkit all focus them while the image is outside the inert
   subtree (Playwright, 2026-09-26). Put `inert` on an ancestor of both the image and the map.
 - `aria-disabled` stays a candidate, on purpose, because the APG wants disabled items reachable.
-  `inert` ancestors and elements hidden per `checkVisibility` are dropped.
+  `inert` ancestors and elements hidden per `checkVisibility` are dropped. Where the browser has
+  no `checkVisibility`, the fallback reads the layout boxes and, since 2026-09-26, the computed
+  `visibility`, so `visibility: hidden` is dropped on both paths (rule 5 of
+  [ADR-0009](../adr/0009-hidden-candidates.md)). Test: "drops visibility: hidden on the fallback
+  path, as checkVisibility does" (`src/tabbable.browser.test.ts`).
 - An element with **either** dimension at zero is dropped — the candidate filter tests
   `rect.width === 0 || rect.height === 0`, so a 0 by 40 element is not a candidate. This is filter
   C1 of [ADR-0009](../adr/0009-hidden-candidates.md): it inverts an `&&` inherited from the

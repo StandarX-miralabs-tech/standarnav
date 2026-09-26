@@ -215,7 +215,8 @@ modes), not this decision alone.
   `src/tabbable.ts:146-153`.
 - The focusable predicate the engine uses is `isFocusable` (`src/tabbable.ts:67-85`), which
   delegates the visibility question to `isHidden` (`:48-61`, the `checkVisibility` test with its
-  `offsetParent` and `getClientRects` fallback) and the `inert` question to `isInert` (`:63-65`,
+  `offsetParent` and `getClientRects` fallback, which reads the computed `visibility` too since
+  2026-09-26) and the `inert` question to `isInert` (`:63-65`,
   a `closest("[inert]")` walk). `aria-disabled` stays focusable on purpose, and the comment
   saying why is at `:82-83`.
 - `commit()` is veto, then focus, then a check that the focus landed, then remember, then scroll

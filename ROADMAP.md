@@ -107,16 +107,8 @@ that land on `main` were never seen by CI. The merge rule of ADR-0012's amendmen
 merge commit with an empty body, was proven the same day on the merge commit `fa46f7d` of the pull
 request that carried it (second amendment of that date).
 
-### Test fixtures still missing
+### Benchmarks still missing
 
-- [ ] Clickable `div` without `tabindex`. The behaviour is decided — such an element is not in
-      `FOCUSABLE_SELECTOR`, so it is never a candidate
-      ([ADR-0009](docs/adr/0009-hidden-candidates.md), [ADR-0005](docs/adr/0005-real-dom-focus.md))
-      — and no fixture pins it. The nearby `#span` case covers a plain non-interactive element and
-      does not stand in for this one
-- [ ] One fixture per line of the gap table of [ADR-0009](docs/adr/0009-hidden-candidates.md):
-      `clip-path`, overflow-clipped candidates, candidates outside the scroller's viewport, and
-      `visibility: hidden` on the fallback path. None of the four exists
 - [ ] Find a benchmark runner, then write two benchmarks. `vitest` 5 exports no `bench` function, so
       neither exists. Until one does, the only performance gate is the median-of-51 guard in
       `src/spatial/geometry.test.ts:156-177`, and it measures `findBestCandidate` alone — not
@@ -175,8 +167,9 @@ request that carried it (second amendment of that date).
       ([ADR-0009](docs/adr/0009-hidden-candidates.md)). Refused for v0 and deferred here: opacity
       comes from a computed style, so it costs a `getComputedStyle` call per candidate in the hot
       navigation loop, and opacity inherited from an ancestor escapes `checkVisibility`'s
-      own-element check anyway — the change would not close the gap it targets. Its fixture is v1
-      work, alongside the other filters
+      own-element check anyway — the change would not close the gap it targets. Its fixture,
+      "lands on a candidate at opacity: 0, which v0 keeps" in `src/spatial/spatial.browser.test.ts`,
+      pins the v0 rule since 2026-09-26 and is the one to invert when this lands
 - [ ] The remaining `@standarx/nav/debug` diagnostics of
       [ADR-0010](docs/adr/0010-dev-mode-diagnostics.md) — items 1, 2, 3 and 5, scoped out of v0
       because only item 4, `explainMove`, had anything to ship: (1) a reachability scan,

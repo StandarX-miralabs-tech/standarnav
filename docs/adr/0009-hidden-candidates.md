@@ -26,7 +26,7 @@ and not re-derived here; the last is the one (C1) has since changed.
 | Rule | Where | What it does |
 |---|---|---|
 | `FOCUSABLE_SELECTOR` | `src/tabbable.ts:18-39` | The shape of a candidate: form controls without `disabled`, `a[href]`, `area[href]`, `iframe`, `object`, `embed`, `audio/video[controls]`, `summary`, `[contenteditable]`, `[tabindex]`. |
-| `isHidden` | `src/tabbable.ts:48-61` | `checkVisibility({ contentVisibilityAuto: true, visibilityProperty: true })` where the browser has it; otherwise `offsetParent === null && getClientRects().length === 0`. |
+| `isHidden` | `src/tabbable.ts:48-61` | `checkVisibility({ contentVisibilityAuto: true, visibilityProperty: true })` where the browser has it; otherwise `offsetParent === null && getClientRects().length === 0`. Since 2026-09-26 the fallback reads the computed `visibility` after the boxes (rule 5, second amendment of that date). |
 | `isInert` | `src/tabbable.ts:63-65` | `closest("[inert]")`. An inert subtree is still visible, so it is a separate question. |
 | `aria-disabled` | `isFocusable`, `src/tabbable.ts:67-85`, with the comment saying so at `:82-83` | Stays focusable, on purpose: APG wants disabled menu items and toolbar buttons reachable, unlike natively disabled controls. |
 | `aria-hidden` | not filtered anywhere | Deliberate. A roving item is `tabindex="-1"` so the container owns one tab stop, and steering to it is the d-pad's whole job. The opt-out is `data-snav-ignore`, not a filter. |
@@ -43,12 +43,14 @@ What is tested today: `hidden`, `display: none`, `inert` and `aria-disabled` —
 inert subtrees" and "keeps aria-disabled items reachable, as APG asks"
 (`src/tabbable.browser.test.ts:36-51`).
 
-What is not tested, and where the rules are therefore only as good as a reading:
+What is not tested, and where the rules are therefore only as good as a reading (**no longer**
+since 2026-09-26: every row has its fixture, and the first row's rule was changed by it, second
+amendment of that date):
 
 | Gap | Current behaviour, by reading | Consequence |
 |---|---|---|
 | `visibility: hidden` on the fallback path | `checkVisibility({ visibilityProperty: true })` excludes it; the fallback does not, because such an element still has client rects and an offset parent | The rule differs between a modern desktop browser and the fallback runtimes — and the fallback is the live path on the whole supported TV tier, since `checkVisibility` is Chrome 105 / Safari 17.4 / Firefox 106 (caniuse and MDN BCD, fetched 2026-09-18) while the supported tier starts at Chromium 85 ([ADR-0013](0013-browser-baseline-and-fallbacks.md)) |
-| `opacity: 0` | Kept. Not asked of `checkVisibility` (the `opacityProperty` option is not passed at `src/tabbable.ts:58`) and invisible to the fallback | A fade-out overlay stays a target while it is transparent |
+| `opacity: 0` | Kept. Not asked of `checkVisibility` (the `opacityProperty` option is not passed at `src/tabbable.ts:57`) and invisible to the fallback | A fade-out overlay stays a target while it is transparent |
 | `clip-path` | Kept. Nothing reads it | An element clipped to nothing is a target |
 | Clipped by an `overflow: hidden` ancestor | Kept | Sometimes right, sometimes not: see the decision |
 | Outside the scroller's viewport | Kept | This is exactly how a long list works: the move lands, then `scrollFocusIntoView` brings it in with `scrollIntoView` (`src/spatial/spatial.ts:294-306`) |
@@ -70,7 +72,8 @@ cases at `src/spatial/spatial.browser.test.ts:648-696`, and `hidden`, `inert` an
 `src/tabbable.browser.test.ts:36-51`. The rows still without a fixture are `visibility: hidden` on
 the fallback path, `opacity: 0`, `clip-path`, and the two clipping rows — each of them a row whose
 rule this decision leaves unchanged, except the first, which rule 5 changes and which therefore
-still owes its fixture.
+still owes its fixture. **No longer** since 2026-09-26: all five have one, and rule 5 is written
+(second amendment of that date).
 
 Then, in order:
 
@@ -109,7 +112,9 @@ Then, in order:
 5. **Align the fallback with `checkVisibility` for `visibility: hidden`.** The fallback gains a
    `getComputedStyle(node).visibility === "hidden"` test so the two paths answer the same thing on the
    tier the project actually supports. This is not a behaviour change on the modern path; it is the
-   removal of a divergence.
+   removal of a divergence. Written on 2026-09-26 as `!== "visible"` rather than `=== "hidden"`,
+   because `checkVisibility` drops `visibility: collapse` too on all three engines (second
+   amendment of that date).
 6. **Keep `aria-disabled` and `aria-hidden` as they are.** Both are load-bearing, both are tested, and
    both have an opt-out (`disabled`, `data-snav-ignore`). See [ADR-0008](0008-shadow-dom.md) for the
    other half of "what the scan can see".
@@ -227,6 +232,69 @@ Tests: "keeps an area of an image map in use, and drops one no image uses"
 (`src/spatial/spatial.browser.test.ts`), which fail at cf28e57, the first on chromium and webkit,
 the second on firefox.
 
+## Amendment, 2026-09-26 (second): every row of the gap table has its fixture, and rule 5 is written
+
+The decision above asked for fixtures first, one per row of the gap table, and left rule 5 owing
+its own. Both are done, measured on chromium, firefox and webkit on 2026-09-26 with `SNAV_BROWSER`
+at each in turn, and the reading of `src/tabbable.ts:55-60` that the Evidence section calls "not
+measured in a browser" is now a measurement.
+
+**Rule 5, as written.** `isHidden` keeps its line count, so that no anchor below it moves: the
+fallback at `src/tabbable.ts:59-60` reads the layout boxes first, as before, and then the computed
+`visibility` of the element, `getComputedStyle(node).visibility !== "visible"`. Not `=== "hidden"`,
+as the rule above is worded: `checkVisibility({ visibilityProperty: true })` is `false` for
+`visibility: collapse` on all three engines, and no engine focuses a collapsed control either, so
+the fallback reads what `checkVisibility` reads. The box test reads `offsetParent` as
+`!node.offsetParent` rather than `=== null`, because an SVG element has no such property at all:
+a `<g tabindex="0">` under `display: none` passed the old test on the fallback path, `undefined`
+being not `null`, and is dropped by `checkVisibility`; it is dropped by both paths now. The style
+is read once per candidate that has a box, on the fallback path only, the cost the Consequences
+above priced for rule 5 and the same read refusing (C2) saved; the modern path is still one
+`checkVisibility` call per candidate. A child set back to `visibility: visible` inside a hidden
+parent is focused by every engine and kept by both paths. The core line reads 3 488 B min+gzip,
+24 bytes more than the 3 464 B of the amendment of 2026-09-26 to
+[ADR-0017](0017-size-budgets.md), under the unchanged 3.50 kB (3 584 B), 96 bytes of room; no
+cap moves.
+
+**The fixtures.** In `src/tabbable.browser.test.ts`:
+
+- "drops visibility: hidden on the fallback path, as checkVisibility does" — `hidden`, `collapse`,
+  a hidden parent, a child set back to `visible`, a `display: none` parent, a `position: fixed`
+  button hidden and one shown, and an SVG `<g tabindex="0">` under `display: none` and one shown,
+  each asked of `checkVisibility({ visibilityProperty: true })` and of `focus()`, then of
+  `isFocusable` and `getTabbables` with `checkVisibility` present and with the method deleted from
+  `Element.prototype` for the case, the way the `WeakRef` case of
+  [ADR-0013](0013-browser-baseline-and-fallbacks.md) deletes the constructor. It fails at a0c2668,
+  the commit before rule 5, with the fallback listing `hidden`, `collapsed` and `inherited` among
+  the tabbables.
+- "never counts a clickable div without a tabindex, until it is given one" — the `div` of the open
+  item of [ROADMAP.md](../../ROADMAP.md), listening to `click` and refused by `focus()` on all
+  three engines; `tabindex="0"` makes it a Tab stop, and nothing else does.
+
+In `src/spatial/spatial.browser.test.ts`, the describe block "spatialPlugin — what the visibility
+rule keeps (ADR-0009)", one case per row of the gap table this decision leaves unchanged:
+
+- "lands on a candidate a clip-path clips to nothing" — rule 4, the documented limitation.
+- "lands on a candidate at opacity: 0, which v0 keeps" — (C2) refused for v0: the fixture pins the
+  v0 rule and is the one to invert when (C2) lands in v1.
+- "lands on a candidate an overflow: hidden ancestor clips, and scrolls it into view" — rule 3: the
+  move lands on the clipped button and `scrollFocusIntoView` scrolls the clipping box to show it,
+  smoothly, hence the wait in the test.
+- "lands on a candidate outside its scroller's viewport, with no rescan" — the last row: a mounted
+  row below the fold is a candidate, the move lands on it in the same call, and the scroller
+  follows. Only a row that does not exist yet needs the rescan of `scrollAndRescan`.
+
+The two items of ROADMAP.md that asked for these fixtures are removed with this amendment, as
+that file's rules want, and the heading they sat under, "Test fixtures still missing", is retitled
+"Benchmarks still missing" since that is all it holds now. Suite state with them, 2026-09-26:
+`bun run test` → 628 passed, 1 skipped (629) in 32 files, of which `bun run test:unit` 121 in 14
+and `bun run test:browser` 507 and the skip in 18; `SNAV_BROWSER=firefox bun run test:browser`
+and the same with `webkit` → 507 passed, 1 skipped in 18 files each.
+
+What this amendment does not change: the Context table, the gap table and the Evidence above keep
+their text, with a pointer to this amendment where a sentence no longer holds, and rule 5 keeps
+its wording `=== "hidden"` as the decision was taken, with the measured `!== "visible"` beside it.
+
 ## Alternatives considered
 
 **IntersectionObserver-based visibility.** Observe every candidate, keep a live set of what is on
@@ -250,7 +318,8 @@ so it stays rejected: `src/spatial/spatial.browser.test.ts:451-507`.
 - `src/tabbable.ts:18-39`, `:48-61`, `:63-65`, `:67-85` — `FOCUSABLE_SELECTOR`, `isHidden`,
   `isInert`, `isFocusable` and the `aria-disabled` comment at `:82-83`.
 - `src/tabbable.browser.test.ts:36-51` — the only visibility coverage that exists:
-  `hidden`, `display: none`, `inert`, `aria-disabled`.
+  `hidden`, `display: none`, `inert`, `aria-disabled`. Since 2026-09-26 the fallback path and every
+  row of the gap table have theirs too, named in the second amendment of that date.
 - `src/spatial/spatial.ts:188` — the zero-size filter, either dimension, inside `collectNavNodes`
   (`:170-193`).
 - `src/spatial/spatial.ts:294-306`, `:450-477` — `scrollFocusIntoView` on landing, and
@@ -268,7 +337,9 @@ so it stays rejected: `src/spatial/spatial.browser.test.ts:451-507`.
   `src/tabbable.ts:48-61` carries `isHidden` with the
   `checkVisibility({ contentVisibilityAuto: true, visibilityProperty: true })` call and the
   `offsetParent === null && getClientRects().length === 0` fallback: `opacityProperty` is not
-  passed, and the fallback has no `visibility` test, so rule 5 is also still to be written.
+  passed, and the fallback has no `visibility` test, so rule 5 is also still to be written. **No
+  longer** since 2026-09-26: the fallback reads the computed `visibility` at `:60`, after the boxes
+  at `:59` (second amendment of that date).
   `src/tabbable.ts:67-85` is `isFocusable`, with `aria-disabled` deliberately absent and the
   comment saying so; nothing filters `aria-hidden` anywhere.
 - Fixtures in this repository: `src/spatial/spatial.browser.test.ts:648-696`, the
@@ -278,7 +349,7 @@ so it stays rejected: `src/spatial/spatial.browser.test.ts:451-507`.
   and `min-width`, because a Chromium UA button measures 16 x 6 at width 0 and would never reach the
   filter at all. `src/spatial/spatial.browser.test.ts:473-507`, the three `aria-hidden` cases,
   carrying the trap they pin. Suite state at HEAD: `bun run test:unit` → 121 passed in
-  14 files; `bun run test:browser` → 501 passed and 1 skipped in 18 files, the skip being the
+  14 files; `bun run test:browser` → 507 passed and 1 skipped in 18 files, the skip being the
   shadow-DOM fixture of [ADR-0008](0008-shadow-dom.md).
 - `checkVisibility` availability: Chrome 105, Safari 17.4, Firefox 106 (caniuse and MDN browser-compat
   data, fetched 2026-09-18; table with URLs in
@@ -286,5 +357,6 @@ so it stays rejected: `src/spatial/spatial.browser.test.ts:451-507`.
   tier of this project: Chromium 85, Safari 15, Firefox 79
   ([ADR-0013](0013-browser-baseline-and-fallbacks.md), decided 2026-09-18).
 - Behaviour of `visibility: hidden` and `opacity: 0` under the fallback is derived by reading the two
-  lines of `src/tabbable.ts:56-60`, not measured in a browser. The fixtures required by this decision are
-  what will turn that reading into a fact.
+  lines of `src/tabbable.ts:59-60`, not measured in a browser. The fixtures required by this decision are
+  what will turn that reading into a fact. Measured on 2026-09-26 on chromium, firefox and webkit
+  (second amendment of that date).

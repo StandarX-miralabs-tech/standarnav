@@ -116,7 +116,7 @@ Feature detection required by this tiering (browser support from caniuse and MDN
 | API | Available from | Fallback |
 |---|---|---|
 | `WeakRef` | Chrome 84, Safari 14.1, Firefox 79 | Written. `elementHandle` returns a `WeakRef` where the constructor exists and a strong reference that drops itself on the first read finding the element detached — `isConnected` — where it does not (`src/spatial/spatial.ts:127-141`). The constructor is read per call rather than at module scope, so a test can delete the global and exercise the fallback |
-| `checkVisibility` | Chrome 105, Safari 17.4, Firefox 106 | `offsetParent === null && getClientRects().length === 0` (`src/tabbable.ts:60`) |
+| `checkVisibility` | Chrome 105, Safari 17.4, Firefox 106 | `offsetParent === null && getClientRects().length === 0` (`src/tabbable.ts:59`), then, since 2026-09-26, `getComputedStyle(node).visibility !== "visible"` (`:60`), so the fallback drops `visibility: hidden` as `checkVisibility` does (ADR-0009, rule 5) |
 | `inert` | Chrome 102, Safari 15.5, Firefox 112 | `closest("[inert]")` reads the attribute everywhere (`src/tabbable.ts:64`) |
 | `Array.prototype.at` | Chrome 92, Safari 15.4, Firefox 90, Samsung Internet 16.0 (`https://caniuse.com/mdn-javascript_builtins_array_at`) | Avoided outright, and the rewrite is done: `getTabbableEdges` indexes `tabbables[tabbables.length - 1]` (`src/tabbable.ts:122-125`). Unlike every other row its floor is **above** the supported tier, so the use it replaced threw on Chromium 85-91, Safari 15.0-15.3 and Firefox 79-89, and `getTabbableEdges` is the entry point for `getFirstTabbable` and `getLastTabbable`. A `lib` bump would have hidden the break rather than fixed it |
 
@@ -217,7 +217,8 @@ and each must be stated in the user documentation the README sends a reader to �
 
 1. **A clickable `div` without `tabindex` is not navigable.** The browser will not focus it either.
    The fix is `tabindex="-1"` or `tabindex="0"`, which is also the fix for keyboard users; the engine
-   does not invent focusability the platform withholds.
+   does not invent focusability the platform withholds. Test: "never counts a clickable div without
+   a tabindex, until it is given one" in `src/tabbable.browser.test.ts`, since 2026-09-26.
 2. **`aria-hidden` elements stay reachable.** `isFocusable` does not filter `aria-hidden`
    (`src/tabbable.ts:67-85`). Hiding a subtree from assistive technology while leaving it focusable
    is already an authoring error; an element that should not be reached is removed, made `inert`, or

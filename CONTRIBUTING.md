@@ -89,6 +89,12 @@ Measured again on 2026-09-26 with the same commands: `bun run test:unit` is
 18 files — 622 passed and 1 skipped in 32 files in total, the one skip being
 the same fixture at the same line.
 
+Measured a third time later on 2026-09-26, with the six fixtures of the
+second amendment of that date to [ADR-0009](docs/adr/0009-hidden-candidates.md):
+`bun run test:unit` is 121 tests in 14 files, `bun run test:browser` is 507
+passed and 1 skipped in 18 files — 628 passed and 1 skipped in 32 files in
+total, the skip unchanged.
+
 ## Conventional commits
 
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/):
@@ -279,6 +285,10 @@ layout qwerty      0.45 / 0.50 kB
 layout azerty      0.49 / 0.50 kB
 layout alphabetic  0.36 / 0.50 kB
 ```
+
+Measured a third time later on 2026-09-26, with rule 5 of
+[ADR-0009](docs/adr/0009-hidden-candidates.md) in the core line: core
+3.41 / 3.50 kB (3 488 B, was 3 464 B), the thirteen other lines as above.
 
 The run passes. A `null` cap is still a legal state in the script and still
 fails the run printing the measurement — that is how a newly added line is
