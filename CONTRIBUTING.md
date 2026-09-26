@@ -246,6 +246,26 @@ layout azerty   0.49 / 0.50 kB
 layout alphabetic  0.36 / 0.50 kB
 ```
 
+Measured again on 2026-09-26 with the same command, fourteen lines, the caps being
+those of [ADR-0017](docs/adr/0017-size-budgets.md) and its amendments:
+
+```
+core               3.38 / 3.50 kB
+gamepad engine     2.49 / 2.50 kB
+spatial engine     3.54 / 3.75 kB
+focus ring         1.82 / 2.00 kB
+debug              0.49 / 0.50 kB
+auto mount         0.60 / 0.75 kB
+react adapter      1.42 / 1.50 kB
+vue adapter        1.40 / 1.50 kB
+svelte adapter     1.45 / 1.50 kB
+angular adapter    1.67 / 1.75 kB
+keyboard           2.82 / 3.00 kB
+layout qwerty      0.45 / 0.50 kB
+layout azerty      0.49 / 0.50 kB
+layout alphabetic  0.36 / 0.50 kB
+```
+
 The run passes. A `null` cap is still a legal state in the script and still
 fails the run printing the measurement — that is how a newly added line is
 capped from a real number rather than from a guess the script then ratifies by
