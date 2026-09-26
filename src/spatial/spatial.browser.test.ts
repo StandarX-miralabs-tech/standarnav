@@ -1588,3 +1588,74 @@ describe("spatialPlugin — an image-map area is scored by its shape over its im
     expect(view.active()).toBe("after");
   });
 });
+
+describe("spatialPlugin — what the visibility rule keeps (ADR-0009)", () => {
+  /** A `box` with a rule of its own in front, so the case can be read on the button itself. */
+  function styled(id: string, x: number, css: string): string {
+    return box(id, x, 0).replace('style="', `style="${css};`);
+  }
+
+  it("lands on a candidate a clip-path clips to nothing", () => {
+    // Rule 4: nothing reads `clip-path`, a documented limitation, so a button clipped away is
+    // still the nearest target on the right.
+    const view = scene(
+      box("a", 0, 0) + styled("clipped", 120, "clip-path:inset(100%)") + box("b", 240, 0),
+    );
+    view.plugin.focus("#a");
+
+    view.move("right");
+
+    expect(view.active()).toBe("clipped");
+  });
+
+  it("lands on a candidate at opacity: 0, which v0 keeps", () => {
+    // (C2) is refused for v0 and deferred to v1 (ROADMAP.md): this fixture pins what v0 does,
+    // and it is the one to invert when the rule lands.
+    const view = scene(box("a", 0, 0) + styled("clear", 120, "opacity:0") + box("b", 240, 0));
+    view.plugin.focus("#a");
+
+    view.move("right");
+
+    expect(view.active()).toBe("clear");
+  });
+
+  it("lands on a candidate an overflow: hidden ancestor clips, and scrolls it into view", async () => {
+    // Rule 3: a clipped candidate is reached, not filtered, and the box that hides it scrolls
+    // to show it, which is how a row of cards works. The scroll is smooth, hence the wait.
+    const view = scene(
+      `<div id="clip" style="position:absolute;left:0;top:0;width:100px;height:40px;overflow:hidden">` +
+        box("a", 0, 0) +
+        box("clipped", 120, 0) +
+        `</div>` +
+        box("b", 400, 0),
+    );
+    view.plugin.focus("#a");
+    const clip = view.at("clip");
+    expect(clip.scrollLeft).toBe(0);
+
+    view.move("right");
+
+    expect(view.active()).toBe("clipped");
+    await vi.waitFor(() => expect(clip.scrollLeft).toBeGreaterThan(0));
+  });
+
+  it("lands on a candidate outside its scroller's viewport, with no rescan", async () => {
+    // The last row of the gap table, and the reason the rule is not "drop what is off screen":
+    // a mounted row below the fold is a candidate, so the move lands on it in the same call and
+    // `scrollFocusIntoView` brings it in. Only a row that does not exist yet needs the rescan.
+    const view = scene(
+      `<div id="list" style="position:absolute;left:0;top:0;width:200px;height:100px;overflow:auto">` +
+        box("row0", 0, 0) +
+        box("row1", 0, 300) +
+        `</div>`,
+    );
+    view.plugin.focus("#row0");
+    const list = view.at("list");
+    expect(list.scrollTop).toBe(0);
+
+    view.move("down");
+
+    expect(view.active()).toBe("row1");
+    await vi.waitFor(() => expect(list.scrollTop).toBeGreaterThan(0));
+  });
+});
