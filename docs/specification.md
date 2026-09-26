@@ -174,6 +174,20 @@ Tests: "drops a link and a nested editable of an editing host, unless they carry
 "keeps a link with a tabindex in an editing host, which the engines split on" and "takes only the
 first summary child of a details as focusable" in `src/tabbable.browser.test.ts`.
 
+**An `<area>` of an image map in use is focusable since 2026-09-26, by its image.** `isHidden`
+answers for an area with the image that uses its map — the first `img[usemap]` of the area's tree
+naming the map by its `name` or `id` that is not hidden, or the last when all are, found by
+`imageOf` (`src/tabbable.ts:155-176`) — hidden when there is none, otherwise as the image is
+(`:49-52`). Chromium and webkit report such an area with
+no client rect and `checkVisibility()` `false`, yet chromium, firefox and webkit all focus it and
+Tab reaches it, and until then `isFocusable` answered `false` for it on the first two. An area of a
+map no image uses, one outside any `<map>` and one whose images are all hidden are refused on all
+three and stay out; what the engines split on — an area with `tabindex="-1"`, a map named by its
+`id` alone, a map whose first image is hidden and a later one shown — is left to the retry of R21 (Playwright, 2026-09-26;
+[ADR-0031](adr/0031-image-map-area-candidate.md)). An area belongs to the container that holds its
+map, not its image. Test: "keeps an area of an image map in use, and drops one no image uses" in
+`src/tabbable.browser.test.ts`.
+
 Tabbable is focusable and in the sequential order: `tabIndex >= 0`, or an **editing host** — an
 editable element whose parent is not editable — that carries no `tabindex` attribute
 (`inTabOrder`, `src/tabbable.ts:89-96`, shared by `isTabbable` and `getTabbables`). A host
@@ -187,9 +201,9 @@ stop, and not what is editable inside it" and "reports an editing host as the la
 `getFirstTabbable` and `getLastTabbable` are module-internal, and no entry point exports them
 (`src/index.ts`).
 
-The rule has exactly five documented exceptions. Each is deliberate, and each must be stated in the
-user documentation the README sends a reader to — [docs/en/navigation.md](en/navigation.md), with
-its French mirror — because each surprises someone.
+The rule has exactly six documented exceptions, the sixth since 2026-09-26. Each is deliberate,
+and each must be stated in the user documentation the README sends a reader to —
+[docs/en/navigation.md](en/navigation.md), with its French mirror — because each surprises someone.
 
 1. **A clickable `div` without `tabindex` is not navigable.** The browser will not focus it either.
    The fix is `tabindex="-1"` or `tabindex="0"`, which is also the fix for keyboard users; the engine
@@ -210,6 +224,11 @@ its French mirror — because each surprises someone.
    rule 6 gives an `aria-disabled` item; that is why the test is `:disabled,[disabled]` and not
    `:disabled` alone (`src/tabbable.ts:70-72`). Test: "still rejects disabled on an element the
    browser would focus, ADR-0009 rule 6" in `src/tabbable.browser.test.ts`.
+6. **An `<area>` whose map sits under `inert` is dropped, although the browser focuses it.**
+   `isInert` reads the area itself (`src/tabbable.ts:63-65`), so `inert` on an ancestor of the map
+   drops it, while chromium, firefox and webkit all focus it when its image is outside the inert
+   subtree (Playwright, 2026-09-26; [ADR-0031](adr/0031-image-map-area-candidate.md)). Put `inert`
+   on an ancestor of both the image and the map. No test pins it; it is a reading of `isInert`.
 
 ## 5. Functional requirements
 
@@ -348,7 +367,18 @@ this working tree, run 2026-09-20.
   `src/spatial/spatial.browser.test.ts`. Their witness is an element whose `focus` method does
   nothing, which the engine cannot tell from a refusal; the second `<summary>` that was the witness
   until 2026-09-24 is no longer a candidate (§4), and the refusals that split by engine are pinned
-  on a real `<embed>` and a real empty `<object>` in the same `describe`.
+  on a real `<embed>` and a real empty `<object>` in the same `describe`. **An `<area>` is
+  measured by its shape since 2026-09-26** ([ADR-0031](adr/0031-image-map-area-candidate.md)):
+  chromium and webkit give it an all-zero `getBoundingClientRect()` and firefox the whole image's,
+  so its rect is its `shape` and `coords` laid over the border box of the image that uses its map
+  (`rectOf`, `src/dom/platform.ts:14-48`), read by `collectNavNodes` and for the origin of a move
+  (`src/spatial/spatial.ts:182`, `:502`); every other element is still measured with
+  `getBoundingClientRect`. Webkit lays the coords over the image's content box instead, a
+  difference of the image's border and padding the engine does not follow. `explainMove`
+  (`src/debug.ts:60`) and the focus ring (R32) read the same rect. When an area lands, its image
+  is scrolled into view, since chromium and webkit do not scroll an area
+  (`src/spatial/spatial.ts:298`). Tests: the `describe` "spatialPlugin — an image-map area is
+  scored by its shape over its image (ADR-0031)" in `src/spatial/spatial.browser.test.ts`.
 - **R22.** Declarative containers, attributes renamed to this project's prefix — the owner's decision
   of 2026-09-18, recorded in [ADR-0001](adr/0001-name-scope-and-attribute-prefix.md). Read:
   `data-snav="container"`, `data-snav-enter`, `data-snav-wrap`, `data-snav-block`, `data-snav-trap`,
@@ -452,7 +482,11 @@ this working tree, run 2026-09-20.
   Filter **C2 is refused for v0** and deferred to v1: dropping `opacity: 0` candidates costs a
   `getComputedStyle` per candidate in the hot loop, and an opacity inherited from an ancestor
   escapes the test anyway. The two do not ship together, which is the premise the ADR was written
-  on.
+  on. Since 2026-09-26 an `<area>` whose shape describes nothing — a rectangle with fewer than four
+  coordinates, a polygon with fewer than six, a circle with fewer than three or with a negative
+  radius — measures as a zero rect (R21) and the same filter drops it; test "drops a shape that
+  describes nothing" in `src/spatial/spatial.browser.test.ts`
+  ([ADR-0031](adr/0031-image-map-area-candidate.md)).
 
 ### 5.5 Focus ring
 
@@ -467,7 +501,11 @@ this working tree, run 2026-09-20.
   less (`:147-154`; `src/focus-ring/focus-ring.browser.test.ts:210-235` on three engines, with the
   150 ms default guarded at `:197-208`; [ADR-0020](adr/0020-focus-ring-defaults.md), amendment of
   2026-09-23). The overlay element carries `data-snav-focus-ring`, the fourth attribute the package
-  writes.
+  writes. Since 2026-09-26 the ring measures its target through the rect the engine scores
+  (`src/focus-ring/focus-ring.ts:107`), so it wears an `<area>`'s shape over its image, where it
+  sat at the corner of the viewport on chromium and webkit and around the whole image on firefox;
+  test "wears the shape of an area over its image" in `src/focus-ring/focus-ring.browser.test.ts`
+  ([ADR-0020](adr/0020-focus-ring-defaults.md), amendment of that date).
 - **R33.** **Settled: the ring ships in v0 and paints itself.** No stylesheet ships with the package
   — the overlay is created with its paint in a `cssText` string (`src/focus-ring/focus-ring.ts:51-52`,
   applied at `:242`), so importing the subpath is the whole installation. The contract is

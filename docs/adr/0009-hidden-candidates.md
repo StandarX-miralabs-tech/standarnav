@@ -197,6 +197,36 @@ one when the browser refuses it (ADR-0030). Tests: "drops a link and a nested ed
 editing host, unless they carry a tabindex" and "takes only the first summary child of a details as
 focusable" in `src/tabbable.browser.test.ts`, which fail at cc0b219.
 
+## Amendment, 2026-09-26: an image-map area is a candidate, by its shape
+
+[Issue #30](https://github.com/StandarX-miralabs-tech/standarnav/issues/30) found the visibility
+row wrong for one element. Chromium and webkit report an `<area href>` of a map in use with no
+client rect, no offset parent and `checkVisibility()` `false`, yet focus it and reach it with Tab,
+as firefox does; so `isHidden` dropped on two engines a candidate all three focus. Measured on
+2026-09-26 and recorded in [ADR-0031](0031-image-map-area-candidate.md), the candidate set and two
+rows of the Context table change:
+
+- **The candidate set** gains the areas of the image maps in use: `area[href]` was in the selector
+  already, and an area is no longer hidden when an image uses its map and is itself visible. An
+  area of a map no image uses, or one outside any `<map>`, stays out, as every engine refuses it.
+- **`isHidden`** answers for an `<area>` with the image that uses its map: hidden when there is
+  none, otherwise what `isHidden` says of the image (`src/tabbable.ts:49-52`). The image is the
+  first `img[usemap]` of the area's tree naming the map by its `name` or `id` that is not hidden,
+  or the last when all are, found by `imageOf` (`:155-176`). `isInert` still reads the area itself, so `inert` on the map's ancestors drops it
+  although every engine focuses it; ADR-0031 records that as a deviation.
+- **The zero-size filter** reads its rect through `rectOf` (`src/dom/platform.ts:14-48`) on the same
+  line, `src/spatial/spatial.ts:182`: `getBoundingClientRect()` for every candidate except an area
+  with an image, whose rect is its `shape` and `coords` laid over the image's box. That box is
+  all zero for an area on chromium and webkit and the image's whole rect on firefox. A shape that
+  describes nothing — too few coordinates, or a negative radius — is a zero rect, and (C1) drops it
+  at `:188` like any other.
+
+The rule is still one rule in one place: the Tab key and the d-pad read the same `isFocusable`.
+Tests: "keeps an area of an image map in use, and drops one no image uses"
+(`src/tabbable.browser.test.ts`) and "drops a shape that describes nothing"
+(`src/spatial/spatial.browser.test.ts`), which fail at cf28e57, the first on chromium and webkit,
+the second on firefox.
+
 ## Alternatives considered
 
 **IntersectionObserver-based visibility.** Observe every candidate, keep a live set of what is on

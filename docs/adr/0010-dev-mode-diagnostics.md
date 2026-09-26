@@ -126,8 +126,8 @@ did ([ADR-0017](0017-size-budgets.md), the amendment of that date).
 
 - Production builds are unchanged. The core entry gains nothing: `src/index.ts` does not re-export
   the debug module, and `./debug` is its own entry in the exports map (`package.json`). Measured
-  here with `bun run build && bun run check:size`: core 3.23 kB of a 3.25 kB cap, spatial engine
-  3.07 of 3.25, debug 0.49 of 0.50, min+gzip ([ADR-0017](0017-size-budgets.md)).
+  here with `bun run build && bun run check:size` on 2026-09-26: core 3.38 kB of a 3.50 kB cap,
+  spatial engine 3.54 of 3.75, debug 0.49 of 0.50, min+gzip ([ADR-0017](0017-size-budgets.md)).
 - Point 4 removed a duplicate implementation of the winner rule, and that is done: `src/debug.ts`
   imports `findBestCandidate` and calls it for the winner (`src/debug.ts:14-20`, `:70`), keeping
   `scoreCandidates` for the per-candidate table alone (`:69`). The asymmetry this ADR's Context
@@ -143,14 +143,15 @@ did ([ADR-0017](0017-size-budgets.md), the amendment of that date).
   designed with point 4, not before.
 - Of the five items, only point 4 has shipped, which is what decision "which of the five are in v0"
   above says should happen. The scan (point 1), the depth warning (2), the redirection warning (3)
-  and the documentation note (5) are v1 and no code exists for any of them: `src/debug.ts` is 91
+  and the documentation note (5) are v1 and no code exists for any of them: `src/debug.ts` is 92
   lines holding `SpatialExplanation`, `explainMove`, type re-exports and the native-select scan of
   [ADR-0021](0021-native-select-on-television.md), with no DOM written and no *reachability* scan —
   `scanNativeSelects` (`src/debug.ts:88`) answers a different question and is not point 1. Point 4
   is measured and covered: `src/debug.browser.test.ts:56-196` holds seven `explainMove` cases, four
   of which pin where the diagnostic is *meant* to differ from the engine
-  (`:113-196`) — the differences that remain once the winner rule is shared. The file holds ten in
-  all; the other three are the scan's (`:198-238`).
+  (`:113-196`) — the differences that remain once the winner rule is shared. The file holds eleven
+  in all: an eighth `explainMove` case, an image-map area's origin (`:240-273`), and the scan's
+  three (`:198-238`).
 
 ## Amendment, 2026-09-20: a sixth diagnostic, and it ships
 
@@ -212,6 +213,24 @@ The redirect of the amendment above moves with it: a redirect whose target refus
 falls through to the geometry too, like one whose target `isFocusable` refuses, and a redirect that
 is vetoed or that an application's focus handler sends elsewhere ends the move. Point 3's warning
 still cannot see the refusal; it is a scan and does not focus either.
+
+## Amendment, 2026-09-26: an area's origin is read as the engine reads it
+
+Since 2026-09-26 an `<area>` of an image map in use is a candidate, and the engine reads its rect
+through `rectOf` (`src/dom/platform.ts:14-48`): its `shape` and `coords` laid over the box of the
+image that uses its map ([ADR-0031](0031-image-map-area-candidate.md)). Chromium and webkit report
+an area's own `getBoundingClientRect()` as all zero, and firefox as the whole image's, so an
+`explainMove` that went on reading it would score an area's neighbours from another origin than the
+engine's — the drift decision 4 forbids, not a documented difference. `explainMove` reads its
+origin through the same `rectOf` (`src/debug.ts:60`), and its candidates come from
+`collectNavNodes`, which reads it too, so the two agree.
+
+The import is a new line, `src/debug.ts:13`, so the file is 92 lines, and the debug line marks
+`./dom/platform.js` external, charged to the spatial line as `./spatial/spatial.js` is
+(`scripts/size-budget.ts:115-120`): 503 bytes min+gzip of 512 on 2026-09-26, 9 left. The test is an
+eighth `explainMove` case, "reads an area's origin by its shape, as the engine does"
+(`src/debug.browser.test.ts:240-273`), which fails at cf28e57 on chromium, firefox and webkit; the
+file holds eleven cases in all.
 
 ## Alternatives considered
 

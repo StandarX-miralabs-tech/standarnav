@@ -99,6 +99,33 @@ Evidence, 2026-09-23, in this repository:
   fade for each at `0ms`, and after the fix it still records one for each when the property is
   unset.
 
+## Amendment, 2026-09-26: the ring wears an area's shape over its image
+
+The ring measured its target with `getBoundingClientRect()`. For an `<area>` of an image map in
+use, which every engine focuses, chromium and webkit answer all zero and firefox the whole image's
+rect ([ADR-0031](0031-image-map-area-candidate.md), measured on 2026-09-26), so the ring sat at the
+top-left corner of the viewport, about 4 px square with its offset, on the first two, and around the
+whole image on the third.
+
+**`measure` now reads `rectOf`** (`src/focus-ring/focus-ring.ts:107`), the rect the spatial engine
+scores a candidate by (`src/dom/platform.ts:14-48`): an area's `shape` and `coords` laid over the
+border box of the image that uses its map, and any other element's own `getBoundingClientRect()`.
+The ring is drawn around the shape's box, so a circle is ringed by its bounding square; the radius
+is still read off the target's computed style (`src/focus-ring/focus-ring.ts:114-116`), the area's
+here. The ring's own live rect, from which it travels, is untouched (`:175`).
+
+`rectOf` reaches `imageOf` in `tabbable.js`, which the core line carries and nobody reaches
+`/focus-ring` without, so the focus ring size line marks it external
+(`scripts/size-budget.ts:105`). The line measured 1 863 bytes min+gzip on 2026-09-26, over its
+1.75 kB cap, which [ADR-0017](0017-size-budgets.md) raised to 2.00 kB in its amendment of that date,
+before the code.
+
+Evidence, 2026-09-26: "wears the shape of an area over its image"
+(`src/focus-ring/focus-ring.browser.test.ts:249-267`) puts a circle of radius 30 at (50, 50) on an
+image at (100, 100) and expects a 64 px square ring at (118, 118); it fails at cf28e57 on chromium,
+firefox and webkit, and passes on all three with the change. On the playground's image map, driven
+with Playwright on the three engines, the ring around a 90 px circle measured 94 px square.
+
 ## Alternatives considered
 
 **Ship an optional stylesheet.** Rejected: it reintroduces the problem the package exists to avoid.

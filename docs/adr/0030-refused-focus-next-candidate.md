@@ -107,6 +107,23 @@ of this date).
   is focused by all three engines, while `isFocusable` answers `false` on chromium and webkit
   (Evidence).
 
+## Amendment, 2026-09-26: the image-map area is closed by ADR-0031
+
+The false negative of the last Consequence and of the last Evidence item is closed by
+[ADR-0031](0031-image-map-area-candidate.md), which answers
+[issue #30](https://github.com/StandarX-miralabs-tech/standarnav/issues/30): `isHidden` answers for
+an `<area>` with the image that uses its map (`src/tabbable.ts:49-52`), so an area of a map in use
+is focusable on all three engines, and it is scored by its shape laid over that image. Both items
+stay as the measurement of 2026-09-24, and so does the `area[href]` row of the Context table, taken
+inside an editing host that day.
+
+The area brings refusals the engines split on, which decision 2 now covers. Measured on 2026-09-26:
+an `<area href tabindex="-1">`, an area whose image sits inside `inert` with its map outside, and
+an area of a map two images use, the first hidden and the second shown, are refused by chromium and
+webkit; a map found by its `id` alone and an `<area tabindex="0">` with no
+`href` are refused by webkit. An area inside an editing host was refused by chromium on 2026-09-24,
+the row above. Each is a candidate, and a move that meets the refusal goes on to the next one.
+
 ## Alternatives considered
 
 - **The static filter in `collectNavNodes`, spatial only.** It fitted both caps without an
