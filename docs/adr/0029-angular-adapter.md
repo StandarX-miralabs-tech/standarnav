@@ -107,7 +107,7 @@ error is printed (`:49-55`). The browser project pre-bundles the Angular package
 
 ## Consequences
 
-- A `feat`: the next release is a minor.
+- A `feat`: it shipped in the minor `0.3.0` on 2026-09-26.
 - CI gains an eleventh check, from a ninth job.
 - No template syntax: no `<snav-provider>` tag and no `[snavIntent]` directive. `within` is passed
   as `inject(ElementRef)`, which `docs/en/angular.md` shows.

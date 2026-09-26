@@ -78,7 +78,7 @@ undefined; the browser project defines them to Vue's defaults (`vitest.config.ts
 
 ## Consequences
 
-- A `feat`: the next release is a minor, as with ADR-0026.
+- A `feat`: it shipped in the minor `0.3.0` on 2026-09-26, as ADR-0026 did.
 - CI gained a ninth check, from a seventh job.
 - A template ref on a *component* resolves to an instance, not an element; `within` then needs a
   getter such as `() => card.value?.$el`.
