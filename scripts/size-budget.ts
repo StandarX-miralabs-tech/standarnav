@@ -94,14 +94,14 @@ const LINES: readonly Line[] = [
   {
     name: "spatial engine",
     entries: ["spatial/spatial.js"],
-    cap: 3.25 * KB,
+    cap: 3.75 * KB,
     external: ["../dom/event.js", "../dom/query.js", "../tabbable.js"],
     note: "opt-in subpath next to the core; dom/raf.js and dom/platform.js are charged here, no root export reaching them",
   },
   {
     name: "focus ring",
     entries: ["focus-ring/focus-ring.js"],
-    cap: 1.75 * KB,
+    cap: 2 * KB,
     external: ["../dom/event.js", "../dom/query.js", "../modality.js"],
     note: "opt-in subpath next to the core; dom/platform.js is charged here as it is to spatial, which is correct for a marginal cost",
   },

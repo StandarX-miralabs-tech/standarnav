@@ -638,6 +638,53 @@ unchanged 3.25 kB; it is now among the lines where one more change can go red.
 reads as it did in the amendment above: `size budgets passed for 14 lines, and all 32 built
 modules are charged to one`, 2026-09-24.
 
+## Amendment, 2026-09-26: the spatial cap goes to 3.75 kB and the focus ring's to 2.00 kB, for the areas of an image map
+
+`bun run build && bun run check:size`, run 2026-09-26 on the finished code of the pull request
+that closes issue #30, before any of it was committed. The exact bytes come from the same bundling
+with a byte column added.
+
+| Line | min | min+gzip | old cap | new cap |
+|---|---|---|---|---|
+| spatial engine | 8.46 kB | **3.54 kB** (3 628 B, was 3 318 B) | 3.25 kB (3 328 B) | **3.75 kB** (3 840 B), 94 % used |
+| focus ring | 3.85 kB | **1.82 kB** (1 863 B, was 1 558 B) | 1.75 kB (1 792 B) | **2.00 kB** (2 048 B), 91 % used |
+
+**Rule 4, in its own commit.** Both caps are in the repository, and the fix goes 300 bytes over
+the first and 71 over the second. This commit raises the two caps and changes no code
+(`scripts/size-budget.ts:97`, `scripts/size-budget.ts:104`); the code lands in the commits after it.
+
+**What the bytes buy.** An `<area href>` of an image map is focused by chromium, firefox and webkit
+alike, and none of them gives it a box the engine can score: chromium and webkit report it with an
+all-zero rect, and firefox with its whole image's, the same for every area of the map. `rectOf`, in
+`src/dom/platform.ts`, lays the area's `shape` and `coords` over the box of the image that uses its
+map, and every reader of a candidate's geometry goes through it: `collectNavNodes` and the origin
+of `move` in the spatial engine, `measure` in the focus ring, and `explainMove` in the debug entry.
+The spatial engine also scrolls that image into view rather than the area, which neither chromium
+nor webkit scrolls to. The record of the rule is ADR-0031, which the same pull request adds.
+
+**The core and debug lines do not move their caps.** The core line carries `imageOf` and the
+`<area>` branch of `isHidden` in `src/tabbable.ts`, 3 464 B (was 3 346 B) under the unchanged
+3.50 kB, 120 bytes of room. The debug line reads `rectOf` too, 503 B (was 499 B) under the unchanged
+0.50 kB, 9 bytes of room: it marks `dom/platform.js` external, which the spatial line pays for as it
+already pays for `spatial/spatial.js`, and the focus ring line marks `tabbable.js` external, which
+the core exports and nobody reaches `/focus-ring` without.
+
+**A hole the coverage check cannot see.** The first shape tried put `rectOf` at the foot of
+`tabbable.js` beside `imageOf`, and it measured the spatial line at +8 bytes. The bytes had gone
+nowhere a line could see them: `index.js` re-exports named members of `tabbable.js` and not
+`rectOf`, so the core line's bundle shakes it out, and every subpath line that reads it marks
+`tabbable.js` external. Measured on that trial on 2026-09-26, the core bundle is 3 439 B alone and
+3 727 B once `rectOf` is imported next to it: about 288 bytes charged to no line. The coverage
+check at the foot of the script names a *module* no line pays for, and `tabbable.js` is paid for by
+the core, so it stayed green; it reasons per module, never per export. Hence `rectOf` lives in
+`dom/platform.js`, which the spatial and focus ring lines both carry and no root export reaches,
+and hence the rule this record adds: a helper a subpath needs lives in a module that subpath's line
+pays for, or it is re-exported by the root, where the core line pays for it.
+
+**Rule 3 gives 3.75 and 2.00.** The next quarter kB above 3.54 is 3.75, 212 bytes of room; above
+1.82 it is 2.00, 185 bytes of room. The other ten lines read as they did in the amendment above,
+and `size budgets passed for 14 lines, and all 32 built modules are charged to one`, 2026-09-26.
+
 ## Alternatives considered
 
 **A bundlephobia badge in the README.** Rejected: it is not blocking, it lags
@@ -713,7 +760,8 @@ and the numbers are in `scripts/size-budget.ts:80-186`.
 - Measured here: `bun run build && bun run check:size` (both scripts in `package.json`) on
   2026-09-19 and again on 2026-09-20, when the file held eleven lines, and on 2026-09-22
   for the twelfth, and on 2026-09-23, after the whole-package line had gone, for the vue
-  adapter's, and on 2026-09-24 for the svelte and angular adapters'; the lines and their
+  adapter's, and on 2026-09-24 for the svelte and angular adapters', and on 2026-09-26 for the
+  spatial and focus ring caps of the image-map fix; the lines and their
   caps are `scripts/size-budget.ts:80-186`, and the run is enforced in CI
   (`.github/workflows/ci.yml:57-58`).
 - The rule that a size in a document travels with its command and date:
