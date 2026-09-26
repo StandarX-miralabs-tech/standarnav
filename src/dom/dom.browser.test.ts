@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { addDomEvent } from "./event";
-import { prefersReducedMotion } from "./platform";
+import { prefersReducedMotion, rectOf } from "./platform";
 import { contains, getEventTarget, isHTMLElement, queryAll } from "./query";
 import { raf } from "./raf";
 
@@ -111,5 +111,22 @@ describe("raf", () => {
 describe("platform", () => {
   it("reads the media feature from the window it was given", () => {
     expect(typeof prefersReducedMotion(window)).toBe("boolean");
+  });
+
+  it("lays an area's coords over its image as written, whatever size CSS gives the image", () => {
+    // Chromium, firefox and webkit hit-test the coords in CSS pixels from the image's corner and
+    // scale nothing when CSS resizes the image (2026-09-26, ADR-0031).
+    const host = mount(
+      `<img usemap="#scaled" alt="" width="200" height="100" style="position:fixed;left:100px;top:50px;width:400px;height:200px"` +
+        ` src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E">` +
+        `<map name="scaled"><area id="corner" shape="rect" coords="20,40,60,80" href="#" alt="corner"></map>`,
+    );
+
+    expect(rectOf(host.querySelector("#corner") as Element)).toEqual({
+      x: 120,
+      y: 90,
+      width: 40,
+      height: 40,
+    });
   });
 });

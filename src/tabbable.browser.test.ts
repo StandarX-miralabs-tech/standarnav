@@ -303,4 +303,75 @@ describe("tabbable", () => {
     ]);
     expect(getTabbables(elsewhere).map((node) => node.id)).toEqual(["by-id", "twin"]);
   });
+
+  /**
+   * Measured on chromium, firefox and webkit on 2026-09-26 (ADR-0031, amendment of that date).
+   * Every engine wires an image to the first `<map>` of its tree whose `name` or `id` the
+   * `usemap` names, and chromium and webkit focus the areas of a later map of the same name all
+   * the same, where firefox refuses them; a `usemap` with no leading `#` wires nothing, and its
+   * area is refused on all three. Across a shadow boundary: a map and its image in one shadow
+   * root pair up on firefox and webkit, where chromium refuses the area; an image inside a shadow
+   * root with its map outside is refused on all three; a map inside a shadow root with its image
+   * outside is focused by chromium alone. The engine pairs an area with an image of its own tree,
+   * by the map's name or id, and leaves what the engines split on to the spatial engine's retry.
+   */
+  it("pairs an area with an image of its own tree, by the map's name or id", () => {
+    const image = `width="200" height="100" alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E"`;
+    const host = mount(`
+      <button id="before"></button>
+      <img usemap="#twice" ${image}>
+      <map name="twice"><area id="first-map" coords="0,0,100,100" href="#" alt="first"></map>
+      <map name="twice"><area id="second-map" coords="100,0,200,100" href="#" alt="second"></map>
+      <img usemap="#either" ${image}>
+      <map id="either"><area id="by-id-first" coords="0,0,100,100" href="#" alt="by id"></map>
+      <map name="either"><area id="by-name-second" coords="100,0,200,100" href="#" alt="by name"></map>
+      <img usemap="unhashed" ${image}>
+      <map name="unhashed"><area id="unhashed" coords="0,0,200,100" href="#" alt="unhashed"></map>
+      <div id="both-inside"></div>
+      <div id="image-inside"></div>
+      <map name="map-outside"><area id="map-outside" coords="0,0,100,100" href="#" alt="map outside"></map>
+      <img usemap="#image-outside" ${image}>
+      <div id="map-inside"></div>
+    `);
+    const shadow = (id: string, html: string): ShadowRoot => {
+      const root = (host.querySelector(`#${id}`) as HTMLElement).attachShadow({ mode: "open" });
+      root.innerHTML = html;
+      return root;
+    };
+    const bothInside = shadow(
+      "both-inside",
+      `<img usemap="#both" ${image}>` +
+        `<map name="both"><area id="both" coords="0,0,100,100" href="#" alt="both"></map>`,
+    );
+    shadow("image-inside", `<img usemap="#map-outside" ${image}>`);
+    const mapInside = shadow(
+      "map-inside",
+      `<map name="image-outside"><area id="image-outside" coords="0,0,100,100" href="#" alt="image outside"></map>`,
+    );
+    const at = (id: string): HTMLElement => document.getElementById(id) as HTMLElement;
+    const lands = (node: HTMLElement): boolean => {
+      at("before").focus();
+      node.focus();
+      return (node.getRootNode() as Document | ShadowRoot).activeElement === node;
+    };
+
+    expect(lands(at("first-map"))).toBe(true);
+    for (const id of ["first-map", "second-map", "by-id-first", "by-name-second"]) {
+      expect(isFocusable(at(id)), id).toBe(true);
+      expect(isTabbable(at(id)), id).toBe(true);
+    }
+    expect(getTabbables(host).map((node) => node.id)).toEqual([
+      "before",
+      "first-map",
+      "second-map",
+      "by-id-first",
+      "by-name-second",
+    ]);
+    expect(lands(at("unhashed"))).toBe(false);
+    expect(isFocusable(at("unhashed"))).toBe(false);
+    expect(isFocusable(bothInside.getElementById("both"))).toBe(true);
+    expect(lands(at("map-outside"))).toBe(false);
+    expect(isFocusable(at("map-outside"))).toBe(false);
+    expect(isFocusable(mapInside.getElementById("image-outside"))).toBe(false);
+  });
 });

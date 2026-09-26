@@ -153,3 +153,72 @@ Context are candidates, and so is an area inside an editing host, which chromium
   reached the rectangle, the circle, the polygon, the strip and the button after it, and ArrowLeft
   walked back, on all three engines, with no page error; the ring around the 90 px circle measured
   94 px square, its 2 px offset on each side.
+
+## Amendment, 2026-09-26: the four cases the record left unmeasured, measured, and no code changed
+
+Measured with a temporary Playwright script outside the tree, run on chromium 153.0.8010.12,
+firefox 155.0 and webkit 26.6 (Playwright 1.63.0) and deleted: `focus()` from a button, a Tab walk
+from that button, `getBoundingClientRect()`, and the `pointerover` target of a pointer moved over
+the image, every fixture on one page. The code is unchanged at 9436bc9; five tests pin what it
+answers, named under Evidence below.
+
+| The `<area href>` | chromium | firefox | webkit | `isFocusable` |
+|---|---|---|---|---|
+| of a second `<map>` of the same `name`, one image | focused, Tab reaches | refused | focused, Tab reaches | `true` |
+| of a `<map name>` placed after a `<map id>` of that name | focused | refused | focused | `true` |
+| of that `<map id>`, placed first | focused | focused, the image's rect | refused | `true` |
+| of a map a `usemap` without `#` names | refused | refused | refused | `false` |
+| of a map an image resized by CSS uses | focused | focused, the image's CSS rect | focused | `true` |
+| of a map and its image inside one shadow root | refused | focused | focused | `true` |
+| of a map in the light tree, its image inside a shadow root | refused | refused | refused | `false` |
+| of a map inside a shadow root, its image in the light tree | focused, Tab reaches | refused | refused | `false` |
+
+The hit region, read off `pointerover`, is the same on all three: the areas of the first `<map>`
+of the image's tree, in tree order, whose `name` or `id` the `usemap` names after its `#` — the
+`<map id>` when it comes first — and never those of a later map of that name; nothing for a
+`usemap` without `#`; the coords as written, in CSS pixels from the image's corner, whatever size
+CSS gives the image, so a rectangle at `0,0,100,50` covers a quarter of an image drawn at twice its
+`width` and `height`; the area of a map and its image inside one shadow root; the image alone when
+the map or the image is inside a shadow root without the other, or inside a nested one, whose area
+every engine refuses too. Focus is not the hit region: chromium focuses the areas of every map whose
+`name` or `id` some image of the document names, webkit those of every map of the image's tree by
+`name`, firefox only those of the map the image is wired to.
+
+**What follows.** `imageOf` pairs an area with the first visible `img[usemap]` of the area's own
+tree naming its map by `name` or `id` (decision 1). That keeps a later map's areas and the pair
+inside one shadow root as candidates, and leaves firefox's refusal of the former and chromium's of
+the latter to the retry of [ADR-0030](0030-refused-focus-next-candidate.md) (decision 4): two
+splits more than the Context lists. It drops an area whose `usemap` has no `#`, as every engine
+does, and one whose map or image alone sits inside a shadow root, as firefox and webkit do;
+chromium focuses the areas of a map inside a shadow root whose image is in the light tree, a sixth
+documented deviation under decision 5 — the image is not in the area's tree, and pairing across a
+shadow boundary would contradict [ADR-0008](0008-shadow-dom.md). `rectOf` lays the coords over the
+image's border box as written (decision 2), and no engine scales them when CSS resizes the image,
+so the regions of a resized image stay where its coords say, in the engine as on every engine.
+
+**Resolving an area's container by its image, measured complete.** `containerOf` starting from
+`imageOf(area) ?? area`, and `collectNavNodes` adding the areas of every map outside the container
+that an `img[usemap]` inside it names by `name` or `id`, of the image's tree: 3 729 B min+gzip on
+the spatial line at 9436bc9, 101 bytes more than the 3 628 B shipped, where the first spike's 28
+were `containerOf` alone; core, focus ring and debug unchanged. It typechecks, builds and passes
+the spatial and debug suites on chromium. Not adopted: the rule of decision 5 stands, a map beside
+its image. Measured on 2026-09-26 on a detached worktree with a copy of `scripts/size-budget.ts`
+printing bytes, both deleted.
+
+Evidence:
+
+- Tests, green at 9436bc9 on chromium, firefox and webkit, since they pin what the code already
+  answers: "pairs an area with an image of its own tree, by the map's name or id" in
+  `src/tabbable.browser.test.ts`; "lays the coords over an image scaled by CSS as written,
+  unscaled", "reaches the area of a second map of the same name, where the engine focuses it" and
+  "does not offer an area whose usemap has no leading #" in the `describe` of this record in
+  `src/spatial/spatial.browser.test.ts`; "lays an area's coords over its image as written, whatever
+  size CSS gives the image" in `src/dom/dom.browser.test.ts`. The second-map test reads whether the
+  engine takes the area before asserting, as the two-image test of the record does.
+- 2026-09-26: `bun run test` → 622 passed, 1 skipped (623) in 32 files, of which `bun run
+  test:unit` 121 in 14 and `bun run test:browser` 501 and the skip in 18; the three touched browser
+  files with `SNAV_BROWSER` at chromium, firefox and webkit → 113 passed, 1 skipped each.
+- Bytes: `bun run build && bun run check:size` at 9436bc9, every line as on the record's date; the
+  alternative above on a detached worktree of the same commit, the same day.
+- The specification's §4 paragraph on the area, and `docs/en/navigation.md` with its mirror, carry
+  the measured cases from this date.

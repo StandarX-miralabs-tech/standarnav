@@ -186,7 +186,17 @@ three and stay out; what the engines split on — an area with `tabindex="-1"`, 
 `id` alone, a map whose first image is hidden and a later one shown — is left to the retry of R21 (Playwright, 2026-09-26;
 [ADR-0031](adr/0031-image-map-area-candidate.md)). An area belongs to the container that holds its
 map, not its image. Test: "keeps an area of an image map in use, and drops one no image uses" in
-`src/tabbable.browser.test.ts`.
+`src/tabbable.browser.test.ts`. Four cases that record left unmeasured were measured the same day
+(its amendment of 2026-09-26): every engine wires an image to the first `<map>` of its tree whose
+`name` or `id` the `usemap` names, and chromium and webkit focus the areas of a later map of the
+same name where firefox refuses them, so `imageOf` pairs every such map with the image and the
+retry of R21 answers firefox; a `usemap` with no leading `#` wires nothing on any engine, and its
+areas stay out; an image resized by CSS scales its coords on no engine, nor in `rectOf`; a map and
+its image inside one shadow root pair up, as `imageOf` searches the area's own tree, where firefox
+and webkit focus the area and chromium refuses it; a map or an image alone inside a shadow root
+pairs with nothing, though chromium focuses the areas of a map inside a shadow root whose image is
+outside — a deviation that amendment records, not a seventh exception below. Test: "pairs an area
+with an image of its own tree, by the map's name or id" in `src/tabbable.browser.test.ts`.
 
 Tabbable is focusable and in the sequential order: `tabIndex >= 0`, or an **editing host** — an
 editable element whose parent is not editable — that carries no `tabindex` attribute

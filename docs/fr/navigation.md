@@ -39,8 +39,9 @@ candidat au départ (section suivante) ; restent les refus sur lesquels les mote
 `<embed>` avec un `type` et sans `src` sur chromium et webkit, un `<object>` vide et un lien avec un
 `tabindex` dans un hôte d'édition sur firefox (Playwright, 2026-09-24), et une zone de carte
 d'image avec `tabindex="-1"` ou d'une carte dont la première image est cachée et une suivante
-visible sur chromium et webkit, ou d'une carte nommée par son seul `id` sur webkit (Playwright,
-2026-09-26). Tests : « reports a move whose target refused the focus as not
+visible sur chromium et webkit, d'une carte nommée par son seul `id` sur webkit, d'une carte
+suivante du même nom sur firefox, et d'une carte et son image dans un même shadow root sur chromium
+(Playwright, 2026-09-26). Tests : « reports a move whose target refused the focus as not
 made » et le `describe` « spatialPlugin — a refused candidate hands the move on (ADR-0030) »
 (`src/spatial/spatial.browser.test.ts`) ; le raisonnement est dans [ADR-0030](../adr/0030-refused-focus-next-candidate.md).
 
@@ -71,7 +72,18 @@ chose qui y ressemble. Les attributs que le parcours lit sont dans [attributes.m
   image uses » (`src/tabbable.browser.test.ts`) et le `describe` « spatialPlugin — an image-map
   area is scored by its shape over its image (ADR-0031) » (`src/spatial/spatial.browser.test.ts`) ;
   les mesures de chromium, firefox et webkit sont dans
-  [ADR-0031](../adr/0031-image-map-area-candidate.md).
+  [ADR-0031](../adr/0031-image-map-area-candidate.md). Mesuré aussi le 2026-09-26 : un `usemap`
+  sans `#` initial ne relie aucune carte sur aucun moteur, et ses zones ne sont pas des
+  candidats ; quand CSS redimensionne l'image, aucun moteur ne met les coordonnées à l'échelle,
+  et le moteur non plus — elles restent des pixels CSS depuis le coin de l'image ; une seconde
+  `<map>` du même nom est un candidat que chromium et webkit focalisent et que firefox refuse,
+  laissé à la relance ci-dessus ; une carte et son image dans un même shadow root s'apparient
+  (firefox et webkit focalisent la zone, chromium la refuse), tandis qu'une carte dans un shadow
+  root dont l'image est dehors, ou une image dedans dont la carte est dehors, ne s'apparie à
+  rien — chromium seul focalise les zones de la première. Tests : « pairs an area with an image
+  of its own tree, by the map's name or id » (`src/tabbable.browser.test.ts`), « lays the coords
+  over an image scaled by CSS as written, unscaled » et « reaches the area of a second map of the
+  same name, where the engine focuses it » (`src/spatial/spatial.browser.test.ts`).
 - Un `div` avec un `onclick` n'est pas focalisable. Donnez-lui `tabindex="0"`, ou utilisez un vrai
   `button`.
 - `[contenteditable]` ne compte que s'il rend l'élément éditable : `contenteditable="false"`, et
