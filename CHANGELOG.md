@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/StandarX-miralabs-tech/standarnav/compare/v0.3.0...v0.3.1) (2026-09-26)
+
+
+### Bug Fixes
+
+* **tabbable:** a visibility: hidden element is not focusable where the browser has no checkVisibility ([75903a7](https://github.com/StandarX-miralabs-tech/standarnav/commit/75903a766be53f5e8e94400b64e9733e293d9782))
+
 ## [0.3.0](https://github.com/StandarX-miralabs-tech/standarnav/compare/v0.2.0...v0.3.0) (2026-09-26)
 
 
