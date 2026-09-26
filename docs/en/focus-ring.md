@@ -41,3 +41,10 @@ chromium, firefox and webkit; [ADR-0020](../adr/0020-focus-ring-defaults.md), am
 invalid with no earlier declaration to fall back to, and `forced-colors: active` suppresses
 `box-shadow`, so the ring disappears in a forced-colours theme — a v1 item on
 [ROADMAP.md](../../ROADMAP.md), not a v0 fix.
+
+The ring surrounds the rect the spatial engine scores its target by. For an `<area>` of an image
+map, which has no box of its own on chromium and webkit and the whole image's on firefox, that is
+the area's `shape` and `coords` laid over its image, so a circle is ringed by its bounding square.
+Test: "wears the shape of an area over its image" (`src/focus-ring/focus-ring.browser.test.ts`),
+on chromium, firefox and webkit; [ADR-0020](../adr/0020-focus-ring-defaults.md), amendment of
+2026-09-26.

@@ -33,9 +33,12 @@ and a veto still ends the move. If the focus lands somewhere else, because an ap
 application put it. `focus(target)` tries only the target it names. What every engine refuses is
 not a candidate to begin with (next section); what remains are refusals the engines split on — an
 `<embed>` with a `type` and no `src` on chromium and webkit, an empty `<object>` and a link with a
-`tabindex` inside an editing host on firefox (Playwright, 2026-09-24). Tests: "reports a move whose
-target refused the focus as not made" and the `describe` "spatialPlugin — a refused candidate hands
-the move on (ADR-0030)" (`src/spatial/spatial.browser.test.ts`); the reasoning is in
+`tabindex` inside an editing host on firefox (Playwright, 2026-09-24), and an image-map area with
+`tabindex="-1"` or of a map whose first image is hidden and a later one shown on chromium and
+webkit, or of a map named by its `id` alone on webkit (Playwright, 2026-09-26). Tests: "reports a
+move whose target refused the focus as not made" and the `describe`
+"spatialPlugin — a refused candidate hands the move on (ADR-0030)"
+(`src/spatial/spatial.browser.test.ts`); the reasoning is in
 [ADR-0030](../adr/0030-refused-focus-next-candidate.md).
 
 `@standarx/nav/spatial` publishes the two functions that walk that list — `containerOf` and
@@ -50,6 +53,20 @@ that looks like it. The attributes the walk reads are in [attributes.md](attribu
   `[contenteditable]`, `[tabindex]` (`src/tabbable.ts`). That list is exported as
   `FOCUSABLE_SELECTOR`, whose string changed on 2026-09-24: its `summary` arm became
   `details>summary:first-of-type`, and its arms were reordered.
+- An `<area href>` of an image map is a candidate since 2026-09-26 when an `<img usemap>` naming
+  its map by its `name` or `id` uses it and is not hidden; the first such image in the document
+  places it. Firefox focuses the area while any of those images shows, chromium and webkit only
+  while the first in the document does. Its place is its `shape` and `coords` laid over the image,
+  not its own box, which
+  chromium and webkit report empty and firefox as the whole image; webkit hit-tests the coords
+  over the image's content box, so on an image with a border or padding its regions sit that far
+  inside the engine's. An area of a map no image uses, or outside any `<map>`, is not a candidate:
+  no engine focuses it. An area belongs to the container that holds its map, not its image, so
+  keep the map beside its image. When an area lands, its image is scrolled into view. Tests: "keeps
+  an area of an image map in use, and drops one no image uses" (`src/tabbable.browser.test.ts`)
+  and the `describe` "spatialPlugin — an image-map area is scored by its shape over its image
+  (ADR-0031)" (`src/spatial/spatial.browser.test.ts`); the measurements of chromium, firefox and
+  webkit are in [ADR-0031](../adr/0031-image-map-area-candidate.md).
 - A `div` with an `onclick` is not focusable. Give it `tabindex="0"`, or use a real `button`.
 - `[contenteditable]` counts only when it makes the element editable: `contenteditable="false"`,
   and `inherit` or an invalid value under a parent that is not editable, are not candidates, since
@@ -81,6 +98,9 @@ that looks like it. The attributes the walk reads are in [attributes.md](attribu
   browser still focuses it. It is the opt-out for an `aria-disabled` item
   ([ADR-0009](../adr/0009-hidden-candidates.md), rule 6). Test: "still rejects disabled on an
   element the browser would focus, ADR-0009 rule 6" (`src/tabbable.browser.test.ts`).
+- A second goes further since 2026-09-26: `inert` on an ancestor of an image map drops its areas,
+  although chromium, firefox and webkit all focus them while the image is outside the inert
+  subtree (Playwright, 2026-09-26). Put `inert` on an ancestor of both the image and the map.
 - `aria-disabled` stays a candidate, on purpose, because the APG wants disabled items reachable.
   `inert` ancestors and elements hidden per `checkVisibility` are dropped.
 - An element with **either** dimension at zero is dropped — the candidate filter tests
@@ -90,16 +110,21 @@ that looks like it. The attributes the walk reads are in [attributes.md](attribu
   both dimensions at once and let that 0 by 40 element through. Such a rect paints nothing, and
   its projection onto the cross axis is empty, so the alignment pass can never call it aligned.
   The rule is zero, not small — a hairline divider or a deliberately slim control stays reachable.
-  A candidate at `opacity: 0` is **not** filtered: that reads a computed style per candidate in
-  the hot loop and misses opacity inherited from an ancestor anyway, so filter C2 is refused for
-  v0 and deferred to v1.
+  An image-map area whose shape describes nothing — a rectangle with fewer than four coordinates,
+  a polygon with fewer than six, a circle with fewer than three or a negative radius — measures as
+  a zero rect and is dropped the same way. Test: "drops a shape that describes nothing"
+  (`src/spatial/spatial.browser.test.ts`). A candidate at `opacity: 0` is **not** filtered: that
+  reads a computed style per candidate in the hot loop and misses opacity inherited from an
+  ancestor anyway, so filter C2 is refused for v0 and deferred to v1.
 - Shadow roots are not traversed when candidates are collected: `getFocusables` is light DOM only
   in v0, deliberately, and a fixture for the other behaviour is parked as a skipped test. The
   reasoning and where it goes in v1 are in [ADR-0008](../adr/0008-shadow-dom.md).
 
 When a move surprises you, read the scored list with `explainMove` from `@standarx/nav/debug`
 (`src/debug.ts`). It does not focus anything, so it cannot see a refusal: when the browser refuses
-its winner, the engine lands on the next candidate instead.
+its winner, the engine lands on the next candidate instead. It reads an image-map area's origin by
+its shape, as the engine does. Test: "reads an area's origin by its shape, as the engine does"
+(`src/debug.browser.test.ts`).
 
 ## Native radios and ranges in `app` mode
 

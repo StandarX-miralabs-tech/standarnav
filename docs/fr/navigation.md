@@ -37,10 +37,12 @@ déplacement s'arrête et renvoie `false`, et le focus reste où l'application l
 `focus(target)` n'essaie que la cible qu'il nomme. Ce que tous les moteurs refusent n'est pas un
 candidat au départ (section suivante) ; restent les refus sur lesquels les moteurs divergent — un
 `<embed>` avec un `type` et sans `src` sur chromium et webkit, un `<object>` vide et un lien avec un
-`tabindex` dans un hôte d'édition sur firefox (Playwright, 2026-09-24). Tests : « reports a move
-whose target refused the focus as not made » et le `describe` « spatialPlugin — a refused
-candidate hands the move on (ADR-0030) » (`src/spatial/spatial.browser.test.ts`) ; le
-raisonnement est dans [ADR-0030](../adr/0030-refused-focus-next-candidate.md).
+`tabindex` dans un hôte d'édition sur firefox (Playwright, 2026-09-24), et une zone de carte
+d'image avec `tabindex="-1"` ou d'une carte dont la première image est cachée et une suivante
+visible sur chromium et webkit, ou d'une carte nommée par son seul `id` sur webkit (Playwright,
+2026-09-26). Tests : « reports a move whose target refused the focus as not
+made » et le `describe` « spatialPlugin — a refused candidate hands the move on (ADR-0030) »
+(`src/spatial/spatial.browser.test.ts`) ; le raisonnement est dans [ADR-0030](../adr/0030-refused-focus-next-candidate.md).
 
 `@standarx/nav/spatial` publie les deux fonctions qui parcourent cette liste — `containerOf` et
 `collectNavNodes` — pour qu'un diagnostic évalue exactement ce que le moteur évalue, et non quelque
@@ -54,6 +56,22 @@ chose qui y ressemble. Les attributs que le parcours lit sont dans [attributes.m
   `<details>`, `[contenteditable]`, `[tabindex]` (`src/tabbable.ts`). Cette liste est exportée
   sous le nom `FOCUSABLE_SELECTOR`, dont la chaîne a changé le 2026-09-24 : son bras `summary` est
   devenu `details>summary:first-of-type`, et ses bras ont été réordonnés.
+- Un `<area href>` de carte d'image est un candidat depuis le 2026-09-26 quand un `<img usemap>`
+  qui nomme sa carte par son `name` ou son `id` l'utilise et n'est pas caché ; la première image
+  de ce genre dans le document le place. Firefox focalise la zone tant que l'une de ces images est
+  visible, chromium et webkit seulement tant que la première du document l'est. Sa place est sa
+  forme, `shape` et `coords`, posée sur l'image, et
+  non sa propre boîte, que chromium et webkit rapportent vide et firefox égale à toute l'image ;
+  webkit teste les coordonnées sur la boîte de contenu de l'image, donc sur une image à bordure ou
+  à marge intérieure ses régions sont décalées d'autant vers l'intérieur par rapport à celles du
+  moteur. Une zone d'une carte qu'aucune image n'utilise, ou hors de tout `<map>`, n'est pas un
+  candidat : aucun moteur ne la focalise. Une zone appartient au conteneur qui tient sa carte, pas
+  son image, donc gardez la carte à côté de son image. Quand une zone reçoit le focus, c'est son
+  image qui défile jusqu'à la vue. Tests : « keeps an area of an image map in use, and drops one no
+  image uses » (`src/tabbable.browser.test.ts`) et le `describe` « spatialPlugin — an image-map
+  area is scored by its shape over its image (ADR-0031) » (`src/spatial/spatial.browser.test.ts`) ;
+  les mesures de chromium, firefox et webkit sont dans
+  [ADR-0031](../adr/0031-image-map-area-candidate.md).
 - Un `div` avec un `onclick` n'est pas focalisable. Donnez-lui `tabindex="0"`, ou utilisez un vrai
   `button`.
 - `[contenteditable]` ne compte que s'il rend l'élément éditable : `contenteditable="false"`, et
@@ -87,6 +105,10 @@ chose qui y ressemble. Les attributs que le parcours lit sont dans [attributes.m
   alors que le navigateur le focalise encore. C'est l'échappatoire d'un élément `aria-disabled`
   ([ADR-0009](../adr/0009-hidden-candidates.md), règle 6). Test : « still rejects disabled on an
   element the browser would focus, ADR-0009 rule 6 » (`src/tabbable.browser.test.ts`).
+- Une seconde va plus loin depuis le 2026-09-26 : `inert` sur un ancêtre d'une carte d'image
+  écarte ses zones, alors que chromium, firefox et webkit les focalisent tous tant que l'image est
+  hors du sous-arbre inerte (Playwright, 2026-09-26). Posez `inert` sur un ancêtre de l'image et de
+  la carte à la fois.
 - `aria-disabled` reste un candidat, à dessein, parce que l'APG veut que les éléments désactivés
   restent atteignables. Les ancêtres `inert` et les éléments cachés selon `checkVisibility` sont
   écartés.
@@ -97,10 +119,13 @@ chose qui y ressemble. Les attributs que le parcours lit sont dans [attributes.m
   exigeait les deux dimensions à la fois et laissait passer cet élément de 0 sur 40. Un tel
   rectangle ne peint rien, et sa projection sur l'axe transversal est vide, donc la passe
   d'alignement ne peut jamais le déclarer aligné. La règle est zéro, pas petit — un séparateur
-  d'un pixel ou un contrôle volontairement fin reste atteignable. Un candidat à `opacity: 0`
-  n'est **pas** filtré : cela lirait un style calculé par candidat dans la boucle chaude et
-  manquerait de toute façon l'opacité héritée d'un ancêtre, donc le filtre C2 est refusé pour la
-  v0 et reporté à la v1.
+  d'un pixel ou un contrôle volontairement fin reste atteignable. Une zone de carte d'image dont la
+  forme ne décrit rien — un rectangle de moins de quatre coordonnées, un polygone de moins de six,
+  un cercle de moins de trois ou de rayon négatif — mesure un rectangle nul et est écartée de la
+  même façon. Test : « drops a shape that describes nothing »
+  (`src/spatial/spatial.browser.test.ts`). Un candidat à `opacity: 0` n'est **pas** filtré : cela
+  lirait un style calculé par candidat dans la boucle chaude et manquerait de toute façon
+  l'opacité héritée d'un ancêtre, donc le filtre C2 est refusé pour la v0 et reporté à la v1.
 - Les racines shadow ne sont pas traversées lors de la collecte des candidats : `getFocusables`
   ne voit que le DOM léger en v0, délibérément, et une fixture pour l'autre comportement est
   garée sous forme de test ignoré. Le raisonnement et la destination en v1 sont dans
@@ -108,7 +133,9 @@ chose qui y ressemble. Les attributs que le parcours lit sont dans [attributes.m
 
 Quand un déplacement vous surprend, lisez la liste évaluée avec `explainMove` de
 `@standarx/nav/debug` (`src/debug.ts`). Il ne focalise rien, et ne peut donc pas voir un refus :
-quand le navigateur refuse son gagnant, le moteur atterrit sur le candidat suivant.
+quand le navigateur refuse son gagnant, le moteur atterrit sur le candidat suivant. Il lit
+l'origine d'une zone de carte d'image par sa forme, comme le moteur. Test : « reads an area's
+origin by its shape, as the engine does » (`src/debug.browser.test.ts`).
 
 ## Radios et curseurs natifs en mode `app`
 

@@ -38,21 +38,19 @@ ADR-0017 governs `scripts/size-budget.ts`. Two of its rules bite:
 - **Rule 4.** A cap is raised only by a dated amendment to ADR-0017, **in its own commit,
   before** the commit that needs the room. Never in the pull request that exceeded it.
 
-Six lines have less than 64 bytes of room. Measured 2026-09-24 with `bun run build && bun run
+Five lines have less than 64 bytes of room. Measured 2026-09-26 with `bun run build && bun run
 check:size`, the bytes being the script's own min+gzip figure before it rounds to kB:
 
 | Line | min+gzip | cap | left |
 |---|---|---|---|
+| debug | 503 B | 512 B (0.50 kB) | 9 bytes |
 | gamepad engine | 2 549 B | 2 560 B (2.50 kB) | 11 bytes |
-| debug | 499 B | 512 B (0.50 kB) | 13 bytes |
 | keyboard layout azerty | 499 B | 512 B (0.50 kB) | 13 bytes |
-| spatial engine | 3 318 B | 3 328 B (3.25 kB) | 10 bytes |
 | keyboard layout qwerty | 459 B | 512 B (0.50 kB) | 53 bytes |
 | svelte adapter | 1 481 B | 1 536 B (1.50 kB) | 55 bytes |
 
-A one-line change to `src/gamepad/`, `src/debug.ts`, `src/keyboard/layouts/azerty.ts`,
-`src/spatial/`, `src/keyboard/layouts/qwerty.ts` or `src/svelte/` can go red, and so can one to
-`src/dom/raf.ts` or `src/dom/platform.ts`, which the spatial line carries, or to `src/internal/`,
+A one-line change to `src/debug.ts`, `src/gamepad/`, `src/keyboard/layouts/azerty.ts`,
+`src/keyboard/layouts/qwerty.ts` or `src/svelte/` can go red, and so can one to `src/internal/`,
 which every adapter line carries. Run `bun run build && bun run check:size` first, and if the line
 will not fit, write the amendment commit before the code commit.
 
@@ -73,7 +71,7 @@ will not fit, write the amendment commit before the code commit.
   "on 2026-09-21", or a dated amendment — is a measurement, not a stale claim: leave it.
 - Numbers, `sed` and scripted replacements corrupt Markdown and TypeScript in ways a diff
   hides. Reread the whole diff before committing.
-- ADRs: one per pull request, next free number is ADR-0031, the skeleton and the index are
+- ADRs: one per pull request, next free number is ADR-0032, the skeleton and the index are
   in `docs/adr/README.md`. ADR-0004 was withdrawn on 2026-09-20 and its number is not reused.
 
 ## What never reaches a committed file
