@@ -88,7 +88,7 @@ gains a line pointing at it rather than being deleted.
 
 ## Index
 
-Status as of 2026-09-22. "Accepted, one rider Proposed" means the decision holds
+Status as of 2026-09-26. "Accepted, one rider Proposed" means the decision holds
 and one named detail inside it still waits on the owner. Two rows changed on
 2026-09-20: ADR-0009 moved from Proposed to Accepted when its two behaviour
 changes were settled in opposite directions, and ADR-0012's rider closed on
@@ -96,8 +96,9 @@ release-please. On 2026-09-22 ADR-0012 gained the first publication and the
 switch to trusted publishing, the `docs/en` and `docs/fr` of ADR-0015 came
 into existence, and ADR-0011's rider closed on `@standarx/nav/auto` when
 [ADR-0023](0023-vanilla-auto-mount.md) named it — leaving four records carrying
-one: ADR-0010, ADR-0013, ADR-0014 and ADR-0015. Every such change carries a
-dated amendment in its record.
+one: ADR-0010, ADR-0013, ADR-0014 and ADR-0015. On 2026-09-26 ADR-0012 gained
+its third release, `0.3.0`, and the merge rule that release's changelog taught.
+Every such change carries a dated amendment in its record.
 
 | ADR | Title | Status | What it decides |
 |---|---|---|---|
@@ -111,7 +112,7 @@ dated amendment in its record.
 | [0009](0009-hidden-candidates.md) | Which candidates count as visible | Accepted | Which elements are dropped from a move. The zero-size change (C1) is accepted for v0 and shipped in this pull request, pinned by three fixtures; `opacity: 0` (C2) is refused for v0 and deferred to v1. Since 2026-09-24 the set also drops what all three engines refuse to focus: any `<summary>` but the first child of a `<details>`, and a link or an editable-only element inside an editing host with no `tabindex` ([ADR-0030](0030-refused-focus-next-candidate.md)). Since 2026-09-26 it keeps an `<area>` of an image map in use, visible as its image is, and measures it by its shape over that image ([ADR-0031](0031-image-map-area-candidate.md)). |
 | [0010](0010-dev-mode-diagnostics.md) | Development-mode diagnostics | Accepted, one rider Proposed | A `@standarx/nav/debug` subpath with a reachability scan, depth and redirection warnings, and `explainMove` calling the engine's own winner rule. Open: (O1) the `cursor: pointer` heuristic default. Since 2026-09-24 `explainMove`'s winner may be a candidate the browser refuses and the engine skips, a fourth documented difference. Since 2026-09-26 it reads an image-map area's origin through the engine's own `rectOf`. |
 | [0011](0011-package-layout-and-adapters.md) | One package, subpath exports, adapters as subpaths | Accepted | One published package with fourteen subpaths built today, adapters as optional peers, React, Vue, Svelte and Angular shipped and passing the parity suite, zero runtime dependencies enforced by `check:package`. Its one rider closed on 2026-09-22: the vanilla auto-mount helper is `/auto` ([ADR-0023](0023-vanilla-auto-mount.md)). |
-| [0012](0012-versioning-and-release.md) | Versioning and release | Accepted | Semver from 0.x with breaking minors, publication from CI with provenance, `next` dist-tag for device trials, and release-please deriving the version and the CHANGELOG from the commit history. The tooling released `0.1.0` on 2026-09-22 with a signed provenance statement; from the same day the publish authenticates through npm trusted publishing, direct publish allowed, which released `0.2.0` on 2026-09-23 with the token revoked. A `.md`-only change is `docs`, never `fix(docs)`. |
+| [0012](0012-versioning-and-release.md) | Versioning and release | Accepted | Semver from 0.x with breaking minors, publication from CI with provenance, `next` dist-tag for device trials, and release-please deriving the version and the CHANGELOG from the commit history. The tooling released `0.1.0` on 2026-09-22 with a signed provenance statement; from the same day the publish authenticates through npm trusted publishing, direct publish allowed, which released `0.2.0` on 2026-09-23 with the token revoked, and `0.3.0` on 2026-09-26 on the first attempt, the verbose log showing the token exchange. Since that day a pull request is merged with a merge commit whose body is empty, meant to make the CHANGELOG list each commit once and proven on the first merge under the rule. A `.md`-only change is `docs`, never `fix(docs)`. |
 | [0013](0013-browser-baseline-and-fallbacks.md) | Browser baseline: most recent first, fallbacks for older runtimes | Accepted, one rider Proposed | Build target es2020, a fallback for every newer API, and three support tiers. Open: the decision date for a separate legacy build. |
 | [0014](0014-device-and-browser-matrix.md) | Device and browser test matrix | Accepted, one rider Proposed | Three engines in CI, no device claim without a dated device report, a matrix in three columns of which two are empty today. Open: which devices are bought and which are borrowed. |
 | [0015](0015-language-policy.md) | Language policy | Accepted, one rider Proposed | Every committed file is English; user documentation is `docs/en` canonical with a strict `docs/fr` mirror — four pages on each side since 2026-09-22. Open: the CI mechanism enforcing that mirror. |

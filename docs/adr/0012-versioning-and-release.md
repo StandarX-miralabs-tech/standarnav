@@ -10,7 +10,9 @@ and wired as of the third; its first run, on 2026-09-22, stopped at an organisat
 amendment), and its second put `@standarx/nav@0.1.0` on npm the same day, with a provenance
 attestation (sixth amendment). From that amendment on, the publish step authenticates through npm
 trusted publishing; `0.2.0` went out through it on 2026-09-23, and the token that published `0.1.0`
-is revoked (seventh amendment).
+is revoked (seventh amendment). `0.3.0` followed on 2026-09-26, green on its first attempt, the
+verbose log showing the token exchange; its changelog showed a merge commit read twice, and since
+then a pull request is merged with a merge commit whose body is empty (eighth amendment).
 
 ## Context
 
@@ -65,7 +67,8 @@ as four lines. Two answers, and they are the work the wiring has to settle: a sq
 subject is written deliberately rather than inherited from the last commit of the branch, and an
 edit to the generated release pull request before it is merged — release-please leaves that pull
 request open precisely so it can be edited. Neither is configured today, so neither is a claim
-about how this repository merges; they are what the rider's closure obliges.
+about how this repository merges; they are what the rider's closure obliges. The merge is settled
+by the eighth amendment, 2026-09-26: a merge commit with an empty body, not a squash.
 
 **This was unwired when it was decided, and is wired now** — `release-please-config.json`,
 `.release-please-manifest.json` and `.github/workflows/release.yml`, the third amendment below.
@@ -73,7 +76,9 @@ Until it has actually run, [CONTRIBUTING.md](../../CONTRIBUTING.md) and
 [the pull-request template](../../.github/PULL_REQUEST_TEMPLATE.md) say the same thing — the
 pull-request description carries the one sentence describing the user-facing change, and that
 sentence becomes the changelog entry. The difference after wiring is that the sentence is taken
-from the squashed commit subject instead of being copied by hand.
+from the squashed commit subject instead of being copied by hand — a squash that never happened:
+since the eighth amendment the merge commit's body is left empty and the branch's commit subjects
+are what is read.
 
 **Publication from GitHub Actions only**, in the `release.yml` workflow the third amendment records:
 lint, `bun run check:docs`, typecheck, build, the build-drift check, then `bun run check:package` —
@@ -111,12 +116,15 @@ device test exists.
 
 - A pull request that changes runtime behaviour states its user-facing effect in one sentence: in
   the pull-request description today, and in the squashed commit subject release-please reads once a
-  release has run. A docs-only or refactor pull request writes "internal only" instead of
-  skipping it, the phrase the template asks for (`.github/PULL_REQUEST_TEMPLATE.md:29`).
+  release has run — no pull request was ever squashed; since the eighth amendment the subjects read
+  are the branch's commits, the merge commit's body being left empty. A docs-only or refactor pull
+  request writes "internal only" instead of skipping it, the phrase the template asks for
+  (`.github/PULL_REQUEST_TEMPLATE.md:29`).
 - One version number covers core, engines and every adapter ([ADR-0011](0011-package-layout-and-adapters.md)),
   so the changelog entry must name the affected subpath — "fix(spatial)", not "fix".
 - Nothing about the infrastructure blocks a release: Actions runs, the CI workflow is green, and
-  the release workflow has run end to end once, on 2026-09-22, which is what put `0.1.0` on npm.
+  the release workflow has run end to end three times — on 2026-09-22 for `0.1.0`, on 2026-09-23
+  for `0.2.0` and on 2026-09-26 for `0.3.0`.
 - A commit whose type release-please hides — `docs`, `refactor`, `test`, `chore`, `ci` — bumps
   nothing and publishes nothing, so the README a consumer reads on the package page is the one in
   the last published tarball until the next `feat`, `fix` or `perf` lands. A change confined to
@@ -390,6 +398,88 @@ and none for the `npm` environment, and the organisation exposes none to it. Fro
 publisher is the only way CI publishes; a rename of `release.yml` or of the `npm` environment stops
 it until npmjs.com is told, and the recovery is there, not in a secret.
 
+## Amendment, 2026-09-26: `0.3.0` on the first attempt, the log shows the exchange, and a merge commit release-please reads twice
+
+**The second release through the trusted publisher, green on its first attempt.** The owner merged
+the release pull request #22 on 2026-09-26 at 04:33 UTC; `main` moved to `d13b4f6`, the merge of
+the release commit `caa7ff5` (`chore(main): release 0.3.0`). Run `36218206449` on that commit ran
+its three jobs in sequence and green: `release-please` from 04:33:58 to 04:34:10 UTC, which created
+the tag `v0.3.0` on `d13b4f6` and the GitHub release; `verify` from 04:34:13 to 04:35:34; `publish`
+from 04:35:37 to 04:35:50. The step's own log, at the `verbose` level the seventh amendment asked
+for: filename `standarx-nav-0.3.0.tgz`, package size 140.8 kB, unpacked size 470.5 kB, 115 files,
+shasum `081edb6244a734ae9dcd9f2d4ae9fec05bd3521f`; then `npm http fetch POST 201
+https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/@standarx%2fnav`, `npm verbose
+oidc Successfully retrieved and set token`, `npm verbose oidc Enabling provenance`, "Signed
+provenance statement with source and build information from GitHub Actions", "Provenance statement
+published to transparency log: https://search.sigstore.dev/?logIndex=2965144380", and
+`+ @standarx/nav@0.3.0`. The line the seventh amendment could not show is on the record now: the
+exchange was accepted, and the attestation that follows is evidence this time because the `oidc`
+line precedes it.
+
+**The registry agrees, within two minutes.** `curl -s https://registry.npmjs.org/@standarx/nav`
+at 04:37:46 UTC answers `dist-tags.latest` `0.3.0`, `time.0.3.0` `2026-09-26T04:37:22.931Z`,
+`dist.fileCount` 115, `dist.unpackedSize` 470457, the shasum above, a
+`dist.attestations.provenance` of predicate type `https://slsa.dev/provenance/v1`, and an
+`_npmUser` named "GitHub Actions" carrying `trustedPublisher.id` `github`; the tarball URL answered
+200 at its first probe, a minute later. The `readme` the registry serves is the tree's README at
+`d13b4f6`, badges first — the "not published yet" page of `0.1.0` is gone — and its status line
+names `0.2.0`, the corollary the Consequences state: a `docs` commit changes nothing on the package
+page, and the line this amendment's pull request corrects reaches it with the next `feat`, `fix`
+or `perf`.
+
+**Twenty-eight lines for eighteen changes.** The `0.3.0` section of `CHANGELOG.md` carries twelve
+entries under Features and sixteen under Bug Fixes; the GitHub release body is the same text.
+Eighteen changes are distinct. Ten entries carry the SHA of a merge commit — `cc0b219`, `db852d8`,
+`16692d2`, `58c3c24`, `53d674b`, `e36ed4b`, `2534f0a`, `cf28e57`, `fdae90e`, `b986e7f` — and seven
+of the ten repeat, byte for byte, one commit of the branch they merged; the other three (#20, #29,
+#31) blend the subjects of several. The cause is mechanical, and read in the tool rather than
+guessed. Every one of the eighteen merges between `v0.2.0` and `v0.3.0` is a two-parent merge
+commit (`git log --merges v0.2.0..v0.3.0`) whose subject is "Merge pull request #N from ..." and
+whose body is the pull request's title — the repository's `merge_commit_message` setting is
+`PR_TITLE` (`gh api repos/StandarX-miralabs-tech/standarnav`, 2026-09-26), whichever tool presses
+merge. release-please parses the *message* of every commit on `main` — the pull request's body
+only for a `BEGIN_COMMIT_OVERRIDE` block, which none of these carries — and `splitMessages` in its
+`src/commit.ts` splits a message wherever a blank line is followed by a conventional type — the
+expression `\r?\n\r?\n(?=(?:feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(?:\(.*?\))?: )`
+— so a merge commit whose body begins with `fix(spatial): ...` yields a second parsed commit,
+carrying the merge SHA and the title's wording, next to the branch commits it summarises
+(`googleapis/release-please`, `main` at `edce3d8`, fetched 2026-09-26; the bundle
+`release-please-action@v5.0.0` runs, its `dist/index.js` fetched the same day, carries the same
+expression and `exports.VERSION = '17.6.0'`). Reproduced on 2026-09-26, in a scratch project
+outside this tree: the 77 commits of `v0.2.0..v0.3.0`, messages read with `git log --format=%B`,
+fed to `parseConventionalCommits` and `DefaultChangelogNotes` of `release-please@17.6.0`, give
+back the 28 lines of the section byte for byte; the four merges whose title is a plain sentence
+(#7, #9, #16, #17) yield nothing; and with the ten conventional bodies emptied, or replaced by a
+plain sentence, the same input yields eighteen lines, one per change. The Decision's sentence
+about a squash merge never described this repository: nothing
+was configured, as it says, and the merges that were made are not squashes. Nor would a squash have
+helped as GitHub is configured: `gh api repos/StandarX-miralabs-tech/standarnav` on 2026-09-26
+answers `squash_merge_commit_message` `COMMIT_MESSAGES`, a body listing the branch's commit
+messages, which the same expression splits into the same lines.
+
+**Decided: a merge commit with an empty body.** From this amendment on, a pull request is merged
+with `gh pr merge N --merge --body ""`. The merge commit stays — the branch's commits are the record
+the ADRs cite by SHA, and rule 4 of [ADR-0017](0017-size-budgets.md) needs the cap amendment in its
+own commit *before* the code, which a squash folds into one — and its body is empty, so the only
+line release-please sees is "Merge pull request #N from ...", which no type matches; the changelog
+then lists each commit of the branch once, which is what "the commit subject *is* the release
+note" in the Decision meant. `gh` `2.74.2` sends the body whenever the flag is passed, empty or
+not: `pkg/cmd/pr/merge/merge.go` reads `cmd.Flags().Changed("body")` and sets `BodySet`, and
+`http.go` puts `commitBody` on the `mergePullRequest` mutation when it is set (both fetched at tag
+`v2.74.2` on 2026-09-26). What is not proven until the first merge under this rule is GitHub's
+side — whether an empty `commitBody` produces an empty body or the default one; the pull request
+carrying this amendment is that merge, and `git log -1 --format=%B` on its merge commit is the
+proof or the refutation, to be recorded in the amendment after this one. If GitHub substitutes its
+default, the fallback is a plain sentence as the body, which the expression does not split either.
+GitHub has a setting for the same end: `merge_commit_message` accepts `BLANK`, which empties the
+default body of every merge, from the command line or the web page; it is a repository setting,
+and the owner's to flip. The `0.3.0` changelog and release body are not rewritten: they are what the tool wrote from the
+history it was given, and the owner chose on 2026-09-26 to record the cause rather than edit the
+result. [CONTRIBUTING.md](../../CONTRIBUTING.md), [the pull-request
+template](../../.github/PULL_REQUEST_TEMPLATE.md) and [AGENTS.md](../../AGENTS.md) say the same
+thing from this amendment's pull request on; the pull request's title stays a conventional
+sentence, for the reader of the list, and is not what the changelog is written from.
+
 ## Alternatives considered
 
 **Manual publish from the maintainer's laptop**, after a local build. Rejected: no
@@ -423,8 +513,8 @@ first outside pull request arrives.
 
 ## Evidence
 
-- `package.json` in this repository: `"version": "0.2.0"`, written by release-please in the release
-  commit `7d8dab5` (`0.1.0` in `da0b65a` before it), and a `publishConfig` block with
+- `package.json` in this repository: `"version": "0.3.0"`, written by release-please in the release
+  commit `caa7ff5` (`0.2.0` in `7d8dab5` and `0.1.0` in `da0b65a` before it), and a `publishConfig` block with
   `"access": "public"` and `"provenance": true`.
   The declared scripts are listed in the first amendment above; its `devDependencies` carry
   `publint` `^0.3.24` and `@arethetypeswrong/cli` `^0.18.5`, the two linters `check:package` runs.
@@ -436,14 +526,20 @@ first outside pull request arrives.
   https://registry.npmjs.org/@standarx/nav` on 2026-09-23 answers `dist-tags.latest` `0.2.0` and
   `time.0.2.0` `2026-09-23T18:18:07.205Z`, with the provenance and publisher fields the seventh
   amendment lists.
+- `@standarx/nav@0.3.0` is on the registry, published through the trusted publisher on the first
+  attempt: the same `curl` on 2026-09-26 answers `dist-tags.latest` `0.3.0`, `time.0.3.0`
+  `2026-09-26T04:37:22.931Z`, `dist.fileCount` 115, `dist.unpackedSize` 470457, with the provenance
+  and publisher fields the eighth amendment lists, and the publish log carries `npm verbose oidc
+  Successfully retrieved and set token`.
 - No TV device test has ever been run, for want of the hardware and of an emulator.
 - Release tooling: `.github/workflows/` holds `ci.yml`, `release.yml` and `pages.yml`;
-  `release-please-config.json` and `.release-please-manifest.json` exist, the manifest at `0.2.0`.
+  `release-please-config.json` and `.release-please-manifest.json` exist, the manifest at `0.3.0`.
   There is no `.changeset/` directory, and `package.json` declares neither release-please nor
   changesets among its `devDependencies` — release-please is a GitHub Action, not a dependency.
-  The workflow has run end to end twice: run `35774862381` on `68bb0c3` for `0.1.0`, three jobs
-  green (sixth amendment), and run `35796937190` on `1d95b94` for `0.2.0`, green on its third
-  attempt (seventh amendment).
+  The workflow has run end to end three times: run `35774862381` on `68bb0c3` for `0.1.0`, three
+  jobs green (sixth amendment), run `35796937190` on `1d95b94` for `0.2.0`, green on its third
+  attempt (seventh amendment), and run `36218206449` on `d13b4f6` for `0.3.0`, green on its first
+  (eighth amendment).
 - `check:package` is wired and green: `scripts/check-package.ts` packs the tarball
   (`scripts/check-package.ts:68`), runs `publint --strict` on it (`scripts/check-package.ts:74`)
   and `attw --profile esm-only` (`scripts/check-package.ts:75`), and fails when `package.json`
