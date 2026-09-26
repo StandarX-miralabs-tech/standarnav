@@ -35,7 +35,8 @@ not a candidate to begin with (next section); what remains are refusals the engi
 `<embed>` with a `type` and no `src` on chromium and webkit, an empty `<object>` and a link with a
 `tabindex` inside an editing host on firefox (Playwright, 2026-09-24), and an image-map area with
 `tabindex="-1"` or of a map whose first image is hidden and a later one shown on chromium and
-webkit, or of a map named by its `id` alone on webkit (Playwright, 2026-09-26). Tests: "reports a
+webkit, of a map named by its `id` alone on webkit, of a later map of the same name on firefox, and
+of a map and its image inside one shadow root on chromium (Playwright, 2026-09-26). Tests: "reports a
 move whose target refused the focus as not made" and the `describe`
 "spatialPlugin — a refused candidate hands the move on (ADR-0030)"
 (`src/spatial/spatial.browser.test.ts`); the reasoning is in
@@ -66,7 +67,17 @@ that looks like it. The attributes the walk reads are in [attributes.md](attribu
   an area of an image map in use, and drops one no image uses" (`src/tabbable.browser.test.ts`)
   and the `describe` "spatialPlugin — an image-map area is scored by its shape over its image
   (ADR-0031)" (`src/spatial/spatial.browser.test.ts`); the measurements of chromium, firefox and
-  webkit are in [ADR-0031](../adr/0031-image-map-area-candidate.md).
+  webkit are in [ADR-0031](../adr/0031-image-map-area-candidate.md). Measured on 2026-09-26 as
+  well: a `usemap` with no leading `#` wires no map on any engine, and its areas are not
+  candidates; when CSS resizes the image, no engine scales the coords, and neither does the
+  engine — they stay CSS pixels from the image's corner; a second `<map>` of the same name is a
+  candidate that chromium and webkit focus and firefox refuses, left to the retry above; a map and
+  its image inside one shadow root pair up (firefox and webkit focus the area, chromium refuses
+  it), while a map inside a shadow root with its image outside, or an image inside with its map
+  outside, pairs with nothing — chromium alone focuses the areas of the first. Tests: "pairs an
+  area with an image of its own tree, by the map's name or id" (`src/tabbable.browser.test.ts`),
+  "lays the coords over an image scaled by CSS as written, unscaled" and "reaches the area of a
+  second map of the same name, where the engine focuses it" (`src/spatial/spatial.browser.test.ts`).
 - A `div` with an `onclick` is not focusable. Give it `tabindex="0"`, or use a real `button`.
 - `[contenteditable]` counts only when it makes the element editable: `contenteditable="false"`,
   and `inherit` or an invalid value under a parent that is not editable, are not candidates, since
