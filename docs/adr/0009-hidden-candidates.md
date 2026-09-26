@@ -26,9 +26,9 @@ and not re-derived here; the last is the one (C1) has since changed.
 | Rule | Where | What it does |
 |---|---|---|
 | `FOCUSABLE_SELECTOR` | `src/tabbable.ts:18-39` | The shape of a candidate: form controls without `disabled`, `a[href]`, `area[href]`, `iframe`, `object`, `embed`, `audio/video[controls]`, `summary`, `[contenteditable]`, `[tabindex]`. |
-| `isHidden` | `src/tabbable.ts:48-57` | `checkVisibility({ contentVisibilityAuto: true, visibilityProperty: true })` where the browser has it; otherwise `offsetParent === null && getClientRects().length === 0`. |
-| `isInert` | `src/tabbable.ts:59-61` | `closest("[inert]")`. An inert subtree is still visible, so it is a separate question. |
-| `aria-disabled` | `isFocusable`, `src/tabbable.ts:63-81`, with the comment saying so at `:78-79` | Stays focusable, on purpose: APG wants disabled menu items and toolbar buttons reachable, unlike natively disabled controls. |
+| `isHidden` | `src/tabbable.ts:48-61` | `checkVisibility({ contentVisibilityAuto: true, visibilityProperty: true })` where the browser has it; otherwise `offsetParent === null && getClientRects().length === 0`. |
+| `isInert` | `src/tabbable.ts:63-65` | `closest("[inert]")`. An inert subtree is still visible, so it is a separate question. |
+| `aria-disabled` | `isFocusable`, `src/tabbable.ts:67-85`, with the comment saying so at `:82-83` | Stays focusable, on purpose: APG wants disabled menu items and toolbar buttons reachable, unlike natively disabled controls. |
 | `aria-hidden` | not filtered anywhere | Deliberate. A roving item is `tabindex="-1"` so the container owns one tab stop, and steering to it is the d-pad's whole job. The opt-out is `data-snav-ignore`, not a filter. |
 | Zero-size filter | `collectNavNodes`, `src/spatial/spatial.ts:188` | `rect.width === 0 \|\| rect.height === 0`. Either dimension, since (C1); the inherited rule asked for both, so a 0x40 element stayed a candidate. |
 
@@ -48,7 +48,7 @@ What is not tested, and where the rules are therefore only as good as a reading:
 | Gap | Current behaviour, by reading | Consequence |
 |---|---|---|
 | `visibility: hidden` on the fallback path | `checkVisibility({ visibilityProperty: true })` excludes it; the fallback does not, because such an element still has client rects and an offset parent | The rule differs between a modern desktop browser and the fallback runtimes — and the fallback is the live path on the whole supported TV tier, since `checkVisibility` is Chrome 105 / Safari 17.4 / Firefox 106 (caniuse and MDN BCD, fetched 2026-09-18) while the supported tier starts at Chromium 85 ([ADR-0013](0013-browser-baseline-and-fallbacks.md)) |
-| `opacity: 0` | Kept. Not asked of `checkVisibility` (the `opacityProperty` option is not passed at `src/tabbable.ts:54`) and invisible to the fallback | A fade-out overlay stays a target while it is transparent |
+| `opacity: 0` | Kept. Not asked of `checkVisibility` (the `opacityProperty` option is not passed at `src/tabbable.ts:58`) and invisible to the fallback | A fade-out overlay stays a target while it is transparent |
 | `clip-path` | Kept. Nothing reads it | An element clipped to nothing is a target |
 | Clipped by an `overflow: hidden` ancestor | Kept | Sometimes right, sometimes not: see the decision |
 | Outside the scroller's viewport | Kept | This is exactly how a long list works: the move lands, then `scrollFocusIntoView` brings it in with `scrollIntoView` (`src/spatial/spatial.ts:294-306`) |
@@ -181,7 +181,7 @@ measured on chromium, firefox and webkit on 2026-09-24 and recorded in
   its `<details>` and one outside any `<details>` are refused on all three; the first child
   `<summary>` is the only one the browser treats as the control.
 - `isFocusable` rejects an element with no `tabindex` inside an editing host that is a link, or
-  that is focusable only for being editable (`src/tabbable.ts:69-77`). The arms that take the focus
+  that is focusable only for being editable (`src/tabbable.ts:73-81`). The arms that take the focus
   in their own right, which such an element does not match, are now a named list
   (`NATIVE_SELECTOR`, `:18-30`), and `FOCUSABLE_SELECTOR` is that list followed by `a[href]`,
   `[contenteditable]:read-write` and `[tabindex]` (`:32-39`).
@@ -196,6 +196,36 @@ others focus — an `<embed>` with a `type` and no `src`, an empty `<object>`, a
 one when the browser refuses it (ADR-0030). Tests: "drops a link and a nested editable of an
 editing host, unless they carry a tabindex" and "takes only the first summary child of a details as
 focusable" in `src/tabbable.browser.test.ts`, which fail at cc0b219.
+
+## Amendment, 2026-09-26: an image-map area is a candidate, by its shape
+
+[Issue #30](https://github.com/StandarX-miralabs-tech/standarnav/issues/30) found the visibility
+row wrong for one element. Chromium and webkit report an `<area href>` of a map in use with no
+client rect, no offset parent and `checkVisibility()` `false`, yet focus it and reach it with Tab,
+as firefox does; so `isHidden` dropped on two engines a candidate all three focus. Measured on
+2026-09-26 and recorded in [ADR-0031](0031-image-map-area-candidate.md), the candidate set and two
+rows of the Context table change:
+
+- **The candidate set** gains the areas of the image maps in use: `area[href]` was in the selector
+  already, and an area is no longer hidden when an image uses its map and is itself visible. An
+  area of a map no image uses, or one outside any `<map>`, stays out, as every engine refuses it.
+- **`isHidden`** answers for an `<area>` with the image that uses its map: hidden when there is
+  none, otherwise what `isHidden` says of the image (`src/tabbable.ts:49-52`). The image is the
+  first `img[usemap]` of the area's tree naming the map by its `name` or `id` that is not hidden,
+  or the last when all are, found by `imageOf` (`:155-176`). `isInert` still reads the area itself, so `inert` on the map's ancestors drops it
+  although every engine focuses it; ADR-0031 records that as a deviation.
+- **The zero-size filter** reads its rect through `rectOf` (`src/dom/platform.ts:14-48`) on the same
+  line, `src/spatial/spatial.ts:182`: `getBoundingClientRect()` for every candidate except an area
+  with an image, whose rect is its `shape` and `coords` laid over the image's box. That box is
+  all zero for an area on chromium and webkit and the image's whole rect on firefox. A shape that
+  describes nothing — too few coordinates, or a negative radius — is a zero rect, and (C1) drops it
+  at `:188` like any other.
+
+The rule is still one rule in one place: the Tab key and the d-pad read the same `isFocusable`.
+Tests: "keeps an area of an image map in use, and drops one no image uses"
+(`src/tabbable.browser.test.ts`) and "drops a shape that describes nothing"
+(`src/spatial/spatial.browser.test.ts`), which fail at cf28e57, the first on chromium and webkit,
+the second on firefox.
 
 ## Alternatives considered
 
@@ -217,8 +247,8 @@ so it stays rejected: `src/spatial/spatial.browser.test.ts:451-507`.
 
 ## Evidence
 
-- `src/tabbable.ts:18-39`, `:48-57`, `:59-61`, `:63-81` — `FOCUSABLE_SELECTOR`, `isHidden`,
-  `isInert`, `isFocusable` and the `aria-disabled` comment at `:78-79`.
+- `src/tabbable.ts:18-39`, `:48-61`, `:63-65`, `:67-85` — `FOCUSABLE_SELECTOR`, `isHidden`,
+  `isInert`, `isFocusable` and the `aria-disabled` comment at `:82-83`.
 - `src/tabbable.browser.test.ts:36-51` — the only visibility coverage that exists:
   `hidden`, `display: none`, `inert`, `aria-disabled`.
 - `src/spatial/spatial.ts:188` — the zero-size filter, either dimension, inside `collectNavNodes`
@@ -235,11 +265,11 @@ so it stays rejected: `src/spatial/spatial.browser.test.ts:451-507`.
 - State at HEAD in this repository: the zero-size filter is
   `rect.width === 0 || rect.height === 0` at `src/spatial/spatial.ts:188`, under a comment at
   `:183-187` naming (C1) and this record — so (C1) is decided and written.
-  `src/tabbable.ts:48-57` carries `isHidden` with the
+  `src/tabbable.ts:48-61` carries `isHidden` with the
   `checkVisibility({ contentVisibilityAuto: true, visibilityProperty: true })` call and the
   `offsetParent === null && getClientRects().length === 0` fallback: `opacityProperty` is not
   passed, and the fallback has no `visibility` test, so rule 5 is also still to be written.
-  `src/tabbable.ts:63-81` is `isFocusable`, with `aria-disabled` deliberately absent and the
+  `src/tabbable.ts:67-85` is `isFocusable`, with `aria-disabled` deliberately absent and the
   comment saying so; nothing filters `aria-hidden` anywhere.
 - Fixtures in this repository: `src/spatial/spatial.browser.test.ts:648-696`, the
   candidate filter — "drops an element with no size at all" (`:663`), "drops one that is flat on a
@@ -248,7 +278,7 @@ so it stays rejected: `src/spatial/spatial.browser.test.ts:451-507`.
   and `min-width`, because a Chromium UA button measures 16 x 6 at width 0 and would never reach the
   filter at all. `src/spatial/spatial.browser.test.ts:473-507`, the three `aria-hidden` cases,
   carrying the trap they pin. Suite state at HEAD: `bun run test:unit` → 121 passed in
-  14 files; `bun run test:browser` → 484 passed and 1 skipped in 18 files, the skip being the
+  14 files; `bun run test:browser` → 496 passed and 1 skipped in 18 files, the skip being the
   shadow-DOM fixture of [ADR-0008](0008-shadow-dom.md).
 - `checkVisibility` availability: Chrome 105, Safari 17.4, Firefox 106 (caniuse and MDN browser-compat
   data, fetched 2026-09-18; table with URLs in
@@ -256,5 +286,5 @@ so it stays rejected: `src/spatial/spatial.browser.test.ts:451-507`.
   tier of this project: Chromium 85, Safari 15, Firefox 79
   ([ADR-0013](0013-browser-baseline-and-fallbacks.md), decided 2026-09-18).
 - Behaviour of `visibility: hidden` and `opacity: 0` under the fallback is derived by reading the two
-  lines of `src/tabbable.ts:52-56`, not measured in a browser. The fixtures required by this decision are
+  lines of `src/tabbable.ts:56-60`, not measured in a browser. The fixtures required by this decision are
   what will turn that reading into a fact.

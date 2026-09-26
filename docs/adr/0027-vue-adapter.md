@@ -69,7 +69,7 @@ and the `vue-floor` job keeps that true (`.github/workflows/ci.yml:136-161`). `v
 optional peer at `>=3.3.0` and a devDependency at `^3.5.43` (`package.json`).
 
 **9. A budget line of its own**, `vue adapter`, with `vue`, `../input-system.js` and
-`../modality.js` external (`scripts/size-budget.ts:135-141`): 1.40 kB min+gzip, capped at 1.50
+`../modality.js` external (`scripts/size-budget.ts:140-146`): 1.40 kB min+gzip, capped at 1.50
 ([ADR-0017](0017-size-budgets.md), second amendment of 2026-09-23).
 
 **10. Vue's feature flags in the test config.** The esm-bundler build warns once per run when

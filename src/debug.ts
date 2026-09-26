@@ -10,6 +10,7 @@
  * else is worse than no diagnostic at all.
  */
 
+import { rectOf } from "./dom/platform";
 import {
   findBestCandidate,
   type MoveDirection,
@@ -56,7 +57,7 @@ export function explainMove(
 ): SpatialExplanation {
   const root = options.root ?? origin.ownerDocument.body;
   const container = containerOf(origin, root);
-  const originRect = origin.getBoundingClientRect();
+  const originRect = rectOf(origin);
 
   const nodes = collectNavNodes(container, root).filter(
     (node) => node.element !== origin && !node.element.contains(origin),

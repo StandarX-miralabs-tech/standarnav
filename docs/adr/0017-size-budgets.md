@@ -36,7 +36,7 @@ external.
 Not one of those four names is a line here: this repository measures `core`,
 `gamepad engine`, `spatial engine`, `focus ring`, `debug`, `auto mount`,
 `react adapter`, `vue adapter`, `svelte adapter`, `angular adapter`, `keyboard` and one line per
-keyboard layout (`scripts/size-budget.ts:80-186`), and `src/input-system.ts` is
+keyboard layout (`scripts/size-budget.ts:80-191`), and `src/input-system.ts` is
 charged to the core line rather than costed on its own
 (`scripts/size-budget.ts:81-86`). The table is context for the shape of the
 problem, not a set of ceilings.
@@ -58,7 +58,7 @@ historical and only ever quoted with that date attached.
 The budget script lives here: `scripts/size-budget.ts`, wired as
 `bun run check:size` (`package.json`) and run in CI
 (`.github/workflows/ci.yml:57-58`). It declares fourteen lines
-(`scripts/size-budget.ts:80-186`), every one of them capped from a measurement
+(`scripts/size-budget.ts:80-191`), every one of them capped from a measurement
 taken in this repository — the dated amendments below are that record.
 
 ## Decision
@@ -74,14 +74,14 @@ taken in this repository — the dated amendments below are that record.
 3. Caps are the measured value rounded **up to the next quarter kB**. That is
    headroom for noise, not for growth, and the script says so where it fails:
    write the next 0.25 kB above the measurement and record it in an amendment here
-   (`scripts/size-budget.ts:393-397`).
+   (`scripts/size-budget.ts:398-402`).
 4. A cap is raised only by amending this ADR, in its own commit. Never in the
    pull request that exceeded it. The pull request that exceeds a cap either gets
    smaller or gets an amendment first.
 5. **A line without a cap fails the run.** `cap: null` means "measured, not yet
    ceilinged": the line is bundled and reported like any other and the run exits
    non-zero printing the number, so the cap can be written from it
-   (`scripts/size-budget.ts:14-16`, `scripts/size-budget.ts:393-397`). A default
+   (`scripts/size-budget.ts:14-16`, `scripts/size-budget.ts:398-402`). A default
    would be a guess the file ratifies by being green.
 6. The script is **JavaScript only**. This package ships no stylesheet, so nothing
    in the script compiles or measures CSS: it imports `node:fs` and `node:path` and
@@ -99,7 +99,7 @@ taken in this repository — the dated amendments below are that record.
 - No cap can be written before a build exists, so rule 5 keeps `check:size` red
   until the first measurement is recorded — and red earlier still, with a message
   telling the reader to run `bun run build`, while `dist/` is missing
-  (`scripts/size-budget.ts:382-385`). The sequence is red, measure, cap, green, and
+  (`scripts/size-budget.ts:387-390`). The sequence is red, measure, cap, green, and
   the amendments below are where each cap was written from its measurement.
 - Bundling every subpath alone and then all of them together is more work per run
   and a longer report. Accepted: the single-number version lets a shared module
@@ -438,7 +438,7 @@ that has to move.
 | whole package | 33.64 kB | 12.64 kB | 12.50 kB | **12.75 kB** |
 
 **Why a line at all, for 0.62 kB.** Decision 2 gives every subpath its own line, and rule 5 of the
-budget script makes a line without a cap fail the run (`scripts/size-budget.ts:393-397`). The
+budget script makes a line without a cap fail the run (`scripts/size-budget.ts:398-402`). The
 vanilla auto-mount helper is a subpath, `@standarx/nav/auto`
 ([ADR-0023](0023-vanilla-auto-mount.md)), so it gets a line whether or not the number is
 interesting. It is small because it is meant to be: two branches, a mode read off one attribute,
@@ -548,7 +548,7 @@ rule 5 intends, `vue adapter: measured 1.40 kB min+gzip and has no cap`, then th
 
 **Its externals mirror the React line's.** `vue`, a peer the consumer supplies, and
 `../input-system.js` and `../modality.js`, which the core already ships
-(`scripts/size-budget.ts:135-141`). The three `internal/` modules are charged here as they are to
+(`scripts/size-budget.ts:140-146`). The three `internal/` modules are charged here as they are to
 the React line: `env.js`, `equality.js`, and `scope-registry.js`, which the same pull request moved
 out of the React adapter so that both adapters share it. That move is the React line's 2 bytes.
 
@@ -574,7 +574,7 @@ either sibling has, and the reason the adapter's development warning is one shor
 
 **Its externals mirror the React and Vue lines'.** `svelte` and `svelte/store`, peers the consumer
 supplies, and `../input-system.js` and `../modality.js`, which the core already ships
-(`scripts/size-budget.ts:142-148`). The three `internal/` modules are charged here as they are to
+(`scripts/size-budget.ts:147-153`). The three `internal/` modules are charged here as they are to
 the other two adapter lines.
 
 Thirteen lines, every built module charged to one: `size budgets passed for 13 lines, and all 31
@@ -601,7 +601,7 @@ not measured.
 
 **Its externals mirror the other adapter lines'.** `@angular/core`, the peer the consumer supplies,
 and `../input-system.js` and `../modality.js`, which the core already ships
-(`scripts/size-budget.ts:149-155`). The three `internal/` modules are charged here as they are to
+(`scripts/size-budget.ts:154-160`). The three `internal/` modules are charged here as they are to
 the other three adapter lines.
 
 Fourteen lines, every built module charged to one: `size budgets passed for 14 lines, and all 32
@@ -638,6 +638,53 @@ unchanged 3.25 kB; it is now among the lines where one more change can go red.
 reads as it did in the amendment above: `size budgets passed for 14 lines, and all 32 built
 modules are charged to one`, 2026-09-24.
 
+## Amendment, 2026-09-26: the spatial cap goes to 3.75 kB and the focus ring's to 2.00 kB, for the areas of an image map
+
+`bun run build && bun run check:size`, run 2026-09-26 on the finished code of the pull request
+that closes issue #30, before any of it was committed. The exact bytes come from the same bundling
+with a byte column added.
+
+| Line | min | min+gzip | old cap | new cap |
+|---|---|---|---|---|
+| spatial engine | 8.46 kB | **3.54 kB** (3 628 B, was 3 318 B) | 3.25 kB (3 328 B) | **3.75 kB** (3 840 B), 94 % used |
+| focus ring | 3.85 kB | **1.82 kB** (1 863 B, was 1 558 B) | 1.75 kB (1 792 B) | **2.00 kB** (2 048 B), 91 % used |
+
+**Rule 4, in its own commit.** Both caps are in the repository, and the fix goes 300 bytes over
+the first and 71 over the second. This commit raises the two caps and changes no code
+(`scripts/size-budget.ts:97`, `scripts/size-budget.ts:104`); the code lands in the commits after it.
+
+**What the bytes buy.** An `<area href>` of an image map is focused by chromium, firefox and webkit
+alike, and none of them gives it a box the engine can score: chromium and webkit report it with an
+all-zero rect, and firefox with its whole image's, the same for every area of the map. `rectOf`, in
+`src/dom/platform.ts`, lays the area's `shape` and `coords` over the box of the image that uses its
+map, and every reader of a candidate's geometry goes through it: `collectNavNodes` and the origin
+of `move` in the spatial engine, `measure` in the focus ring, and `explainMove` in the debug entry.
+The spatial engine also scrolls that image into view rather than the area, which neither chromium
+nor webkit scrolls to. The record of the rule is ADR-0031, which the same pull request adds.
+
+**The core and debug lines do not move their caps.** The core line carries `imageOf` and the
+`<area>` branch of `isHidden` in `src/tabbable.ts`, 3 464 B (was 3 346 B) under the unchanged
+3.50 kB, 120 bytes of room. The debug line reads `rectOf` too, 503 B (was 499 B) under the unchanged
+0.50 kB, 9 bytes of room: it marks `dom/platform.js` external, which the spatial line pays for as it
+already pays for `spatial/spatial.js`, and the focus ring line marks `tabbable.js` external, which
+the core exports and nobody reaches `/focus-ring` without.
+
+**A hole the coverage check cannot see.** The first shape tried put `rectOf` at the foot of
+`tabbable.js` beside `imageOf`, and it measured the spatial line at +8 bytes. The bytes had gone
+nowhere a line could see them: `index.js` re-exports named members of `tabbable.js` and not
+`rectOf`, so the core line's bundle shakes it out, and every subpath line that reads it marks
+`tabbable.js` external. Measured on that trial on 2026-09-26, the core bundle is 3 439 B alone and
+3 727 B once `rectOf` is imported next to it: about 288 bytes charged to no line. The coverage
+check at the foot of the script names a *module* no line pays for, and `tabbable.js` is paid for by
+the core, so it stayed green; it reasons per module, never per export. Hence `rectOf` lives in
+`dom/platform.js`, which the spatial and focus ring lines both carry and no root export reaches,
+and hence the rule this record adds: a helper a subpath needs lives in a module that subpath's line
+pays for, or it is re-exported by the root, where the core line pays for it.
+
+**Rule 3 gives 3.75 and 2.00.** The next quarter kB above 3.54 is 3.75, 212 bytes of room; above
+1.82 it is 2.00, 185 bytes of room. The other ten lines read as they did in the amendment above,
+and `size budgets passed for 14 lines, and all 32 built modules are charged to one`, 2026-09-26.
+
 ## Alternatives considered
 
 **A bundlephobia badge in the README.** Rejected: it is not blocking, it lags
@@ -653,18 +700,18 @@ choice was made once before, a single 4 kB line for the two engines **split** ra
 than raised when the pair measured 5.16 kB — inherited from the predecessor
 implementation ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here.
 The split is what this repository does: fourteen separate lines, one per entry
-(`scripts/size-budget.ts:80-186`).
+(`scripts/size-budget.ts:80-191`).
 
 **`size-limit` instead of a written script.** Rejected: these budgets ask "what does
 a consumer pay", not "how big is this file" (`scripts/size-budget.ts:5-7`), so
 `size-limit` would need a synthetic entry per line anyway — which is what every line
-here is already bundled through (`scripts/size-budget.ts:308-332`).
+here is already bundled through (`scripts/size-budget.ts:313-337`).
 
 **Inherit the caps rather than measure them.** Rejected by rule 2. An inherited cap
 would be green or red for reasons belonging to a build this repository does not run:
 a different bundler, a different target and a different file layout. Every cap here
 was written from a measurement taken here — the two amendments above are the record,
-and the numbers are in `scripts/size-budget.ts:80-186`.
+and the numbers are in `scripts/size-budget.ts:80-191`.
 
 ## Evidence
 
@@ -677,33 +724,33 @@ and the numbers are in `scripts/size-budget.ts:80-186`.
   (`package.json`): fourteen lines — `core` (`index.js`), `gamepad engine`, `spatial
   engine`, `focus ring`, `debug`, `auto mount`, `react adapter`, `vue adapter`, `svelte adapter`,
   `angular adapter`, `keyboard` and one per keyboard layout
-  (`scripts/size-budget.ts:80-186`). Each opt-in line names the part of the core graph
+  (`scripts/size-budget.ts:80-191`). Each opt-in line names the part of the core graph
   it also imports as `external`, file by file and never globbed, because `*` does not
   cross a path separator and a glob is how a line stops measuring while staying green
   (`scripts/size-budget.ts:67-79`; the lists themselves at
-  `scripts/size-budget.ts:87-166`), while `core` declares none. All fourteen caps are written
+  `scripts/size-budget.ts:87-170`), while `core` declares none. All fourteen caps are written
   (`scripts/size-budget.ts:84`, `scripts/size-budget.ts:90`,
   `scripts/size-budget.ts:97`, `scripts/size-budget.ts:104`,
-  `scripts/size-budget.ts:111`, `scripts/size-budget.ts:121`,
-  `scripts/size-budget.ts:131`, `scripts/size-budget.ts:138`, `scripts/size-budget.ts:145`,
-  `scripts/size-budget.ts:152`, `scripts/size-budget.ts:159`, `scripts/size-budget.ts:169`,
-  `scripts/size-budget.ts:177`, `scripts/size-budget.ts:183`); a line whose `cap` is
+  `scripts/size-budget.ts:111`, `scripts/size-budget.ts:126`,
+  `scripts/size-budget.ts:136`, `scripts/size-budget.ts:143`, `scripts/size-budget.ts:150`,
+  `scripts/size-budget.ts:157`, `scripts/size-budget.ts:164`, `scripts/size-budget.ts:174`,
+  `scripts/size-budget.ts:182`, `scripts/size-budget.ts:188`); a line whose `cap` is
   `null` prints its measurement
-  and exits non-zero (`scripts/size-budget.ts:393-397`), and a missing `dist/` exits
+  and exits non-zero (`scripts/size-budget.ts:398-402`), and a missing `dist/` exits
   first with a message pointing at `bun run build`
-  (`scripts/size-budget.ts:382-385`).
+  (`scripts/size-budget.ts:387-390`).
 - The coverage check that replaced the whole-package line: `builtModules`
-  (`scripts/size-budget.ts:195-207`) walks `dist/`, `chargedBy`
-  (`scripts/size-budget.ts:230-244`) walks each line's graph and stops at its externals,
-  and `uncoveredModules` (`scripts/size-budget.ts:251-253`) names what no line pays for.
+  (`scripts/size-budget.ts:200-212`) walks `dist/`, `chargedBy`
+  (`scripts/size-budget.ts:235-249`) walks each line's graph and stops at its externals,
+  and `uncoveredModules` (`scripts/size-budget.ts:256-258`) names what no line pays for.
   The graph is read off the built output by `moduleImports`
-  (`scripts/size-budget.ts:215-223`) rather than asked of the bundler, because a catch-all
+  (`scripts/size-budget.ts:220-228`) rather than asked of the bundler, because a catch-all
   `onResolve` changes how the entry is tree-shaken — measured on 2026-09-23, it took the
   core line from 3.13 kB to 0.38. Ten unit cases in `scripts/size-budget.test.ts`.
 - Bun's default gzip level, and the instruction never to mix it with `gzip -9`:
   `scripts/size-budget.ts:11-12`. Why `size-limit` would need a synthetic entry per line
   anyway, and the synthetic module every line is bundled through:
-  `scripts/size-budget.ts:5-7` and `scripts/size-budget.ts:308-332`.
+  `scripts/size-budget.ts:5-7` and `scripts/size-budget.ts:313-337`.
 - Historical figures of 2026-08-27 (2.48 kB gamepad, 2.89 kB spatial, 1.34 kB focus
   ring): inherited from the predecessor implementation
   ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here. That gamepad
@@ -713,8 +760,9 @@ and the numbers are in `scripts/size-budget.ts:80-186`.
 - Measured here: `bun run build && bun run check:size` (both scripts in `package.json`) on
   2026-09-19 and again on 2026-09-20, when the file held eleven lines, and on 2026-09-22
   for the twelfth, and on 2026-09-23, after the whole-package line had gone, for the vue
-  adapter's, and on 2026-09-24 for the svelte and angular adapters'; the lines and their
-  caps are `scripts/size-budget.ts:80-186`, and the run is enforced in CI
+  adapter's, and on 2026-09-24 for the svelte and angular adapters', and on 2026-09-26 for the
+  spatial and focus ring caps of the image-map fix; the lines and their
+  caps are `scripts/size-budget.ts:80-191`, and the run is enforced in CI
   (`.github/workflows/ci.yml:57-58`).
 - The rule that a size in a document travels with its command and date:
   [CONTRIBUTING](../../CONTRIBUTING.md), and `.github/PULL_REQUEST_TEMPLATE.md:46` as

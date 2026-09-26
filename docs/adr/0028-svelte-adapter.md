@@ -75,7 +75,7 @@ attachment (5.29), no `createContext` (5.40). `svelte` is an optional peer at `>
 devDependency at `^5.57.1`, with `@sveltejs/vite-plugin-svelte` `^7.3.1` (`package.json`).
 
 **10. A budget line of its own**, `svelte adapter`, with `svelte`, `svelte/store`,
-`../input-system.js` and `../modality.js` external (`scripts/size-budget.ts:142-148`): 1.45 kB
+`../input-system.js` and `../modality.js` external (`scripts/size-budget.ts:147-153`): 1.45 kB
 min+gzip, capped at 1.50 ([ADR-0017](0017-size-budgets.md), amendment of 2026-09-24).
 
 **11. Test components compiled by the Vite plugin in both projects.** The fixtures under

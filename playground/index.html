@@ -346,6 +346,30 @@
       </div>
     </section>
 
+    <!-- An image map. Every engine focuses an <area>, and none gives it a box of its own
+         to score: chromium and webkit report none at all, firefox the whole image for each.
+         The engine lays each shape over the image, so the directions walk the regions. -->
+    <section class="widgets" data-snav="container" aria-label="Image map" id="image-map">
+      <div class="widget">
+        <button type="button" id="map-before">Before the map</button>
+      </div>
+      <div class="widget">
+        <span>An image map — four areas, each reached by its own shape over the image</span>
+        <img id="map-image" usemap="#playground-map" width="320" height="160"
+          alt="A rectangle, a circle, a triangle and a strip at the right edge"
+          src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='160' font-family='sans-serif' font-size='14' text-anchor='middle'%3E%3Crect width='320' height='160' fill='lightgray'/%3E%3Crect x='10' y='20' width='80' height='120' fill='steelblue'/%3E%3Ctext x='50' y='85' fill='white'%3ERect%3C/text%3E%3Ccircle cx='140' cy='80' r='45' fill='seagreen'/%3E%3Ctext x='140' y='85' fill='white'%3ECircle%3C/text%3E%3Cpolygon points='200,140 245,20 290,140' fill='darkorange'/%3E%3Ctext x='245' y='120' fill='white'%3EPoly%3C/text%3E%3Crect x='300' y='10' width='16' height='140' fill='indianred'/%3E%3Ctext x='308' y='84' fill='white' font-size='10' transform='rotate(-90 308 80)'%3ETail%3C/text%3E%3C/svg%3E" />
+        <map name="playground-map">
+          <area id="map-rect" shape="rect" coords="10,20,90,140" href="#" alt="Rectangle" />
+          <area id="map-circle" shape="circle" coords="140,80,45" href="#" alt="Circle" />
+          <area id="map-poly" shape="poly" coords="200,140,245,20,290,140" href="#" alt="Triangle" />
+          <area id="map-tail" shape="rect" coords="300,10,316,150" href="#" alt="Strip at the right edge" />
+        </map>
+      </div>
+      <div class="widget">
+        <button type="button" id="map-after">After the map</button>
+      </div>
+    </section>
+
     <section class="split" aria-label="Splitter">
       <div id="pane"></div>
       <!-- biome-ignore lint/a11y/useSemanticElements: the suggested <hr> cannot take

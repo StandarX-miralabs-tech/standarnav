@@ -92,7 +92,7 @@ peer, and a devDependency at `^22.2.0` with `@angular/compiler`, `@angular/commo
 `@angular/core` (`package.json`).
 
 **9. A budget line of its own**, `angular adapter`, with `@angular/core`, `../input-system.js` and
-`../modality.js` external (`scripts/size-budget.ts:149-155`): 1.67 kB min+gzip, capped at 1.75
+`../modality.js` external (`scripts/size-budget.ts:154-160`): 1.67 kB min+gzip, capped at 1.75
 ([ADR-0017](0017-size-budgets.md), second amendment of 2026-09-24).
 
 **10. Tests compiled just in time, with no CLI and no compiler plugin.** `@angular/compiler` is the

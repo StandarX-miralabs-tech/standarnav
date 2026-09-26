@@ -244,4 +244,63 @@ describe("tabbable", () => {
     expect(document.activeElement).toBe(button);
     expect(window.scrollY).toBe(0);
   });
+
+  /**
+   * Measured on chromium, firefox and webkit on 2026-09-26: an `<area href>` of a map an
+   * `<img usemap>` uses takes `focus()` and a Tab stop on all three, though chromium and webkit
+   * report it with no box and `checkVisibility()` false. An area of a map no image uses, one
+   * outside any map, and one whose images are all hidden are refused on all three. A map
+   * named by its id alone is focused by chromium and firefox and refused by webkit, and a map
+   * whose first image is hidden and second shown is focused by firefox and refused by chromium
+   * and webkit: the spatial engine's retry covers both.
+   */
+  it("keeps an area of an image map in use, and drops one no image uses", () => {
+    const image = `width="200" height="100" alt="" src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E"`;
+    const host = mount(`
+      <button id="before"></button>
+      <img usemap="#tab-used" ${image}>
+      <map name="tab-used">
+        <area id="rect" shape="rect" coords="0,0,100,100" href="#" alt="rect">
+        <area id="circle" shape="circle" coords="150,50,40" href="#" alt="circle">
+      </map>
+      <map name="tab-unused"><area id="unused" coords="0,0,10,10" href="#" alt="unused"></map>
+      <area id="stray" coords="0,0,10,10" href="#" alt="stray">
+      <img usemap="#tab-gone" style="display:none" ${image}>
+      <img usemap="#tab-gone" style="visibility:hidden" ${image}>
+      <map name="tab-gone"><area id="gone" coords="0,0,10,10" href="#" alt="gone"></map>
+      <button id="after"></button>
+    `);
+    const elsewhere = mount(`
+      <img usemap="#tab-by-id" ${image}>
+      <map id="tab-by-id"><area id="by-id" coords="0,0,10,10" href="#" alt="by id"></map>
+      <img usemap="#tab-twin" style="display:none" ${image}>
+      <img usemap="#tab-twin" ${image}>
+      <map name="tab-twin"><area id="twin" coords="0,0,10,10" href="#" alt="twin"></map>
+    `);
+    const at = (id: string): HTMLElement => document.getElementById(id) as HTMLElement;
+    const lands = (id: string): boolean => {
+      at("before").focus();
+      at(id).focus();
+      return document.activeElement === at(id);
+    };
+
+    expect(lands("rect")).toBe(true);
+    expect(lands("circle")).toBe(true);
+    for (const id of ["rect", "circle", "by-id", "twin"]) {
+      expect(isFocusable(at(id)), id).toBe(true);
+      expect(isTabbable(at(id)), id).toBe(true);
+    }
+    for (const id of ["unused", "stray", "gone"]) {
+      expect(lands(id), id).toBe(false);
+      expect(isFocusable(at(id)), id).toBe(false);
+      expect(isTabbable(at(id)), id).toBe(false);
+    }
+    expect(getTabbables(host).map((node) => node.id)).toEqual([
+      "before",
+      "rect",
+      "circle",
+      "after",
+    ]);
+    expect(getTabbables(elsewhere).map((node) => node.id)).toEqual(["by-id", "twin"]);
+  });
 });

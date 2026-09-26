@@ -206,9 +206,9 @@ the debug entry, the auto-mount helper, the React, Vue, Svelte and Angular adapt
 keyboard and one line per keyboard layout — each bundled with the sibling entries it
 also imports left external, so the number is the marginal cost of adding that
 subpath next to what it already sits beside. That is usually the core, but not
-always: the debug line externalises `./spatial/spatial.js` and
-`./spatial/geometry.js`, so it is charged against the spatial engine rather than
-against the core (`scripts/size-budget.ts:108-117`), and the core line has no
+always: the debug line externalises `./spatial/spatial.js`,
+`./spatial/geometry.js` and `./dom/platform.js`, so it is charged against the spatial engine rather than
+against the core (`scripts/size-budget.ts:108-122`), and the core line has no
 externals at all (`scripts/size-budget.ts:81-86`). There is no "whole
 package" line since 2026-09-23: a coverage check names any built module that no
 line pays for instead ([ADR-0017](docs/adr/0017-size-budgets.md)). Every line, single-entry ones

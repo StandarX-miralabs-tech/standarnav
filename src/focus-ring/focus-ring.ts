@@ -17,7 +17,7 @@
  */
 
 import { addDomEvent } from "../dom/event";
-import { prefersReducedMotion } from "../dom/platform";
+import { prefersReducedMotion, rectOf } from "../dom/platform";
 import { isHTMLElement } from "../dom/query";
 import type { InputPlugin } from "../input-system";
 import { isFocusVisibleModality, trackInputModality } from "../modality";
@@ -104,7 +104,7 @@ export function focusRingPlugin(options: FocusRingOptions = {}): FocusRingPlugin
     const offset =
       options.offset ??
       readPixels(ringStyle?.getPropertyValue("--snav-focus-ring-offset") ?? "", 2);
-    const rect = element.getBoundingClientRect();
+    const rect = rectOf(element);
 
     return {
       x: rect.x - offset,

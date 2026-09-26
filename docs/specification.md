@@ -116,9 +116,9 @@ Feature detection required by this tiering (browser support from caniuse and MDN
 | API | Available from | Fallback |
 |---|---|---|
 | `WeakRef` | Chrome 84, Safari 14.1, Firefox 79 | Written. `elementHandle` returns a `WeakRef` where the constructor exists and a strong reference that drops itself on the first read finding the element detached — `isConnected` — where it does not (`src/spatial/spatial.ts:127-141`). The constructor is read per call rather than at module scope, so a test can delete the global and exercise the fallback |
-| `checkVisibility` | Chrome 105, Safari 17.4, Firefox 106 | `offsetParent === null && getClientRects().length === 0` (`src/tabbable.ts:56`) |
-| `inert` | Chrome 102, Safari 15.5, Firefox 112 | `closest("[inert]")` reads the attribute everywhere (`src/tabbable.ts:60`) |
-| `Array.prototype.at` | Chrome 92, Safari 15.4, Firefox 90, Samsung Internet 16.0 (`https://caniuse.com/mdn-javascript_builtins_array_at`) | Avoided outright, and the rewrite is done: `getTabbableEdges` indexes `tabbables[tabbables.length - 1]` (`src/tabbable.ts:118-121`). Unlike every other row its floor is **above** the supported tier, so the use it replaced threw on Chromium 85-91, Safari 15.0-15.3 and Firefox 79-89, and `getTabbableEdges` is the entry point for `getFirstTabbable` and `getLastTabbable`. A `lib` bump would have hidden the break rather than fixed it |
+| `checkVisibility` | Chrome 105, Safari 17.4, Firefox 106 | `offsetParent === null && getClientRects().length === 0` (`src/tabbable.ts:60`) |
+| `inert` | Chrome 102, Safari 15.5, Firefox 112 | `closest("[inert]")` reads the attribute everywhere (`src/tabbable.ts:64`) |
+| `Array.prototype.at` | Chrome 92, Safari 15.4, Firefox 90, Samsung Internet 16.0 (`https://caniuse.com/mdn-javascript_builtins_array_at`) | Avoided outright, and the rewrite is done: `getTabbableEdges` indexes `tabbables[tabbables.length - 1]` (`src/tabbable.ts:122-125`). Unlike every other row its floor is **above** the supported tier, so the use it replaced threw on Chromium 85-91, Safari 15.0-15.3 and Firefox 79-89, and `getTabbableEdges` is the entry point for `getFirstTabbable` and `getLastTabbable`. A `lib` bump would have hidden the break rather than fixed it |
 
 `tsconfig.json` declares `target: "es2020"` and `lib: ["es2020", "dom", "dom.iterable"]` (read
 2026-09-20), so neither `WeakRef` nor `Array.prototype.at` type-checks by accident: `WeakRef` is
@@ -142,7 +142,7 @@ makes its element editable, and anything carrying `[tabindex]` — minus
 hidden, inert and disabled elements. Disabled is what the browser calls `:disabled` — a form
 control carrying `disabled`, or one inside a `<fieldset disabled>` anywhere but in that fieldset's
 first `<legend>` — plus exception 5 below: `isFocusable` rejects `:disabled,[disabled]`
-(`src/tabbable.ts:66-68`).
+(`src/tabbable.ts:70-72`).
 A link or a `[tabindex]` element inside such a fieldset is not disabled and stays a candidate.
 Tests: "drops what a disabled fieldset disables, and keeps its first legend and its links" and
 "reports the edges of a surface that ends in a disabled fieldset" in `src/tabbable.browser.test.ts`,
@@ -162,7 +162,7 @@ Chrome 1, Safari 4 and Firefox 78, under the floor of §3.1 (MDN browser-compat-
 in `src/tabbable.browser.test.ts`.
 
 Inside an editing host, a link and an element that is focusable only for being editable are not
-focusable unless they carry a `tabindex` (`src/tabbable.ts:69-77`, since 2026-09-24): chromium,
+focusable unless they carry a `tabindex` (`src/tabbable.ts:73-81`, since 2026-09-24): chromium,
 firefox and webkit all refuse them the focus, while a control, a frame, an embedded object, a media
 element with controls and a details summary take it, with a `contenteditable` of their own or
 without (Playwright, 2026-09-24; [ADR-0030](adr/0030-refused-focus-next-candidate.md)). The arms
@@ -174,9 +174,23 @@ Tests: "drops a link and a nested editable of an editing host, unless they carry
 "keeps a link with a tabindex in an editing host, which the engines split on" and "takes only the
 first summary child of a details as focusable" in `src/tabbable.browser.test.ts`.
 
+**An `<area>` of an image map in use is focusable since 2026-09-26, by its image.** `isHidden`
+answers for an area with the image that uses its map — the first `img[usemap]` of the area's tree
+naming the map by its `name` or `id` that is not hidden, or the last when all are, found by
+`imageOf` (`src/tabbable.ts:155-176`) — hidden when there is none, otherwise as the image is
+(`:49-52`). Chromium and webkit report such an area with
+no client rect and `checkVisibility()` `false`, yet chromium, firefox and webkit all focus it and
+Tab reaches it, and until then `isFocusable` answered `false` for it on the first two. An area of a
+map no image uses, one outside any `<map>` and one whose images are all hidden are refused on all
+three and stay out; what the engines split on — an area with `tabindex="-1"`, a map named by its
+`id` alone, a map whose first image is hidden and a later one shown — is left to the retry of R21 (Playwright, 2026-09-26;
+[ADR-0031](adr/0031-image-map-area-candidate.md)). An area belongs to the container that holds its
+map, not its image. Test: "keeps an area of an image map in use, and drops one no image uses" in
+`src/tabbable.browser.test.ts`.
+
 Tabbable is focusable and in the sequential order: `tabIndex >= 0`, or an **editing host** — an
 editable element whose parent is not editable — that carries no `tabindex` attribute
-(`inTabOrder`, `src/tabbable.ts:85-92`, shared by `isTabbable` and `getTabbables`). A host
+(`inTabOrder`, `src/tabbable.ts:89-96`, shared by `isTabbable` and `getTabbables`). A host
 reports `tabIndex` -1 and is a Tab stop all the same; what is editable inside it is not a stop,
 and `tabindex="-1"` takes a host out. Measured on chromium, firefox and webkit (Playwright,
 2026-09-23, with Alt+Tab on webkit, whose plain Tab skips links): a host's `tabIndex` is -1 on all
@@ -187,20 +201,20 @@ stop, and not what is editable inside it" and "reports an editing host as the la
 `getFirstTabbable` and `getLastTabbable` are module-internal, and no entry point exports them
 (`src/index.ts`).
 
-The rule has exactly five documented exceptions. Each is deliberate, and each must be stated in the
-user documentation the README sends a reader to — [docs/en/navigation.md](en/navigation.md), with
-its French mirror — because each surprises someone.
+The rule has exactly six documented exceptions, the sixth since 2026-09-26. Each is deliberate,
+and each must be stated in the user documentation the README sends a reader to —
+[docs/en/navigation.md](en/navigation.md), with its French mirror — because each surprises someone.
 
 1. **A clickable `div` without `tabindex` is not navigable.** The browser will not focus it either.
    The fix is `tabindex="-1"` or `tabindex="0"`, which is also the fix for keyboard users; the engine
    does not invent focusability the platform withholds.
 2. **`aria-hidden` elements stay reachable.** `isFocusable` does not filter `aria-hidden`
-   (`src/tabbable.ts:63-81`). Hiding a subtree from assistive technology while leaving it focusable
+   (`src/tabbable.ts:67-85`). Hiding a subtree from assistive technology while leaving it focusable
    is already an authoring error; an element that should not be reached is removed, made `inert`, or
    marked `data-snav-ignore`. See [ADR-0009](adr/0009-hidden-candidates.md) and open question 1
    below: the candidate filters of that ADR are settled (R31), `aria-hidden` itself is not.
 3. **`aria-disabled` stays focusable.** The APG wants disabled menu items and toolbar buttons
-   reachable, unlike natively disabled form controls (comment at `src/tabbable.ts:78-79`).
+   reachable, unlike natively disabled form controls (comment at `src/tabbable.ts:82-83`).
 4. **Light DOM only.** Elements inside a shadow root are not collected; a component that needs it
    passes its own root (§2).
 5. **`disabled` on an element that is not a form control is rejected, although the browser
@@ -208,8 +222,13 @@ its French mirror — because each surprises someone.
    still take the focus on chromium, firefox and webkit (Playwright, 2026-09-23). `isFocusable`
    drops them anyway, because `disabled` is the opt-out [ADR-0009](adr/0009-hidden-candidates.md)
    rule 6 gives an `aria-disabled` item; that is why the test is `:disabled,[disabled]` and not
-   `:disabled` alone (`src/tabbable.ts:66-68`). Test: "still rejects disabled on an element the
+   `:disabled` alone (`src/tabbable.ts:70-72`). Test: "still rejects disabled on an element the
    browser would focus, ADR-0009 rule 6" in `src/tabbable.browser.test.ts`.
+6. **An `<area>` whose map sits under `inert` is dropped, although the browser focuses it.**
+   `isInert` reads the area itself (`src/tabbable.ts:63-65`), so `inert` on an ancestor of the map
+   drops it, while chromium, firefox and webkit all focus it when its image is outside the inert
+   subtree (Playwright, 2026-09-26; [ADR-0031](adr/0031-image-map-area-candidate.md)). Put `inert`
+   on an ancestor of both the image and the map. No test pins it; it is a reading of `isInert`.
 
 ## 5. Functional requirements
 
@@ -348,7 +367,18 @@ this working tree, run 2026-09-20.
   `src/spatial/spatial.browser.test.ts`. Their witness is an element whose `focus` method does
   nothing, which the engine cannot tell from a refusal; the second `<summary>` that was the witness
   until 2026-09-24 is no longer a candidate (§4), and the refusals that split by engine are pinned
-  on a real `<embed>` and a real empty `<object>` in the same `describe`.
+  on a real `<embed>` and a real empty `<object>` in the same `describe`. **An `<area>` is
+  measured by its shape since 2026-09-26** ([ADR-0031](adr/0031-image-map-area-candidate.md)):
+  chromium and webkit give it an all-zero `getBoundingClientRect()` and firefox the whole image's,
+  so its rect is its `shape` and `coords` laid over the border box of the image that uses its map
+  (`rectOf`, `src/dom/platform.ts:14-48`), read by `collectNavNodes` and for the origin of a move
+  (`src/spatial/spatial.ts:182`, `:502`); every other element is still measured with
+  `getBoundingClientRect`. Webkit lays the coords over the image's content box instead, a
+  difference of the image's border and padding the engine does not follow. `explainMove`
+  (`src/debug.ts:60`) and the focus ring (R32) read the same rect. When an area lands, its image
+  is scrolled into view, since chromium and webkit do not scroll an area
+  (`src/spatial/spatial.ts:298`). Tests: the `describe` "spatialPlugin — an image-map area is
+  scored by its shape over its image (ADR-0031)" in `src/spatial/spatial.browser.test.ts`.
 - **R22.** Declarative containers, attributes renamed to this project's prefix — the owner's decision
   of 2026-09-18, recorded in [ADR-0001](adr/0001-name-scope-and-attribute-prefix.md). Read:
   `data-snav="container"`, `data-snav-enter`, `data-snav-wrap`, `data-snav-block`, `data-snav-trap`,
@@ -364,7 +394,7 @@ this working tree, run 2026-09-20.
   created, and `aria-hidden` is the only ARIA attribute the package writes anywhere — never on
   markup it did not create (`grep -rn "aria-" src` on 2026-09-20: twelve hits, of which two are
   outside the tests — the write at `src/focus-ring/focus-ring.ts:241` and the `aria-disabled`
-  comment at `src/tabbable.ts:78` — and the other ten are fixtures). The attribute **names** are
+  comment at `src/tabbable.ts:82` — and the other ten are fixtures). The attribute **names** are
   the public contract; the constants that hold them are module-internal and no entry point
   publishes them (`src/spatial/containers.ts:10-18`, reachable from no path in the exports map).
   `./spatial` publishes `containerOf` and
@@ -452,7 +482,11 @@ this working tree, run 2026-09-20.
   Filter **C2 is refused for v0** and deferred to v1: dropping `opacity: 0` candidates costs a
   `getComputedStyle` per candidate in the hot loop, and an opacity inherited from an ancestor
   escapes the test anyway. The two do not ship together, which is the premise the ADR was written
-  on.
+  on. Since 2026-09-26 an `<area>` whose shape describes nothing — a rectangle with fewer than four
+  coordinates, a polygon with fewer than six, a circle with fewer than three or with a negative
+  radius — measures as a zero rect (R21) and the same filter drops it; test "drops a shape that
+  describes nothing" in `src/spatial/spatial.browser.test.ts`
+  ([ADR-0031](adr/0031-image-map-area-candidate.md)).
 
 ### 5.5 Focus ring
 
@@ -467,7 +501,11 @@ this working tree, run 2026-09-20.
   less (`:147-154`; `src/focus-ring/focus-ring.browser.test.ts:210-235` on three engines, with the
   150 ms default guarded at `:197-208`; [ADR-0020](adr/0020-focus-ring-defaults.md), amendment of
   2026-09-23). The overlay element carries `data-snav-focus-ring`, the fourth attribute the package
-  writes.
+  writes. Since 2026-09-26 the ring measures its target through the rect the engine scores
+  (`src/focus-ring/focus-ring.ts:107`), so it wears an `<area>`'s shape over its image, where it
+  sat at the corner of the viewport on chromium and webkit and around the whole image on firefox;
+  test "wears the shape of an area over its image" in `src/focus-ring/focus-ring.browser.test.ts`
+  ([ADR-0020](adr/0020-focus-ring-defaults.md), amendment of that date).
 - **R33.** **Settled: the ring ships in v0 and paints itself.** No stylesheet ships with the package
   — the overlay is created with its paint in a `cssText` string (`src/focus-ring/focus-ring.ts:51-52`,
   applied at `:242`), so importing the subpath is the whole installation. The contract is
@@ -541,7 +579,7 @@ A claim without a gate does not go in the README.
 | Claim | Gate | State today |
 |---|---|---|
 | Zero runtime dependencies | `package.json` declares no `dependencies`, and `scripts/check-package.ts:34-40` exits 1 naming them if it ever does; run by `bun run check:package` on the packed tarball, wired at `.github/workflows/ci.yml:55-56` | **Green.** The field is absent and the claim now has its gate rather than a reading: the dependency check runs before the pack, so the build fails on the manifest itself. The script then refuses a `private` manifest, refuses a missing `dist/`, packs with `bun pm pack` into a temporary directory and runs `publint --strict` and `attw --profile esm-only` on the tarball — the only artifact npm ever receives. `react` and `react-dom` stay optional peers, which a consumer already has or does not want. `bun run build && bun run check:package` here on 2026-09-20: passed for `@standarx/nav@0.0.0`, publint clean and `attw` green on both resolutions it is asked about |
-| Blocking size budgets | `scripts/size-budget.ts` run by `bun run check:size` (`.github/workflows/ci.yml:57-58`); a line over its cap fails the run, and so does a line with no cap at all | **Green, fourteen lines, every one capped, and every built module charged to one of them.** Measured here, not inherited: `bun run build && bun run check:size` on this package on 2026-09-22, min+gzip at Bun's default gzip level (which reads heavier than `gzip -9`): core 3.13 / 3.25 · gamepad engine 2.49 / 2.50 · spatial engine 3.04 / 3.25 · focus ring 1.51 / 1.75 · debug 0.49 / 0.50 · auto mount 0.60 / 0.75 · react adapter 1.30 / 1.50 · keyboard 2.82 / 3.00 · the three keyboard layouts 0.36 to 0.49, each capped at 0.50 kB; the vue adapter line, added on 2026-09-23, measured 1.40 / 1.50 that day, the svelte adapter line, added on 2026-09-24, 1.45 / 1.50 that day, and the angular adapter line, added the same day, 1.67 / 1.75. Each subpath is measured with the layers it imports and a consumer already pays for named external **file by file**: a glob is forbidden, because `*` does not cross a path separator and would silently stop measuring (`scripts/size-budget.ts:67-79`). So every subpath figure is the marginal cost of adding it next to what it already needs — the core for the three engines and the four adapters, and the spatial engine for `debug`, whose externals are `./spatial/spatial.js`, `./spatial/geometry.js` and `./tabbable.js` (`scripts/size-budget.ts:108-117`) — and a coverage check names any built module every line hands away, which is what a whole-package sum used to stand in for before 2026-09-23 ([ADR-0017](adr/0017-size-budgets.md)). Caps and the defects the first runs exposed are in [ADR-0017](adr/0017-size-budgets.md) |
+| Blocking size budgets | `scripts/size-budget.ts` run by `bun run check:size` (`.github/workflows/ci.yml:57-58`); a line over its cap fails the run, and so does a line with no cap at all | **Green, fourteen lines, every one capped, and every built module charged to one of them.** Measured here, not inherited: `bun run build && bun run check:size` on this package on 2026-09-22, min+gzip at Bun's default gzip level (which reads heavier than `gzip -9`): core 3.13 / 3.25 · gamepad engine 2.49 / 2.50 · spatial engine 3.04 / 3.25 · focus ring 1.51 / 1.75 · debug 0.49 / 0.50 · auto mount 0.60 / 0.75 · react adapter 1.30 / 1.50 · keyboard 2.82 / 3.00 · the three keyboard layouts 0.36 to 0.49, each capped at 0.50 kB; the vue adapter line, added on 2026-09-23, measured 1.40 / 1.50 that day, the svelte adapter line, added on 2026-09-24, 1.45 / 1.50 that day, and the angular adapter line, added the same day, 1.67 / 1.75. Each subpath is measured with the layers it imports and a consumer already pays for named external **file by file**: a glob is forbidden, because `*` does not cross a path separator and would silently stop measuring (`scripts/size-budget.ts:67-79`). So every subpath figure is the marginal cost of adding it next to what it already needs — the core for the three engines and the four adapters, and the spatial engine for `debug`, whose externals are `./dom/platform.js`, `./spatial/spatial.js`, `./spatial/geometry.js` and `./tabbable.js` (`scripts/size-budget.ts:108-122`) — and a coverage check names any built module every line hands away, which is what a whole-package sum used to stand in for before 2026-09-23 ([ADR-0017](adr/0017-size-budgets.md)). Caps and the defects the first runs exposed are in [ADR-0017](adr/0017-size-budgets.md) |
 | Never virtual focus | A browser test asserting `document.activeElement` after every move, plus a check that no id-keyed focus map exists in this package | **Half green.** The browser half is written: the spatial scene helper's `active()` reads `document.activeElement` and nothing else (`src/spatial/spatial.browser.test.ts:57`), and the fixtures of that file — 48 running cases and the one skipped shadow-DOM fixture, counted 2026-09-20 — check where the focus went through it alone, so a move that did not move real focus fails. The second half is still a reading rather than a check — the public surface carries no focus key, moves are addressed by direction and answered with a boolean, the elements they carry are real `HTMLElement`s on `WillMoveEvent.from`/`.to` (`src/spatial/spatial.ts:64-71`), and `plugin.focus` takes an element or a selector, so there is no id and no key anywhere on the surface — and R21's landing verification is unwritten |
 | Geometry fixtures do not depend on CSS classes | Geometry fixtures positioned with inline styles only, so a fixture failure means the algorithm changed, never the stylesheet | **Green.** The unit fixtures score plain `Rect` literals with no DOM at all (`src/spatial/geometry.test.ts:10-12`), and every browser fixture is positioned by an inline `style` attribute (`src/spatial/spatial.browser.test.ts:12-14`). The package ships no stylesheet, so there is none for a fixture to depend on |
 | Adapter parity | The shared suite `src/adapter-parity.ts` runs against every adapter; one that does not pass does not ship (R36) | **Written, and React, Vue, Svelte and Angular pass it.** It is a callable runner, not a file to copy: an adapter supplies `mount`, `update`, `unmount`, `settle` and `act` over a tree of two scopes whose elements are nested in the DOM (`ParityTree` and `ParityAdapter`, `src/adapter-parity.ts:49-107`) and inherits 16 cases — one system per provider and never during the first render, delivery to the scopes, LIFO order, a scope released when only its own subtree unmounts, a trap stopping the walk, a `base` scope asked through that trap, a composite nested in a trapping surface and mounted in the same commit asked after the trap when both pass `within` and still silenced when neither does (ADR-0025), a scope re-registered in its place when its `base` changes on a rerender, the open order kept across a system rebuild in three shapes (the default tree, a scope declared first and opened last, and the same scope opened over a trap), every scope released on unmount, the reported modality, nothing listening after unmount, and a scope disposed after the provider was destroyed. React runs it at `src/react/react.browser.test.tsx:895`, over the adapter built at `:784-893`, alongside 29 adapter-specific cases; Vue runs it at `src/vue/vue.browser.test.ts:921`, alongside 27 cases of its own; Svelte at `src/svelte/svelte.browser.test.ts:724`, alongside 28; Angular at `src/angular/angular.browser.test.ts:1143`, alongside 37. A two-adapter gate since 2026-09-23, a three-adapter one and then a four-adapter one since 2026-09-24 |

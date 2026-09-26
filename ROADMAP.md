@@ -157,7 +157,7 @@ that land on `main` were never seen by CI.
       a stylesheet would have used ([ADR-0020](docs/adr/0020-focus-ring-defaults.md)). The fix is a
       `matchMedia` read in the plugin, or an optional stylesheet
 - [ ] Shadow DOM traversal and coherence. v0 does not traverse shadow roots in `getFocusables`
-      (`src/tabbable.ts:98`, where `querySelectorAll` stops at the boundary), while the shadow-aware
+      (`src/tabbable.ts:102`, where `querySelectorAll` stops at the boundary), while the shadow-aware
       `contains` in `src/dom/query.ts:24` already walks out through hosts and is deliberately unused
       — the seam the v1 path will call. The inconsistency is deliberate and documented in
       [ADR-0008](docs/adr/0008-shadow-dom.md), whose skipped acceptance fixture stays in place until

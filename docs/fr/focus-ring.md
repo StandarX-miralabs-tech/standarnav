@@ -44,3 +44,10 @@ style en ligne ne peut pas faire sont écrites dans `src/focus-ring/focus-ring.t
 personnalisée du mauvais type rend toute la déclaration invalide sans déclaration antérieure sur
 laquelle se replier, et `forced-colors: active` supprime `box-shadow`, donc l'anneau disparaît
 dans un thème à couleurs forcées — un point v1 de [ROADMAP.md](../../ROADMAP.md), pas un correctif v0.
+
+L'anneau entoure le rectangle par lequel le moteur spatial évalue sa cible. Pour un `<area>` de
+carte d'image, qui n'a pas de boîte propre sur chromium et webkit et celle de toute l'image sur
+firefox, c'est la forme de la zone, `shape` et `coords`, posée sur son image, si bien qu'un cercle
+est entouré par son carré englobant. Test : « wears the shape of an area over its image »
+(`src/focus-ring/focus-ring.browser.test.ts`), sur chromium, firefox et webkit ;
+[ADR-0020](../adr/0020-focus-ring-defaults.md), amendement du 2026-09-26.

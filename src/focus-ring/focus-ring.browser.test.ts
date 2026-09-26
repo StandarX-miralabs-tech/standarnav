@@ -245,6 +245,26 @@ describe("focusRingPlugin", () => {
     view.button("two").focus();
     expect(view.ring.getAnimations().length).toBeGreaterThan(0);
   });
+
+  it("wears the shape of an area over its image", () => {
+    const view = scene();
+    const host = document.createElement("div");
+    host.style.cssText = "position:fixed;left:0;top:0";
+    host.innerHTML =
+      `<img usemap="#ring-map" alt="" width="200" height="100" style="position:absolute;left:100px;top:100px"` +
+      ` src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E">` +
+      `<map name="ring-map"><area id="round" shape="circle" coords="50,50,30" href="#" alt="round"></map>`;
+    document.body.append(host);
+    cleanups.push(() => host.remove());
+    setInputModality(document, "gamepad");
+
+    (host.querySelector("#round") as HTMLElement).focus();
+
+    // The circle's square is 60 × 60 at (120, 120), and the ring sits 2 px outside it.
+    expect(view.ring.style.width).toBe("64px");
+    expect(view.ring.style.height).toBe("64px");
+    expect(view.ring.style.transform).toBe("translate(118px, 118px)");
+  });
 });
 
 function fades(ring: HTMLElement): unknown[] {
