@@ -375,6 +375,34 @@ describe("tabbable", () => {
     expect(isFocusable(mapInside.getElementById("image-outside"))).toBe(false);
   });
 
+  it("never counts a clickable div without a tabindex, until it is given one", () => {
+    // ADR-0005 and ADR-0009: a `div` is not in `FOCUSABLE_SELECTOR`, whatever it listens to,
+    // and no engine focuses it either. `tabindex="0"` is the documented fix, and the whole of it.
+    const host = mount(`
+      <button id="before"></button>
+      <div id="clickable" role="button" style="cursor:pointer">clickable</div>
+      <button id="after"></button>
+    `);
+    const clickable = host.querySelector("#clickable") as HTMLElement;
+    let clicks = 0;
+    clickable.addEventListener("click", () => {
+      clicks += 1;
+    });
+
+    clickable.click();
+    expect(clicks).toBe(1);
+    clickable.focus();
+    expect(document.activeElement).not.toBe(clickable);
+
+    expect(isFocusable(clickable)).toBe(false);
+    expect(isTabbable(clickable)).toBe(false);
+    expect(getTabbables(host).map((node) => node.id)).toEqual(["before", "after"]);
+
+    clickable.tabIndex = 0;
+    expect(isTabbable(clickable)).toBe(true);
+    expect(getTabbables(host).map((node) => node.id)).toEqual(["before", "clickable", "after"]);
+  });
+
   /**
    * Measured on chromium, firefox and webkit on 2026-09-26: `checkVisibility({ visibilityProperty:
    * true })` is `false` for `visibility: hidden` and for `visibility: collapse` alike, inherited
