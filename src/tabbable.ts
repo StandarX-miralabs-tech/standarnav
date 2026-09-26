@@ -50,14 +50,14 @@ export function isHidden(node: HTMLElement): boolean {
     const image = imageOf(node);
     return image === null || isHidden(image);
   }
-  // Through `unknown`, not an intersection: the method is absent below the
-  // baseline of ADR-0013, and typing it as present makes the fallback read as
-  // dead code that someone eventually deletes.
+  // Through `unknown`, not an intersection: the method is absent below the baseline of ADR-0013,
+  // and typing it as present makes the fallback read as dead code that someone eventually deletes.
   const check = (node as unknown as VisibilityCheck).checkVisibility;
   if (typeof check === "function") {
     return !check.call(node, { contentVisibilityAuto: true, visibilityProperty: true });
   }
-  return node.offsetParent === null && node.getClientRects().length === 0;
+  if (!node.offsetParent && node.getClientRects().length === 0) return true;
+  return getComputedStyle(node).visibility !== "visible";
 }
 
 export function isInert(node: HTMLElement): boolean {

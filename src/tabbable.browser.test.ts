@@ -374,4 +374,64 @@ describe("tabbable", () => {
     expect(isFocusable(at("map-outside"))).toBe(false);
     expect(isFocusable(mapInside.getElementById("image-outside"))).toBe(false);
   });
+
+  /**
+   * Measured on chromium, firefox and webkit on 2026-09-26: `checkVisibility({ visibilityProperty:
+   * true })` is `false` for `visibility: hidden` and for `visibility: collapse` alike, inherited
+   * or not, and no engine focuses either; a child set back to `visible` is focused on all three.
+   * The fallback of ADR-0013's tier reads layout boxes, which `visibility` keeps, so rule 5 of
+   * ADR-0009 has it read the computed property too: the two paths answer the same thing. That
+   * includes an SVG element, which has no `offsetParent` at all rather than a null one, and a
+   * `position: fixed` element, whose `offsetParent` is null while its boxes are there.
+   */
+  it("drops visibility: hidden on the fallback path, as checkVisibility does", () => {
+    const host = mount(`
+      <button id="visible"></button>
+      <button id="hidden" style="visibility:hidden"></button>
+      <button id="collapsed" style="visibility:collapse"></button>
+      <div style="visibility:hidden"><button id="inherited"></button></div>
+      <div style="visibility:hidden"><button id="shown" style="visibility:visible"></button></div>
+      <div style="display:none"><button id="none"></button></div>
+      <button id="fixed-hidden" style="position:fixed;top:0;left:0;visibility:hidden"></button>
+      <button id="fixed-shown" style="position:fixed;top:0;left:0"></button>
+      <div style="display:none"><svg><g id="svg-none" tabindex="0"><rect width="10" height="10"/></g></svg></div>
+      <svg width="20" height="20"><g id="svg-shown" tabindex="0"><rect width="10" height="10"/></g></svg>
+    `);
+    const at = (id: string): HTMLElement => host.querySelector(`#${id}`) as HTMLElement;
+    const lands = (id: string): boolean => {
+      at("visible").focus();
+      at(id).focus();
+      return document.activeElement === at(id);
+    };
+    const tabbables = (): string[] => getTabbables(host).map((node) => node.id);
+    const proto = Element.prototype as { checkVisibility?: unknown };
+    const descriptor = Object.getOwnPropertyDescriptor(proto, "checkVisibility");
+    if (descriptor === undefined) throw new Error("no checkVisibility to hide");
+    const dropped = ["hidden", "collapsed", "inherited", "none", "fixed-hidden", "svg-none"];
+    const kept = ["visible", "shown", "fixed-shown", "svg-shown"];
+
+    for (const id of dropped) {
+      expect(lands(id), id).toBe(false);
+      expect(at(id).checkVisibility({ visibilityProperty: true }), id).toBe(false);
+      expect(isFocusable(at(id)), id).toBe(false);
+    }
+    for (const id of kept) {
+      expect(lands(id), id).toBe(true);
+      expect(at(id).checkVisibility({ visibilityProperty: true }), id).toBe(true);
+      expect(isFocusable(at(id)), id).toBe(true);
+    }
+    expect(tabbables()).toEqual(kept);
+
+    // The fallback is the live path on the tier ADR-0013 supports, and no CI engine runs it
+    // unless the method is taken away, as the WeakRef case of spatial.browser.test.ts does.
+    delete proto.checkVisibility;
+    try {
+      expect(typeof at("hidden").checkVisibility).toBe("undefined");
+      expect(tabbables()).toEqual(kept);
+      for (const id of dropped) expect(isFocusable(at(id)), id).toBe(false);
+      for (const id of kept) expect(isFocusable(at(id)), id).toBe(true);
+    } finally {
+      Object.defineProperty(proto, "checkVisibility", descriptor);
+    }
+  });
 });
