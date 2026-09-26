@@ -22,7 +22,7 @@ engine is broken":
 
 | Symptom | Cause | Where |
 |---|---|---|
-| A move does nothing, no error | The element is not focusable, or `collectNavNodes` filtered it as ignored or zero-size | `isFocusable` at `src/tabbable.ts:63-81`, then `src/spatial/spatial.ts:175` and `:188` |
+| A move does nothing, no error | The element is not focusable, or `collectNavNodes` filtered it as ignored or zero-size | `isFocusable` at `src/tabbable.ts:67-85`, then `src/spatial/spatial.ts:175` and `:188` |
 | A move stops crossing containers in a deep tree | The walk out gives up at `MAX_CONTAINER_DEPTH = 16` and calls the bounds listeners instead | `src/spatial/spatial.ts:60`, `:505-526` |
 | A redirection attribute is ignored, or focuses nothing | `data-snav-<direction>` is a CSS selector resolved on the whole document. If it matches nothing, the move silently falls through to geometry. If it matches a non-focusable element, the engine calls `focus()` on it, reports success and writes `data-snav-focused` on an element the browser will not focus — there is no `isFocusable` check on that path | `src/spatial/spatial.ts:492-495`, then `commit` at `:312-349` |
 
@@ -245,7 +245,7 @@ removed.
   `root.ownerDocument.querySelector`, and `commit`. Row 3 of the table described them with no
   `isFocusable` check between them; since 2026-09-23 the check is at `:495` and `commit` verifies
   the landing at `:340`, as the amendment of that date records.
-- `src/tabbable.ts:18-39`, `:63-81` — `FOCUSABLE_SELECTOR` and `isFocusable`, what a candidate has to
+- `src/tabbable.ts:18-39`, `:67-85` — `FOCUSABLE_SELECTOR` and `isFocusable`, what a candidate has to
   be.
 - `package.json` — `"./debug"` as its own export, and `"sideEffects": false`.
 - `scripts/size-budget.ts` — the `debug` line at `:105-114`, entry `debug.js`,

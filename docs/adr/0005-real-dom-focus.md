@@ -40,7 +40,7 @@ so that it survives refactors.
 The engine moves the real DOM focus, and only the real DOM focus.
 
 - Moving focus is `element.focus({ preventScroll: true })`, through a single
-  helper (`focusElement`, `src/tabbable.ts:142-149`, which defaults
+  helper (`focusElement`, `src/tabbable.ts:146-153`, which defaults
   `preventScroll` to `true`).
 - Reading focus is `document.activeElement`, narrowed to `HTMLElement`. The engine
   keeps no authoritative copy. The one element reference it holds only strips the
@@ -212,12 +212,12 @@ modes), not this decision alone.
 ## Evidence
 
 - `focusElement` is the single focus call, and defaults `preventScroll` to `true`:
-  `src/tabbable.ts:142-149`.
-- The focusable predicate the engine uses is `isFocusable` (`src/tabbable.ts:63-81`), which
-  delegates the visibility question to `isHidden` (`:48-57`, the `checkVisibility` test with its
-  `offsetParent` and `getClientRects` fallback) and the `inert` question to `isInert` (`:59-61`,
+  `src/tabbable.ts:146-153`.
+- The focusable predicate the engine uses is `isFocusable` (`src/tabbable.ts:67-85`), which
+  delegates the visibility question to `isHidden` (`:48-61`, the `checkVisibility` test with its
+  `offsetParent` and `getClientRects` fallback) and the `inert` question to `isInert` (`:63-65`,
   a `closest("[inert]")` walk). `aria-disabled` stays focusable on purpose, and the comment
-  saying why is at `:78-79`.
+  saying why is at `:82-83`.
 - `commit()` is veto, then focus, then a check that the focus landed, then remember, then scroll
   into view: `src/spatial/spatial.ts:312-349` — the `onWillMove` block at `:321-336`, the
   `focusElement` call at `:339`, the landing check at `:340` (since 2026-09-23: the target must be

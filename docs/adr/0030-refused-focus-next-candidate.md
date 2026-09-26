@@ -43,7 +43,7 @@ refused on all three. `isTabbable` said `true` for the link in a host, which no 
 **1. What all three engines refuse is not focusable, in the core.** `isFocusable` rejects an
 element with no `tabindex` attribute whose parent is editable and that matches none of the arms
 that take the focus in their own right, now a named list (`NATIVE_SELECTOR`,
-`src/tabbable.ts:18-30`; the rule at `:69-77`). That rejects exactly the refused rows of the table:
+`src/tabbable.ts:18-30`; the rule at `:73-81`). That rejects exactly the refused rows of the table:
 a link, and an element focusable only for being editable. The `summary` arm becomes
 `details>summary:first-of-type`. `FOCUSABLE_SELECTOR` is public, and its string changes: the native
 arms first, then `a[href]`, `[contenteditable]:read-write` and `[tabindex]` (`:32-39`). The rule is

@@ -46,6 +46,10 @@ interface VisibilityCheck {
 }
 
 export function isHidden(node: HTMLElement): boolean {
+  if (node.localName === "area") {
+    const image = imageOf(node);
+    return image === null || isHidden(image);
+  }
   // Through `unknown`, not an intersection: the method is absent below the
   // baseline of ADR-0013, and typing it as present makes the fallback read as
   // dead code that someone eventually deletes.
@@ -146,4 +150,27 @@ export function focusElement(
   if (node === null || node === undefined) return;
   node.focus({ preventScroll: options.preventScroll ?? true });
   if (options.select === true && node instanceof HTMLInputElement) node.select();
+}
+
+/**
+ * The image an `<area>` is drawn over, which answers for it: chromium and webkit report an
+ * area invisible and give it no box, yet focus it. `<img>` only, since no engine wires the
+ * map of an `<object usemap>` and only firefox that of an `<input type=image>`. The first
+ * visible one, not the first: firefox focuses the area while any of its images shows, where
+ * chromium and webkit refuse it once the first is hidden, a split the retry of ADR-0030 covers.
+ */
+export function imageOf(area: Element): HTMLElement | null {
+  const map = area.closest("map");
+  let found: HTMLElement | null = null;
+  if (map === null) return found;
+  for (const image of (area.getRootNode() as ParentNode).querySelectorAll<HTMLElement>(
+    "img[usemap]",
+  )) {
+    const name = image.getAttribute("usemap")?.match(/#(.+)/)?.[1];
+    if (name === map.name || name === map.id) {
+      found = image;
+      if (!isHidden(image)) break;
+    }
+  }
+  return found;
 }
