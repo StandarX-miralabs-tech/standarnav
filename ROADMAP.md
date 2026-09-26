@@ -19,7 +19,8 @@ The engine navigates between focusable elements, the five controls that hold a v
 `<select>` question is answered, the on-screen keyboard is built, and the first version is
 published. What follows is what v0 still owes, and none of it blocks the next release: the
 keyboard's open items are limitations of a shipped module, documented rather than discovered, and
-the release section has one open item, the merge rule set the day `0.3.0` went out, 2026-09-26.
+the release section has no open item since `0.3.0` went out through the trusted publisher on
+2026-09-26 and the merge rule set that day was proven the same day.
 
 Controls that hold a value were the last gap to close before the first publication. The grammar was always public —
 `pushEngageScope` takes hold of a control, the directional intents become adjustments, confirm
@@ -102,13 +103,9 @@ Two things about its shape are worth knowing before reading it. The publish job 
 trigger workflows on events made with the default token — the same rule that leaves the release
 pull request with no checks would have left a tag-triggered publish never running at all. And the
 verify job exists precisely because of that missing-checks half: the version bump and the CHANGELOG
-that land on `main` were never seen by CI.
-
-- [ ] Prove the merge rule of ADR-0012's amendment of 2026-09-26. The first pull request merged
-      with `gh pr merge N --merge --body ""` shows, in `git log -1 --format=%B` on its merge
-      commit, a body that is empty, and the release pull request that follows lists each change
-      once. If GitHub writes its default body regardless, the fallback is a plain sentence, and
-      the amendment after that one says which.
+that land on `main` were never seen by CI. The merge rule of ADR-0012's amendment of 2026-09-26, a
+merge commit with an empty body, was proven the same day on the merge commit `fa46f7d` of the pull
+request that carried it (second amendment of that date).
 
 ### Test fixtures still missing
 

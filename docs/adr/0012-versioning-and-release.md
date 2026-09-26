@@ -480,6 +480,22 @@ template](../../.github/PULL_REQUEST_TEMPLATE.md) and [AGENTS.md](../../AGENTS.m
 thing from this amendment's pull request on; the pull request's title stays a conventional
 sentence, for the reader of the list, and is not what the changelog is written from.
 
+## Amendment, 2026-09-26 (second): the first merge with an empty body kept it empty, and release-please skipped it
+
+**Proven on pull request #34, the one that carried the amendment above.** Merged at 05:09 UTC with
+`gh pr merge 34 --merge --body ""`, its eleven checks green. The merge commit is `fa46f7d`, parents
+`d13b4f6` and `8be4d06`, and `git log -1 --format=%B fa46f7d` prints the subject "Merge pull
+request #34 from StandarX-miralabs-tech/docs/post-release-0.3.0" and nothing else: GitHub takes an
+empty `commitBody` as an empty body, not as an omitted one. The tool then said the same in its own
+words. Run `36219957767` on `fa46f7d`: the `release-please` job logged `commit could not be parsed:
+fa46f7d... Merge pull request #34 from ...`, then "No user facing commits found since d13b4f6... -
+skipping", opened no release pull request, and `verify` and `publish` were skipped, as a `docs`
+merge should leave them. The fallback of a plain-sentence body is not needed, and
+`merge_commit_message` stays `PR_TITLE` on the repository unless the owner flips it: the command
+carries the rule on its own. The open item of [ROADMAP.md](../../ROADMAP.md) closes with this
+amendment, and [AGENTS.md](../../AGENTS.md) and the index say "proven" where they said "to be
+proven".
+
 ## Alternatives considered
 
 **Manual publish from the maintainer's laptop**, after a local build. Rejected: no
