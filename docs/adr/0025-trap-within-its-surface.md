@@ -14,7 +14,8 @@ a framework opens scopes in: a child's effect runs before its parent's. React as
 here — "keeps a nested composite under the trap of the dialog around it" in
 `src/react/react.browser.test.tsx` expects the inner scope opened first. Whether Vue, Svelte and
 Angular do the same is not measured yet here; the first parity case of decision 8 is where each of
-their adapters will measure it. So a radio group mounted in the same commit as the dialog around
+their adapters will measure it (**no longer** since 2026-09-24: each did, see the amendment of
+2026-09-26). So a radio group mounted in the same commit as the dialog around
 it is pushed first, lands under the dialog's trap, and the dialog silences its own content.
 [Issue #14](https://github.com/StandarX-miralabs-tech/standarnav/issues/14) reported it on 0.1.0.
 
@@ -128,3 +129,31 @@ element" (`:207`) and "keeps silencing that composite when neither scope passes 
   `dialog:moveDown` asked, the first radio still checked, on chromium, firefox and webkit. With
   this change: `dialog:moveDown` then `radiogroup:moveDown`, the second radio checked, on all
   three; the same page with no `within` passed: only the dialog, as before.
+
+## Amendment, 2026-09-26: Vue, Svelte and Angular open a child's scope first too, measured
+
+The Context above says that whether Vue, Svelte and Angular open a child's scope before its
+parent's, as React does, "is not measured yet here", and that the first parity case of decision 8
+is where each adapter would measure it. Each did, on 2026-09-24, in the pull request that added
+it, and the record of each measurement is in the adapter's own ADR; this record had not been told.
+
+- Vue: "keeps a nested composite under the trap of the dialog around it" in
+  `src/vue/vue.browser.test.ts` (`:384`), and `runAdapterParitySuite(parity)` at `:921`
+  ([ADR-0027](0027-vue-adapter.md), Evidence).
+- Svelte: the same case in `src/svelte/svelte.browser.test.ts` (`:362`), and the suite at `:724`;
+  [ADR-0028](0028-svelte-adapter.md), decision 6, records that Svelte runs a child's `onMount`
+  before its parent's, measured by that case and the nested parity cases.
+- Angular: the same case in `src/angular/angular.browser.test.ts` (`:576`), "opens a child
+  projected into its parent before its parent" (`:432`), and the suite at `:1143`
+  ([ADR-0029](0029-angular-adapter.md), Evidence).
+
+The two parity cases of decision 8, "asks a composite nested in a trapping surface when both pass
+their element" (`src/adapter-parity.ts:207`) and "keeps silencing that composite when neither
+scope passes its element" (`:220`), run under all four adapters, React included
+(`src/react/react.browser.test.tsx:895`), on chromium, firefox and webkit in CI and on the four
+peer floors, whose jobs each run `bun run test:browser` (`.github/workflows/ci.yml:99`, `:159`,
+`:191`, `:224`). So the order this record relied on for React holds for the three others, and the
+rule of decision 2 is what lets each of them keep a dialog's own composite reachable.
+
+Nothing in the decision changes. The sentence in the Context keeps its text and gains a pointer
+to this amendment.
