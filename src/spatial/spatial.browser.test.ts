@@ -1333,3 +1333,206 @@ describe("spatialPlugin — a hover marks only what took the focus (ADR-0005)", 
     expect(seen).toEqual(["r2"]);
   });
 });
+
+describe("spatialPlugin — an image-map area is scored by its shape over its image (ADR-0031)", () => {
+  const SOURCE = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E";
+
+  function picture(
+    id: string,
+    usemap: string,
+    x: number,
+    y: number,
+    width = 300,
+    height = 120,
+  ): string {
+    return (
+      `<img id="${id}" usemap="#${usemap}" alt="" width="${width}" height="${height}" src="${SOURCE}"` +
+      ` style="position:absolute;left:${x}px;top:${y}px">`
+    );
+  }
+
+  function map(name: string, ...areas: string[]): string {
+    return `<map name="${name}">${areas.join("")}</map>`;
+  }
+
+  function area(id: string, shape: string, coords = ""): string {
+    return `<area id="${id}" shape="${shape}" coords="${coords}" href="#" alt="${id}">`;
+  }
+
+  function walk(view: Scene, direction: "left" | "right", steps: number): string[] {
+    const landed: string[] = [];
+    for (let step = 0; step < steps; step++) {
+      view.move(direction);
+      landed.push(view.active());
+    }
+    return landed;
+  }
+
+  it("reaches each shape of a map in turn", () => {
+    // The polygon's trailing odd coordinate is dropped: kept, its 0 would stretch the box
+    // back over the circle, and the move from the circle would pass it by.
+    const view = scene(
+      box("before", 0, 100) +
+        picture("shapes-image", "shapes", 120, 60) +
+        map(
+          "shapes",
+          area("rect", "rect", "10,10,90,110"),
+          area("circle", "circle", "150,60,40"),
+          area("poly", "poly", "210,10,290,10,250,110,0"),
+        ) +
+        box("after", 440, 100),
+    );
+    view.plugin.focus("#before");
+
+    expect(walk(view, "right", 4)).toEqual(["rect", "circle", "poly", "after"]);
+    expect(walk(view, "left", 3)).toEqual(["poly", "circle", "rect"]);
+  });
+
+  it("moves from an area by its shape, not from the corner of the viewport", () => {
+    // `wide` sits above the rest of the image: from the image's whole box it is the
+    // better move up, and from the area it is not aligned at all.
+    const view = scene(
+      picture("middle-image", "middle", 160, 100, 240, 120) +
+        map("middle", area("mid", "rect", "20,40,60,80")) +
+        box("up", 150, 20) +
+        box("wide", 280, 20, 120) +
+        box("down", 150, 260) +
+        box("left", 20, 140) +
+        box("right", 440, 140),
+    );
+
+    for (const direction of ["up", "down", "left", "right"] as const) {
+      view.plugin.focus("#mid");
+      view.move(direction);
+      expect(view.active(), direction).toBe(direction);
+    }
+  });
+
+  it("takes the whole image for a default shape", () => {
+    const view = scene(
+      box("a", 0, 130) +
+        picture("whole-image", "whole", 140, 100, 200, 100) +
+        map("whole", area("all", "DEFAULT")) +
+        box("b", 400, 130),
+    );
+    view.plugin.focus("#a");
+
+    expect(walk(view, "right", 2)).toEqual(["all", "b"]);
+    expect(walk(view, "left", 1)).toEqual(["all"]);
+  });
+
+  it("normalises a rectangle written backwards", () => {
+    // Read as written, the box has a negative height and overlaps nothing across the move,
+    // so the aligned button past it would win.
+    const view = scene(
+      box("before", 0, 100) +
+        picture("backwards-image", "backwards", 120, 60) +
+        map("backwards", area("reversed", "rect", "90,110,10,10")) +
+        box("after", 440, 100),
+    );
+    view.plugin.focus("#before");
+
+    expect(walk(view, "right", 2)).toEqual(["reversed", "after"]);
+  });
+
+  it("drops a shape that describes nothing", () => {
+    const view = scene(
+      box("before", 0, 100) +
+        picture("nothing-image", "nothing", 120, 60) +
+        map(
+          "nothing",
+          area("three", "rect", "10,10,90"),
+          area("point", "circle", "100,60,0"),
+          area("negative", "circle", "150,60,-40"),
+          area("line", "poly", "210,10,290,110"),
+        ) +
+        box("after", 440, 100),
+    );
+    view.plugin.focus("#before");
+
+    view.move("right");
+
+    expect(view.active()).toBe("after");
+    expect(document.querySelectorAll("[data-snav-focused]")).toHaveLength(1);
+  });
+
+  it("reads the shape over the first visible of two images using one map", () => {
+    const view = scene(
+      box("before", 0, 100) +
+        picture("first-image", "twin", 120, 60) +
+        picture("second-image", "twin", 120, 220) +
+        map("twin", area("shared", "rect", "10,10,90,110")) +
+        box("after", 440, 100),
+    );
+    view.plugin.focus("#before");
+
+    view.move("right");
+
+    expect(view.active()).toBe("shared");
+
+    // Firefox focuses the area over the second image once the first is hidden; chromium and
+    // webkit refuse it, and the move goes on. Over the hidden image's empty box it would sit
+    // left of `low-before`, out of the move on every engine.
+    view.host.remove();
+    const hidden = scene(
+      box("low-before", 0, 260) +
+        picture("hidden-image", "half", 120, 60).replace('style="', 'style="display:none;') +
+        picture("shown-image", "half", 120, 220) +
+        map("half", area("half-shown", "rect", "10,10,90,110")) +
+        box("low-after", 440, 260),
+    );
+    hidden.at("half-shown").focus();
+    const takes = document.activeElement === hidden.at("half-shown");
+    hidden.plugin.focus("#low-before");
+
+    hidden.move("right");
+
+    expect(hidden.active()).toBe(takes ? "half-shown" : "low-after");
+  });
+
+  it("does not offer an area whose map no image uses", () => {
+    // `#Orphan` is not `orphan`: all three engines match the name case-sensitively.
+    const view = scene(
+      box("before", 0, 100) +
+        picture("orphan-image", "Orphan", 120, 60) +
+        map("orphan", area("lost", "rect", "10,10,90,110")) +
+        box("after", 440, 100),
+    );
+    view.plugin.focus("#before");
+
+    view.move("right");
+
+    expect(view.active()).toBe("after");
+  });
+
+  it("scrolls the image into view, not the area", () => {
+    const view = scene(
+      box("before", 0, 100) +
+        picture("scrolled-image", "scrolled", 120, 60) +
+        map("scrolled", area("target", "rect", "10,10,90,110")),
+    );
+    view.plugin.focus("#before");
+    const spy = vi.spyOn(Element.prototype, "scrollIntoView");
+    cleanups.push(() => spy.mockRestore());
+
+    view.move("right");
+
+    expect(view.active()).toBe("target");
+    expect(spy.mock.contexts).toEqual([view.at("scrolled-image")]);
+  });
+
+  it("a hover lands on an area", () => {
+    const view = scene(
+      box("before", 0, 100) +
+        picture("hovered-image", "hovered", 120, 60) +
+        map("hovered", area("under", "rect", "10,10,90,110")),
+      { mode: "app" },
+    );
+    view.plugin.focus("#before");
+
+    view.at("under").dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
+
+    expect(view.active()).toBe("under");
+    expect(document.querySelector("[data-snav-focused]")?.id).toBe("under");
+  });
+});

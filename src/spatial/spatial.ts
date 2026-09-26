@@ -12,11 +12,11 @@
  */
 
 import { addDomEvent } from "../dom/event";
-import { prefersReducedMotion } from "../dom/platform";
+import { prefersReducedMotion, rectOf } from "../dom/platform";
 import { isHTMLElement } from "../dom/query";
 import { raf } from "../dom/raf";
 import type { InputPlugin, InputPluginContext } from "../input-system";
-import { focusElement, getFocusables, isFocusable } from "../tabbable";
+import { focusElement, getFocusables, imageOf, isFocusable } from "../tabbable";
 import type { IntentEvent, NavigationIntent, Rect } from "../types";
 import {
   ACTIVE_ATTRIBUTE,
@@ -179,7 +179,7 @@ export function collectNavNodes(container: HTMLElement, root: HTMLElement): NavN
     if (target === null || seen.has(target)) continue;
     seen.add(target);
 
-    const rect = target.getBoundingClientRect();
+    const rect = rectOf(target);
     // Either dimension, not both — the implementation this was extracted from
     // asked for both, which let a 0 x 40 element through. Such a rect paints
     // nothing, and its projection onto the cross axis is empty, so the alignment
@@ -292,13 +292,13 @@ export function spatialPlugin(options: SpatialPluginOptions = {}): SpatialPlugin
   }
 
   function scrollFocusIntoView(element: HTMLElement, root: HTMLElement): void {
-    const document = doc();
-    const win = document?.defaultView ?? null;
+    const win = doc()?.defaultView ?? null;
     if (win === null) return;
-
+    // Chromium and webkit scroll nothing for an area, which has no box there: its image does.
+    const box = (element.localName === "area" && imageOf(element)) || element;
     const centred =
       containerOf(element, root).getAttribute(SCROLL_ATTRIBUTE) === "center" ? "center" : "nearest";
-    element.scrollIntoView({
+    box.scrollIntoView({
       block: centred,
       inline: centred,
       behavior: prefersReducedMotion(win) ? "auto" : "smooth",
@@ -499,7 +499,7 @@ export function spatialPlugin(options: SpatialPluginOptions = {}): SpatialPlugin
       }
     }
 
-    const origin = active.getBoundingClientRect();
+    const origin = rectOf(active);
     let container = containerOf(active, root);
 
     for (let depth = 0; depth < MAX_CONTAINER_DEPTH; depth++) {

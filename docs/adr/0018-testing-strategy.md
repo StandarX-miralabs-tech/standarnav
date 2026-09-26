@@ -132,8 +132,8 @@ the file that covers it.
 
 **The `explainMove` row is reversed, not filled.** Decision 6 recorded that the diagnostic
 re-implemented the winner rule instead of sharing it. That is no longer true: `src/debug.ts` imports
-`findBestCandidate` and calls it for the winner (`src/debug.ts:13-19`, `:69`), keeping
-`scoreCandidates` only for the per-candidate table it displays (`:68`). There is one ranking
+`findBestCandidate` and calls it for the winner (`src/debug.ts:14-20`, `:70`), keeping
+`scoreCandidates` only for the per-candidate table it displays (`:69`). There is one ranking
 implementation, which is what [ADR-0010](0010-dev-mode-diagnostics.md) decision 4 asked for. The
 tests that remain are therefore not parity tests against a second implementation but assertions
 about where the *diagnostic* is meant to differ from the *engine* —

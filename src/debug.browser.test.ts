@@ -236,3 +236,38 @@ describe("scanNativeSelects", () => {
     expect(scanNativeSelects(host)).toEqual([]);
   });
 });
+
+describe("explainMove — an image-map area (ADR-0031)", () => {
+  it("reads an area's origin by its shape, as the engine does", () => {
+    // One container, as the parity fixture above: the image's map holds two areas.
+    const root = document.createElement("div");
+    root.id = "area-root";
+    root.style.cssText = "position:fixed;left:0;top:0;width:560px;height:340px";
+    root.innerHTML =
+      `<img usemap="#debug-map" alt="" width="300" height="100" style="position:absolute;left:100px;top:100px"` +
+      ` src="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg'/%3E">` +
+      `<map name="debug-map">` +
+      `<area id="origin" shape="rect" coords="20,20,80,80" href="#" alt="origin">` +
+      `<area id="next" shape="rect" coords="200,20,260,80" href="#" alt="next">` +
+      `</map>` +
+      `<button id="high" style="position:absolute;left:440px;top:20px;width:100px;height:40px"></button>` +
+      `<button id="level" style="position:absolute;left:440px;top:130px;width:100px;height:40px"></button>`;
+    document.body.append(root);
+    const plugin = spatialPlugin({ root, mode: "app", pointerFollowsFocus: false });
+    const input = createInputSystem({ plugins: [plugin] });
+    cleanups.push(() => {
+      input.destroy();
+      root.remove();
+    });
+
+    const from = root.querySelector("#origin") as HTMLElement;
+    from.focus();
+
+    const explained = explainMove(from, "right", { root });
+    plugin.move("right");
+
+    expect(explained.originRect).toEqual({ x: 120, y: 120, width: 60, height: 60 });
+    expect(explained.winner?.element.id).toBe("next");
+    expect(document.activeElement?.id).toBe("next");
+  });
+});

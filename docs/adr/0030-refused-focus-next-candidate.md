@@ -88,7 +88,7 @@ memory only when `landed` says so (`:601`), and still bypasses `onWillMove` (ADR
 of this date).
 
 **6. `explainMove` keeps not focusing,** so its winner may be an element the engine skips, now a
-documented difference (`src/debug.ts:34-41`; [ADR-0010](0010-dev-mode-diagnostics.md), amendment
+documented difference (`src/debug.ts:35-42`; [ADR-0010](0010-dev-mode-diagnostics.md), amendment
 of this date).
 
 ## Consequences

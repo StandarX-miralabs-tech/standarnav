@@ -54,7 +54,7 @@ on: a separate subpath export plus `sideEffects: false`.
 
 **Which of the five are in v0.** Only item 4. Items 1, 2, 3 and 5 are v1, and this is a scheduling
 decision rather than a change of mind: four of the five have no source file behind them.
-`src/debug.ts` is 91 lines exporting `SpatialExplanation`, `explainMove`, four type re-exports and
+`src/debug.ts` is 92 lines exporting `SpatialExplanation`, `explainMove`, four type re-exports and
 `scanNativeSelects` — the native-select scan of [ADR-0021](0021-native-select-on-television.md),
 which is not one of the five items here — and it writes no DOM at all: the overlay renderer such a
 scan would draw into is inherited from the predecessor implementation
@@ -105,16 +105,16 @@ The subpath provides:
    > If it still does not work, call `explainMove(origin, direction)` from `@standarx/nav/debug`.
 
 The subpath gets its own size-budget line ([ADR-0017](0017-size-budgets.md)), and that line exists
-and is capped: `scripts/size-budget.ts:108-117` measures `debug.js` against a cap of 0.50 kB, and
-`bun run build && bun run check:size` reports **0.49 kB min+gzip**, 0.78 kB minified. The line is
-not optional bookkeeping: a diagnostics module with no cap is how a diagnostics module ends up in
-production bundles.
+and is capped: `scripts/size-budget.ts:108-122` measures `debug.js` against a cap of 0.50 kB, and
+`bun run build && bun run check:size` reports **0.49 kB min+gzip**, 0.80 kB minified, on 2026-09-26.
+The line is not optional bookkeeping: a diagnostics module with no cap is how a diagnostics module
+ends up in production bundles.
 
-That line's externals are `./spatial/spatial.js`, `./spatial/geometry.js` and `./tabbable.js`, named
-one by one, never a glob. The glob is forbidden by the script itself
+That line's externals are `./dom/platform.js`, `./spatial/spatial.js`, `./spatial/geometry.js` and
+`./tabbable.js`, named one by one, never a glob. The glob is forbidden by the script itself
 (`scripts/size-budget.ts:67-79`): `*` does not cross a path separator, so `./*` on a top-level entry
 can externalise the line's own contents and report a re-export stub as proof — a budget line that
-stops measuring without ever going red. Naming those three is what makes the 0.49 kB a marginal
+stops measuring without ever going red. Naming those four is what makes the 0.49 kB a marginal
 cost, which is the only figure this line is meant to carry.
 
 The third was added on 2026-09-20 and is the amendment below. `tabbable.js` belongs to the core, so
@@ -129,8 +129,8 @@ did ([ADR-0017](0017-size-budgets.md), the amendment of that date).
   here with `bun run build && bun run check:size`: core 3.23 kB of a 3.25 kB cap, spatial engine
   3.07 of 3.25, debug 0.49 of 0.50, min+gzip ([ADR-0017](0017-size-budgets.md)).
 - Point 4 removed a duplicate implementation of the winner rule, and that is done: `src/debug.ts`
-  imports `findBestCandidate` and calls it for the winner (`src/debug.ts:13-19`, `:69`), keeping
-  `scoreCandidates` for the per-candidate table alone (`:68`). The asymmetry this ADR's Context
+  imports `findBestCandidate` and calls it for the winner (`src/debug.ts:14-20`, `:70`), keeping
+  `scoreCandidates` for the per-candidate table alone (`:69`). The asymmetry this ADR's Context
   described — the debug loop's second pass excluding aligned candidates where the engine's does not
   — no longer exists, because there is no second loop.
 - The scan has false negatives it cannot fix: a click listener attached with `addEventListener` is
@@ -146,7 +146,7 @@ did ([ADR-0017](0017-size-budgets.md), the amendment of that date).
   and the documentation note (5) are v1 and no code exists for any of them: `src/debug.ts` is 91
   lines holding `SpatialExplanation`, `explainMove`, type re-exports and the native-select scan of
   [ADR-0021](0021-native-select-on-television.md), with no DOM written and no *reachability* scan —
-  `scanNativeSelects` (`src/debug.ts:87`) answers a different question and is not point 1. Point 4
+  `scanNativeSelects` (`src/debug.ts:88`) answers a different question and is not point 1. Point 4
   is measured and covered: `src/debug.browser.test.ts:56-196` holds seven `explainMove` cases, four
   of which pin where the diagnostic is *meant* to differ from the engine
   (`:113-196`) — the differences that remain once the winner rule is shared. The file holds ten in
@@ -203,7 +203,7 @@ engine then skips. That is not the drift decision 4 forbids: the winner rule is 
 own `findBestCandidate`, and what differs is what the browser does after it. So it joins the
 differences the diagnostic is meant to have — a redirection answered first, the walk out to the
 parent, the wrap and the rescan, the descent into a nested container — in the doc comment of
-`SpatialExplanation.winner` (`src/debug.ts:34-41`, rewritten on the same lines, so the debug line
+`SpatialExplanation.winner` (`src/debug.ts:35-42`, rewritten on the same lines, so the debug line
 stays at 499 bytes), and in a fourth case of the `describe` that pins them, "names a winner the
 browser refuses, where the engine goes on to the next" (`src/debug.browser.test.ts:181-195`),
 which fails at cc0b219.
@@ -248,20 +248,20 @@ removed.
 - `src/tabbable.ts:18-39`, `:67-85` — `FOCUSABLE_SELECTOR` and `isFocusable`, what a candidate has to
   be.
 - `package.json` — `"./debug"` as its own export, and `"sideEffects": false`.
-- `scripts/size-budget.ts` — the `debug` line at `:105-114`, entry `debug.js`,
-  `external: ["./spatial/spatial.js", "./spatial/geometry.js", "./tabbable.js"]`,
-  `cap: 0.5 * KB`. The rule forbidding globbed externals, with the `./*` failure mode
-  spelled out, is the comment at `:65-76`.
-- Sizes measured here: `bun run build && bun run check:size`, min+gzip at Bun's default gzip level —
-  debug 0.49 kB of 0.50, core 3.23 of 3.25, spatial engine 3.07 of 3.25. Any earlier figure for a
-  differently shaped build is inherited from the predecessor implementation
+- `scripts/size-budget.ts` — the `debug` line at `:108-122`, entry `debug.js`, its externals
+  `./dom/platform.js`, `./spatial/spatial.js`, `./spatial/geometry.js` and `./tabbable.js` at
+  `:115-120`, `cap: 0.5 * KB`. The rule forbidding globbed externals, with the `./*` failure mode
+  spelled out, is the comment at `:67-79`.
+- Sizes measured here: `bun run build && bun run check:size` on 2026-09-26, min+gzip at Bun's default
+  gzip level — debug 0.49 kB of 0.50, core 3.38 of 3.50, spatial engine 3.54 of 3.75. Any earlier
+  figure for a differently shaped build is inherited from the predecessor implementation
   ([ADR-0002](0002-license-and-copyright.md)) and not re-derived here.
-- The winner rule is shared, not restated: `src/debug.ts:13-19` imports `findBestCandidate`,
-  `scoreCandidates` and the scoring types from `./spatial/geometry`; `:68-69` calls `scoreCandidates`
-  for the table and `findBestCandidate` for the winner; the comment at `src/debug.ts:64-67` names
-  this ADR's decision 4 as the reason. `src/debug.ts` is 91 lines. Cases:
-  `src/debug.browser.test.ts`, seven for `explainMove` (`:56-196`) and three more for the
-  native-select scan of [ADR-0021](0021-native-select-on-television.md) (`:198-238`).
+- The winner rule is shared, not restated: `src/debug.ts:14-20` imports `findBestCandidate`,
+  `scoreCandidates` and the scoring types from `./spatial/geometry`; `:69-70` calls `scoreCandidates`
+  for the table and `findBestCandidate` for the winner; the comment at `src/debug.ts:65-68` names
+  this ADR's decision 4 as the reason. `src/debug.ts` is 92 lines. Cases:
+  `src/debug.browser.test.ts`, eight for `explainMove` (`:56-196` and `:240-273`) and three more
+  for the native-select scan of [ADR-0021](0021-native-select-on-television.md) (`:198-238`).
 - Row 1 of the Context table survives in a different shape: the zero-size filter is
   `rect.width === 0 || rect.height === 0` (`src/spatial/spatial.ts:188`,
   [ADR-0009](0009-hidden-candidates.md) C1), so a 0 x 40 element is silently *dropped* rather than
