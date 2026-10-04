@@ -1,1 +1,3 @@
+projet: wsn
+
 @AGENTS.md
