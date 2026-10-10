@@ -66,12 +66,12 @@ will not fit, write the amendment commit before the code commit.
   the next one below it. The pull request body follows the same rule: sections are dated
   and appended.
 - Test counts are written in prose in several documents. After adding or removing a test,
-  grep the tree for the old totals (`648 passed`, `649`, `33 files`, and the per-project
+  grep the tree for the old totals (`653 passed`, `654`, `33 files`, and the per-project
   figures) and fix every one in the same commit. A count that carries its own date —
   "on 2026-09-21", or a dated amendment — is a measurement, not a stale claim: leave it.
 - Numbers, `sed` and scripted replacements corrupt Markdown and TypeScript in ways a diff
   hides. Reread the whole diff before committing.
-- ADRs: one per pull request, next free number is ADR-0032, the skeleton and the index are
+- ADRs: one per pull request, next free number is ADR-0033, the skeleton and the index are
   in `docs/adr/README.md`. ADR-0004 was withdrawn on 2026-09-20 and its number is not reused.
 
 ## What never reaches a committed file

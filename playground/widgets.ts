@@ -191,8 +191,8 @@ export function attachEngageable(bus: IntentScopeHost, options: EngageableOption
  * Three mechanics are inherited from that sibling and are not obvious:
  * the list must carry `data-snav-trap` or the engine walks straight out of it, since the
  * scope is pushed as `base` and a base scope is asked even through a trap; the scope has
- * to click the focused option itself, because `select` cannot escape a trap so
- * `activateFocused` never runs inside one; and closing has to restore the focus to the
+ * to click the focused option itself, because it claims `select`, and a claimed `select`
+ * gets no `activateFocused` click; and closing has to restore the focus to the
  * `<select>`, or the focus sits on an element that is now hidden and the engine has
  * nowhere to move from.
  *

@@ -36,9 +36,9 @@ target, and `select` is not one of the intents allowed to cross one, so A never 
 Engage can only be released by the bus — its dispose detaches in silence — so a control the user
 tabs out of while holding it has to redo the commit-or-restore bookkeeping itself. A trapped scope
 does not confine the focus; `data-snav-trap` on the container does, because the engine is a `base`
-scope and is asked through a trap on purpose. And inside a trap nothing activates the focused
-element for you: `select` cannot escape a trap, so the dispatch reports it consumed and
-`activateFocused` stands down.
+scope and is asked through a trap on purpose. Since 2026-10-10 an unclaimed `select` keeps its
+default inside a trap, the pad click and Enter's native activation; the rest is still swallowed
+([ADR-0032](docs/adr/0032-trap-leaves-unclaimed-select.md)).
 
 ### Virtual keyboard
 
