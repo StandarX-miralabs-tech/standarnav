@@ -1,7 +1,7 @@
 # Contributing to standarnav
 
-standarnav (npm package `@standarx/nav`) is published — `0.3.0` since
-2026-09-26, after `0.2.0` on 2026-09-23 and `0.1.0` on 2026-09-22 — and v0
+standarnav (npm package `@standarx/nav`) is published, `0.3.1` since 2026-10-10, <!-- x-release-please-version-date -->
+the first, `0.1.0`, on 2026-09-22 and every release since in the CHANGELOG, and v0
 is in progress: the public API is not frozen. This document explains how to
 set up the project, what is expected of a pull request, and how to report a
 bug. Read it before opening a pull request.
@@ -151,8 +151,17 @@ which is why the commit rules above are load-bearing rather than cosmetic.
 
 The wiring exists — `release-please-config.json`, `.release-please-manifest.json`
 and `.github/workflows/release.yml` — and has released: `0.1.0` reached npm on
-2026-09-22 from that workflow, `0.2.0` on 2026-09-23 and `0.3.0` on 2026-09-26,
-and the CHANGELOG at the root is what it wrote.
+2026-09-22 from that workflow and every version since has gone out the same way,
+the CHANGELOG at the root being what it wrote.
+
+The release pull request also keeps the status lines true. The files listed under
+`extra-files` in `release-please-config.json` each carry one line that ends in a
+release-please marker comment; on every release the tool replaces the first
+version number on that line with the new version and the first date with the
+release date it writes in the CHANGELOG heading. Keep the current version and its
+date as the first of each on that physical line, and add a new status line's file
+to `extra-files`
+([ADR-0012](docs/adr/0012-versioning-and-release.md), amendment of 2026-10-10).
 
 The release notes are the commit subjects. A commit that changes anything a
 consumer can observe carries one sentence saying what changed for that

@@ -134,6 +134,8 @@ Then, in order:
   1 ms for 200 candidates) calls `findBestCandidate` alone — never `collectNavNodes`,
   `getBoundingClientRect`, `querySelectorAll` or `checkVisibility`. Measuring the full scan is a
   separate task; see [ADR-0018](0018-testing-strategy.md), decision 7, for why there is no bench.
+- Rule 5 is a `fix`, and it shipped in `0.3.1` on 2026-10-10 (`75903a7`, the `tabbable` entry of the
+  CHANGELOG).
 - (C1) is breaking for anyone relying on the tolerance it replaced, and it is the only breaking change
   this record announces. It ships on its own, with a line in CHANGELOG naming the escape hatch:
   `data-snav-ignore` to remove a candidate, a non-zero size on both axes to keep one. (C2) carries

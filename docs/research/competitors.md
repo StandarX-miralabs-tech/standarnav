@@ -1,6 +1,6 @@
 # Competitor comparison
 
-standarnav is on npm since 2026-09-22, `0.3.0` since 2026-09-26. This document compares the
+standarnav `0.3.1` is on npm since 2026-10-10, first published 2026-09-22. This document compares the <!-- x-release-please-version-date -->
 verified state of 18 other spatial-navigation, focus-management, and D-pad
 libraries and specifications, as of 2026-09-18. It carries facts only — no
 adjectives about competitors that are not themselves a quoted fact.

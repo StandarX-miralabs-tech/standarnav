@@ -12,7 +12,10 @@ attestation (sixth amendment). From that amendment on, the publish step authenti
 trusted publishing; `0.2.0` went out through it on 2026-09-23, and the token that published `0.1.0`
 is revoked (seventh amendment). `0.3.0` followed on 2026-09-26, green on its first attempt, the
 verbose log showing the token exchange; its changelog showed a merge commit read twice, and since
-then a pull request is merged with a merge commit whose body is empty (eighth amendment).
+then a pull request is merged with a merge commit whose body is empty (eighth amendment). `0.3.1`
+followed on 2026-10-10, again on the first attempt, with a changelog that lists each fix once; from
+that release the release pull request also writes the status lines of the documents (tenth
+amendment).
 
 ## Context
 
@@ -123,8 +126,8 @@ device test exists.
 - One version number covers core, engines and every adapter ([ADR-0011](0011-package-layout-and-adapters.md)),
   so the changelog entry must name the affected subpath — "fix(spatial)", not "fix".
 - Nothing about the infrastructure blocks a release: Actions runs, the CI workflow is green, and
-  the release workflow has run end to end three times — on 2026-09-22 for `0.1.0`, on 2026-09-23
-  for `0.2.0` and on 2026-09-26 for `0.3.0`.
+  the release workflow has run end to end four times — on 2026-09-22 for `0.1.0`, on 2026-09-23
+  for `0.2.0`, on 2026-09-26 for `0.3.0` and on 2026-10-10 for `0.3.1`.
 - A commit whose type release-please hides — `docs`, `refactor`, `test`, `chore`, `ci` — bumps
   nothing and publishes nothing, so the README a consumer reads on the package page is the one in
   the last published tarball until the next `feat`, `fix` or `perf` lands. A change confined to
@@ -496,6 +499,84 @@ carries the rule on its own. The open item of [ROADMAP.md](../../ROADMAP.md) clo
 amendment, and [AGENTS.md](../../AGENTS.md) and the index say "proven" where they said "to be
 proven".
 
+## Amendment, 2026-10-10: `0.3.1` on the first attempt, the empty body kept the changelog clean, and the release pull request writes the status lines
+
+**The third release through the trusted publisher, green on its first attempt.** The release pull
+request #37, `chore(main): release 0.3.1`, was merged on 2026-10-10 at 17:38:49 UTC; `main` moved to
+`e577464`, the merge of the release commit `f8fec37`, and the tag `v0.3.1` sits on `e577464`. Run
+`38072585469` on that commit ran its three jobs in sequence and green: `release-please` from
+17:38:54 to 17:39:04 UTC, `verify` from 17:39:06 to 17:40:47 and `publish` from 17:40:50 to
+17:41:07. The step's own log: filename `standarx-nav-0.3.1.tgz`, package size 140.9 kB, unpacked size
+470.6 kB, 115 files; then `npm http fetch POST 201
+https://registry.npmjs.org/-/npm/v1/oidc/token/exchange/package/@standarx%2fnav`, `npm verbose oidc
+Successfully retrieved and set token`, "Signed provenance statement with source and build
+information from GitHub Actions", and `+ @standarx/nav@0.3.1`. As with `0.3.0`, the `oidc` line
+is on the record, so the exchange is shown rather than inferred from the attestation.
+
+**The registry agrees.** The registry document of `@standarx/nav`, fetched on 2026-10-10 at 17:55:08
+UTC, answers `dist-tags.latest` `0.3.1` and `time.0.3.1` `2026-10-10T17:42:20.728Z`, about a minute
+after the publish step ended. The `dist/intent-bus.js` of the tarball downloaded from it contains
+`const swallowed = trapped && event.intent !== "select";`, the fix of
+[ADR-0032](0032-trap-leaves-unclaimed-select.md), so the published bytes carry the change the
+release was cut for.
+
+**The changelog lists each fix once, which is the proof the second amendment of 2026-09-26 left
+for the next release.** The `0.3.1` section of `CHANGELOG.md`, dated 2026-10-10, carries exactly
+two entries, both under Bug Fixes and each once: `input` (`c07fb33`,
+[ADR-0032](0032-trap-leaves-unclaimed-select.md)) and `tabbable` (`75903a7`, rule 5 of
+[ADR-0009](0009-hidden-candidates.md)). Between `v0.3.0` and `v0.3.1`, `git log --merges
+v0.3.0..v0.3.1 --format='%h|%s|%b|'` on 2026-10-10 prints an empty body for the merges of the pull
+requests #34, #35, #36, #38, #41 and #42, all made with `gh pr merge N --merge --body ""`, and for
+one plain `Merge branch 'main'`; the only body is the release pull request's own,
+`chore(main): release 0.3.1`, a type the tool hides. The `0.3.0` section carried twenty-eight lines
+for eighteen changes; the `0.3.1` section carries two lines for two changes, and what separates
+them is the empty body.
+
+**Decided: the release pull request writes the status lines.** Every release left undated
+present-tense sentences naming the previous version, and the post-release pull request of `0.3.0`
+(`8be4d06`) corrected them by hand. From this amendment on, one line in each of eight files carries
+the inline marker `x-release-please-version-date` as an HTML comment at its end — `README.md`,
+`llms.txt`, `ROADMAP.md`, `CONTRIBUTING.md`, `docs/specification.md`,
+`docs/research/competitors.md`, `docs/research/tv-runtime-compatibility.md` and
+`docs/adr/0001-name-scope-and-attribute-prefix.md` — and `release-please-config.json` lists the
+eight under `extra-files` with `"type": "generic"`. The Generic updater bundled in
+`googleapis/release-please-action@v5.0.0`, the version pinned at `.github/workflows/release.yml:37`,
+matches `x-release-please-(?<scope>major|minor|patch|version-date|version|date)`; on a line with
+`version-date` it replaces the first version number on the line with the new version and the first
+`YYYY-MM-DD` with the release date, and it processes every marked line of a listed file
+(`docs/customizing.md#updating-arbitrary-files` of `googleapis/release-please`, fetched
+2026-10-10; the replacement is not global, so only the first match of each is rewritten). Four
+rules follow for whoever edits a marked line:
+
+- The current version must be the first `X.Y.Z` on the physical line and the release date the first
+  `YYYY-MM-DD`: a history clause ("first published 2026-09-22") goes after them or on the next line,
+  never before. Markdown paragraphs are hard-wrapped, so the version, the date and the marker share
+  one physical line; the eight lines were rewritten without adding one, so no anchor into those files
+  shifted.
+  Checked on 2026-10-10 by running the `Generic` updater of `release-please@17`, installed from
+  npm that day outside this tree, over the eight files with version `0.3.2` and date 2026-11-01:
+  exactly the eight marked lines changed, each to `0.3.2` and 2026-11-01 with its history clause
+  intact, and no file changed its line count.
+- The date is the one release-please writes in the heading of the `CHANGELOG.md` entry, 2026-10-10
+  here, not the registry's publish time, `17:42:20Z` that day, minutes later.
+- The marker text must not be written in prose in any of the eight listed files, since a line that
+  carries it is processed; this record is not listed, so it can quote it.
+- A file with a status line joins `extra-files` in the same commit as its marker.
+
+Not proven until the next release runs: the updater was run by hand, not by the action, and the
+action has not yet rewritten these lines. The release pull request that follows should show the
+eight lines changed in its diff; if it does not, the marker, the path or the updater is wrong and
+this paragraph is amended.
+
+**What stays manual after a release.** An evidence amendment like this one, recording the run, the
+log lines and the registry's answer; the sentence of an ADR that promised "the next release" and
+now says it shipped, as `8be4d06` did for [ADR-0025](0025-trap-within-its-surface.md) to
+[ADR-0029](0029-angular-adapter.md) and this pull request does for ADR-0009 and ADR-0032; and the
+Evidence bullets of this record that name the version in `package.json` and the manifest. The
+other undated sentences that named the current version were rewritten in this pull request so that
+they no longer carry it: the release section of [ROADMAP.md](../../ROADMAP.md) and the release
+notes of [CONTRIBUTING.md](../../CONTRIBUTING.md), which now describes this mechanism.
+
 ## Alternatives considered
 
 **Manual publish from the maintainer's laptop**, after a local build. Rejected: no
@@ -529,8 +610,9 @@ first outside pull request arrives.
 
 ## Evidence
 
-- `package.json` in this repository: `"version": "0.3.0"`, written by release-please in the release
-  commit `caa7ff5` (`0.2.0` in `7d8dab5` and `0.1.0` in `da0b65a` before it), and a `publishConfig` block with
+- `package.json` in this repository: `"version": "0.3.1"`, written by release-please in the release
+  commit `f8fec37` (`0.3.0` in `caa7ff5`, `0.2.0` in `7d8dab5` and `0.1.0` in `da0b65a` before it),
+  and a `publishConfig` block with
   `"access": "public"` and `"provenance": true`.
   The declared scripts are listed in the first amendment above; its `devDependencies` carry
   `publint` `^0.3.24` and `@arethetypeswrong/cli` `^0.18.5`, the two linters `check:package` runs.
@@ -547,15 +629,21 @@ first outside pull request arrives.
   `2026-09-26T04:37:22.931Z`, `dist.fileCount` 115, `dist.unpackedSize` 470457, with the provenance
   and publisher fields the eighth amendment lists, and the publish log carries `npm verbose oidc
   Successfully retrieved and set token`.
+- `@standarx/nav@0.3.1` is on the registry, published through the trusted publisher on the first
+  attempt: the registry document, fetched on 2026-10-10 at 17:55:08 UTC, answers `dist-tags.latest`
+  `0.3.1` and `time.0.3.1` `2026-10-10T17:42:20.728Z`; the `dist/intent-bus.js` of the downloaded
+  tarball contains `const swallowed = trapped && event.intent !== "select";`; the publish log carries
+  the `oidc` line (tenth amendment).
 - No TV device test has ever been run, for want of the hardware and of an emulator.
 - Release tooling: `.github/workflows/` holds `ci.yml`, `release.yml` and `pages.yml`;
-  `release-please-config.json` and `.release-please-manifest.json` exist, the manifest at `0.3.0`.
+  `release-please-config.json` and `.release-please-manifest.json` exist, the manifest at `0.3.1`.
   There is no `.changeset/` directory, and `package.json` declares neither release-please nor
   changesets among its `devDependencies` — release-please is a GitHub Action, not a dependency.
-  The workflow has run end to end three times: run `35774862381` on `68bb0c3` for `0.1.0`, three
+  The workflow has run end to end four times: run `35774862381` on `68bb0c3` for `0.1.0`, three
   jobs green (sixth amendment), run `35796937190` on `1d95b94` for `0.2.0`, green on its third
-  attempt (seventh amendment), and run `36218206449` on `d13b4f6` for `0.3.0`, green on its first
-  (eighth amendment).
+  attempt (seventh amendment), run `36218206449` on `d13b4f6` for `0.3.0`, green on its first
+  (eighth amendment), and run `38072585469` on `e577464` for `0.3.1`, green on its first (tenth
+  amendment).
 - `check:package` is wired and green: `scripts/check-package.ts` packs the tarball
   (`scripts/check-package.ts:68`), runs `publint --strict` on it (`scripts/check-package.ts:74`)
   and `attw --profile esm-only` (`scripts/check-package.ts:75`), and fails when `package.json`

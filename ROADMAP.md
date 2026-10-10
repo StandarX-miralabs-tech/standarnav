@@ -1,7 +1,7 @@
 # Roadmap
 
-Status: `@standarx/nav@0.3.0` is on npm since 2026-09-26, after `0.2.0` on 2026-09-23 and `0.1.0`
-on 2026-09-22 ([ADR-0012](docs/adr/0012-versioning-and-release.md), sixth to eighth amendments).
+Status: `@standarx/nav@0.3.1` is on npm since 2026-10-10 ([ADR-0012](docs/adr/0012-versioning-and-release.md)). <!-- x-release-please-version-date -->
+The first, `0.1.0`, went out on 2026-09-22; every release since is in [CHANGELOG.md](CHANGELOG.md).
 Nothing has been run on a television, and no demo exists yet.
 
 This file lists what is still open. What is done is in the git history and, from `0.1.0` on, in the
@@ -19,8 +19,8 @@ The engine navigates between focusable elements, the five controls that hold a v
 `<select>` question is answered, the on-screen keyboard is built, and the first version is
 published. What follows is what v0 still owes, and none of it blocks the next release: the
 keyboard's open items are limitations of a shipped module, documented rather than discovered, and
-the release section has no open item since `0.3.0` went out through the trusted publisher on
-2026-09-26 and the merge rule set that day was proven the same day.
+the release section has no open item: the trusted publisher path and the merge rule set on
+2026-09-26 are both proven ([ADR-0012](docs/adr/0012-versioning-and-release.md)).
 
 Controls that hold a value were the last gap to close before the first publication. The grammar was always public —
 `pushEngageScope` takes hold of a control, the directional intents become adjustments, confirm
@@ -95,8 +95,8 @@ documented exception to the no-`npm` rule. It released `0.1.0` on 2026-09-22 wit
 provenance statement, 116.6 kB packed and 99 files by its own log
 ([ADR-0012](docs/adr/0012-versioning-and-release.md), sixth amendment), `0.2.0` on 2026-09-23
 through the trusted publisher with no secret in the run, 113.7 kB packed and 103 files (seventh
-amendment), and `0.3.0` on 2026-09-26 on its first attempt, the verbose log showing the token
-exchange, 140.8 kB packed and 115 files (eighth amendment).
+amendment), `0.3.0` on 2026-09-26 on its first attempt, the verbose log showing the token
+exchange, 140.8 kB packed and 115 files (eighth amendment), and `0.3.1` on 2026-10-10 on its first attempt (tenth amendment).
 
 Two things about its shape are worth knowing before reading it. The publish job lives in the
 **same run** as release-please rather than in a tag-triggered workflow, because GitHub does not
