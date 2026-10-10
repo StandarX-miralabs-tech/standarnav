@@ -6,6 +6,16 @@
       "initial-version": "0.1.0",
       "include-component-in-tag": false,
       "bump-minor-pre-major": true,
+      "extra-files": [
+        { "type": "generic", "path": "README.md" },
+        { "type": "generic", "path": "llms.txt" },
+        { "type": "generic", "path": "ROADMAP.md" },
+        { "type": "generic", "path": "CONTRIBUTING.md" },
+        { "type": "generic", "path": "docs/specification.md" },
+        { "type": "generic", "path": "docs/research/competitors.md" },
+        { "type": "generic", "path": "docs/research/tv-runtime-compatibility.md" },
+        { "type": "generic", "path": "docs/adr/0001-name-scope-and-attribute-prefix.md" }
+      ],
       "changelog-sections": [
         { "type": "feat", "section": "Features" },
         { "type": "fix", "section": "Bug Fixes" },

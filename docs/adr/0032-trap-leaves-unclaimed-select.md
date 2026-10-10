@@ -64,7 +64,8 @@ acts on the page itself, which is what a modal that is not a native `<dialog>` e
   activates the focused element inside a trap.
 - A modal that wanted `select` swallowed, so that nothing activates beneath its trap, must now claim
   it: `() => true` for `select` in its scope. That is a behaviour change for a consumer who relied on
-  the swallow; the package is on 0.x with its API not frozen, and the commit is a `fix`.
+  the swallow; the package is on 0.x with its API not frozen, and the commit is a `fix` that shipped
+  in `0.3.1` on 2026-10-10.
 - Bytes: no cap moved. The core line is 3.41 kB of its 3.50 kB cap, 98 %, measured below.
 - Not decided: `secondary` and `contextMenu`. The issue argued they are swallowed too, but only
   `select` was measured there. They can be revisited with a measurement of their own.
