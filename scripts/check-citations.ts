@@ -44,7 +44,7 @@ const LINK = /\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g;
 /** Nothing on the filesystem to resolve: another host, a mail client, a heading here. */
 const EXTERNAL = /^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i;
 
-interface Problem {
+export interface Problem {
   readonly file: string;
   readonly line: number;
   readonly what: string;
@@ -74,76 +74,55 @@ interface Written {
   readonly end?: number;
 }
 
-function tracked(): string[] {
-  const result = spawnSync("git", ["ls-files", "*.md"], { cwd: rootDir, encoding: "utf8" });
-  if (result.status !== 0) throw new Error("git ls-files failed");
-  return result.stdout
-    .split("\n")
-    .filter((entry) => entry.trim() !== "")
-    .filter((entry) => !GENERATED.has(entry));
+/** What a document is checked against: the lines of a file, whether a path exists, every file by basename. */
+export interface Tree {
+  linesOf(relative: string): string[] | null;
+  exists(relative: string): boolean;
+  readonly basenames: ReadonlyMap<string, readonly string[]>;
 }
 
-const lineCache = new Map<string, string[] | null>();
-
-function linesOf(relative: string): string[] | null {
-  const cached = lineCache.get(relative);
-  if (cached !== undefined) return cached;
-  let lines: string[] | null;
-  try {
-    lines = readFileSync(path.join(rootDir, relative), "utf8").split("\n");
-  } catch {
-    lines = null;
-  }
-  lineCache.set(relative, lines);
-  return lines;
+export interface Counts {
+  checked: number;
+  provenance: number;
+  shorthand: number;
+  links: number;
+  anchors: number;
+  inherited: number;
 }
 
-/** Every tracked file, indexed by basename, so `focus-ring.ts` in prose finds its one path. */
-function byBasename(): Map<string, string[]> {
-  const result = spawnSync("git", ["ls-files"], { cwd: rootDir, encoding: "utf8" });
-  if (result.status !== 0) throw new Error("git ls-files failed");
-  const index = new Map<string, string[]>();
-  for (const entry of result.stdout.split("\n")) {
-    const file = entry.trim();
-    if (file === "") continue;
-    const base = file.slice(file.lastIndexOf("/") + 1);
-    const known = index.get(base);
-    if (known === undefined) index.set(base, [file]);
-    else known.push(file);
-  }
-  return index;
+export interface Report {
+  readonly problems: Problem[];
+  readonly unprefixed: Problem[];
+  readonly counts: Counts;
 }
-
-const basenames = byBasename();
 
 // What a reader does with a name in backticks: take it as written if it is a path from
 // the root, and otherwise as a basename, which is unambiguous only while one file in the
 // tree carries it. A name that resolves to neither resolves to nothing — and a name that
 // resolves to nothing is not a file the prose named, which is the rule that matters at
 // the call site below.
-function named(reference: string): string | null {
+export function named(reference: string, tree: Tree): string | null {
   const written = reference.replace(/^\.\//, "");
-  if (existsSync(path.join(rootDir, written))) return written;
-  const candidates = basenames.get(written.slice(written.lastIndexOf("/") + 1)) ?? [];
+  if (tree.exists(written)) return written;
+  const candidates = tree.basenames.get(written.slice(written.lastIndexOf("/") + 1)) ?? [];
   return candidates.length === 1 ? (candidates[0] ?? null) : null;
 }
 
-const problems: Problem[] = [];
-const unprefixed: Problem[] = [];
-let checked = 0;
-let provenance = 0;
-let shorthand = 0;
-let links = 0;
-let anchors = 0;
-let inherited = 0;
-
-for (const document of tracked()) {
-  const text = readFileSync(path.join(rootDir, document), "utf8");
-  const documentLines = text.split("\n");
+export function checkDocument(document: string, text: string, tree: Tree): Report {
+  const problems: Problem[] = [];
+  const unprefixed: Problem[] = [];
+  const counts: Counts = {
+    checked: 0,
+    provenance: 0,
+    shorthand: 0,
+    links: 0,
+    anchors: 0,
+    inherited: 0,
+  };
   /** The file the prose named last, which is what a bare `:NNN` below resolves against. */
   let subject: string | null = null;
 
-  for (const [index, line] of documentLines.entries()) {
+  for (const [index, line] of text.split("\n").entries()) {
     const at = index + 1;
 
     if (ABSOLUTE.test(line)) {
@@ -167,11 +146,11 @@ for (const document of tracked()) {
       if (file === "") continue;
 
       const resolved = file.startsWith("/")
-        ? path.join(rootDir, file.slice(1))
-        : path.resolve(rootDir, path.dirname(document), decodeURIComponent(file));
+        ? file.slice(1)
+        : path.posix.join(path.posix.dirname(document), decodeURIComponent(file));
 
-      links += 1;
-      if (!existsSync(resolved)) {
+      counts.links += 1;
+      if (!tree.exists(resolved)) {
         problems.push({ file: document, line: at, what: `links to ${file}, which does not exist` });
       }
     }
@@ -188,7 +167,7 @@ for (const document of tracked()) {
       // The documents no longer write anchors this way. The licence record is the last
       // one left, and its paths are a frozen external commit that cannot drift with ours.
       if (!cited.includes("/") || cited.startsWith("...")) {
-        shorthand += 1;
+        counts.shorthand += 1;
         continue;
       }
 
@@ -198,10 +177,10 @@ for (const document of tracked()) {
       // reported, not fatal, because the fix is prose and nobody is being sent
       // anywhere wrong. The licence record is the one document exempt from this.
       if (!OWN_ROOTS.some((root) => cited.startsWith(root))) {
-        const lines = linesOf(cited);
+        const lines = tree.linesOf(cited);
         if (lines === null) {
           if (document === PROVENANCE_RECORD) {
-            provenance += 1;
+            counts.provenance += 1;
             continue;
           }
           unprefixed.push({ file: document, line: at, what: cited });
@@ -209,8 +188,8 @@ for (const document of tracked()) {
         }
       }
 
-      checked += 1;
-      const lines = linesOf(cited);
+      counts.checked += 1;
+      const lines = tree.linesOf(cited);
       if (lines === null) {
         problems.push({ file: document, line: at, what: `cites ${cited}, which does not exist` });
         continue;
@@ -273,7 +252,7 @@ for (const document of tracked()) {
 
     for (const entry of written) {
       if (entry.reference !== undefined) {
-        subject = named(entry.reference) ?? subject;
+        subject = named(entry.reference, tree) ?? subject;
         continue;
       }
       const start = entry.start;
@@ -286,7 +265,7 @@ for (const document of tracked()) {
       // That is worse than not checking them, so they are counted and left alone — the
       // same exemption the full citations above already carry.
       if (document === PROVENANCE_RECORD) {
-        inherited += 1;
+        counts.inherited += 1;
         continue;
       }
       if (subject === null) {
@@ -298,10 +277,10 @@ for (const document of tracked()) {
         continue;
       }
 
-      const lines = linesOf(subject);
+      const lines = tree.linesOf(subject);
       if (lines === null) continue;
 
-      anchors += 1;
+      counts.anchors += 1;
       if (end < start) {
         problems.push({
           file: document,
@@ -329,31 +308,106 @@ for (const document of tracked()) {
       }
     }
   }
+
+  return { problems, unprefixed, counts };
 }
 
-if (unprefixed.length > 0) {
+function tracked(): string[] {
+  const result = spawnSync("git", ["ls-files", "*.md"], { cwd: rootDir, encoding: "utf8" });
+  if (result.status !== 0) throw new Error("git ls-files failed");
+  return result.stdout
+    .split("\n")
+    .filter((entry) => entry.trim() !== "")
+    .filter((entry) => !GENERATED.has(entry));
+}
+
+const lineCache = new Map<string, string[] | null>();
+
+function linesOf(relative: string): string[] | null {
+  const cached = lineCache.get(relative);
+  if (cached !== undefined) return cached;
+  let lines: string[] | null;
+  try {
+    lines = readFileSync(path.join(rootDir, relative), "utf8").split("\n");
+  } catch {
+    lines = null;
+  }
+  lineCache.set(relative, lines);
+  return lines;
+}
+
+/** Every tracked file, indexed by basename, so `focus-ring.ts` in prose finds its one path. */
+function byBasename(): Map<string, string[]> {
+  const result = spawnSync("git", ["ls-files"], { cwd: rootDir, encoding: "utf8" });
+  if (result.status !== 0) throw new Error("git ls-files failed");
+  const index = new Map<string, string[]>();
+  for (const entry of result.stdout.split("\n")) {
+    const file = entry.trim();
+    if (file === "") continue;
+    const base = file.slice(file.lastIndexOf("/") + 1);
+    const known = index.get(base);
+    if (known === undefined) index.set(base, [file]);
+    else known.push(file);
+  }
+  return index;
+}
+
+// Guarded so `scripts/check-citations.test.ts` can import the checks above against a
+// tree of its own, without reading this repository's documents on import.
+if (import.meta.main) {
+  const tree: Tree = {
+    linesOf,
+    exists: (relative) => existsSync(path.join(rootDir, relative)),
+    basenames: byBasename(),
+  };
+  const documents = tracked();
+  const problems: Problem[] = [];
+  const unprefixed: Problem[] = [];
+  const totals: Counts = {
+    checked: 0,
+    provenance: 0,
+    shorthand: 0,
+    links: 0,
+    anchors: 0,
+    inherited: 0,
+  };
+
+  for (const document of documents) {
+    const report = checkDocument(
+      document,
+      readFileSync(path.join(rootDir, document), "utf8"),
+      tree,
+    );
+    problems.push(...report.problems);
+    unprefixed.push(...report.unprefixed);
+    for (const key of Object.keys(totals) as (keyof Counts)[]) totals[key] += report.counts[key];
+  }
+
+  if (unprefixed.length > 0) {
+    console.log("");
+    console.log(
+      `${unprefixed.length} cited path${unprefixed.length === 1 ? " resolves" : "s resolve"} nowhere in this repository.` +
+        ` Every cited path is a path in this repository, written from the repository root, at a real` +
+        ` line you have opened; a claim with no such line carries the inherited marker and no path at all:`,
+    );
+    for (const one of unprefixed) console.log(`  ${one.file}:${one.line} — ${one.what}`);
+  }
+
+  const { checked, anchors, links, provenance, inherited, shorthand } = totals;
   console.log("");
   console.log(
-    `${unprefixed.length} cited path${unprefixed.length === 1 ? " resolves" : "s resolve"} nowhere in this repository.` +
-      ` Every cited path is a path in this repository, written from the repository root, at a real` +
-      ` line you have opened; a claim with no such line carries the inherited marker and no path at all:`,
+    `checked ${checked} citation${checked === 1 ? "" : "s"}, ${anchors} bare anchor${anchors === 1 ? "" : "s"} and ${links} link${links === 1 ? "" : "s"} into this repository across ${documents.length} documents` +
+      ` (${provenance + inherited} in the licence record and ${shorthand} written in shorthand, neither resolvable here)`,
   );
-  for (const one of unprefixed) console.log(`  ${one.file}:${one.line} — ${one.what}`);
-}
 
-console.log("");
-console.log(
-  `checked ${checked} citation${checked === 1 ? "" : "s"}, ${anchors} bare anchor${anchors === 1 ? "" : "s"} and ${links} link${links === 1 ? "" : "s"} into this repository across ${tracked().length} documents` +
-    ` (${provenance + inherited} in the licence record and ${shorthand} written in shorthand, neither resolvable here)`,
-);
-
-if (problems.length > 0) {
-  console.error("");
-  for (const problem of problems) {
-    console.error(`${problem.file}:${problem.line} — ${problem.what}`);
+  if (problems.length > 0) {
+    console.error("");
+    for (const problem of problems) {
+      console.error(`${problem.file}:${problem.line} — ${problem.what}`);
+    }
+    console.error(`\n${problems.length} citation problem${problems.length === 1 ? "" : "s"}`);
+    process.exit(1);
   }
-  console.error(`\n${problems.length} citation problem${problems.length === 1 ? "" : "s"}`);
-  process.exit(1);
-}
 
-console.log("every citation resolves");
+  console.log("every citation resolves");
+}
