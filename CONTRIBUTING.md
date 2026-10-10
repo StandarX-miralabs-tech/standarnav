@@ -95,6 +95,11 @@ second amendment of that date to [ADR-0009](docs/adr/0009-hidden-candidates.md):
 passed and 1 skipped in 18 files — 628 passed and 1 skipped in 32 files in
 total, the skip unchanged.
 
+Measured on 2026-10-10, with `scripts/check-citations.test.ts` added (20 tests of the
+`check:docs` gate): `bun run test:unit` is 141 tests in 15 files, `bun run test:browser`
+on chromium is 507 passed and 1 skipped in 18 files — 648 passed and 1 skipped in 33
+files in total, the skip unchanged.
+
 ## Conventional commits
 
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/):
