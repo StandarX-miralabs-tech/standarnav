@@ -192,9 +192,9 @@ export function createIntentBus(): IntentBus {
           surface = resolve(scope.within);
         }
       }
-      // A trap nobody answered still swallows — that is what makes it a trap.
-      if (trapped) return { consumed: true, defaultPrevented: true, event };
-      return { consumed: false, defaultPrevented: event.defaultPrevented, event };
+      // Unanswered, a trap swallows; not select, whose default acts on the focus it holds.
+      const swallowed = trapped && event.intent !== "select";
+      return { consumed: swallowed, defaultPrevented: swallowed || event.defaultPrevented, event };
     },
 
     depth: (): number => scopes.length,

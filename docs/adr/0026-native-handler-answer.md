@@ -132,3 +132,11 @@ the answer unchanged; `IntentHandler` is re-exported from `./react` with its new
   the first still checked, and off the range with its value at 5, on chromium, firefox and webkit.
   With this change: the second radio checked and focused, the range at 6 and still focused, on all
   three. Without the scope, the branch behaves as 16692d2 did.
+
+## Amendment, 2026-10-10: decision 5 excepts select
+
+[ADR-0032](0032-trap-leaves-unclaimed-select.md) changes the last clause of decision 5: a trap nobody
+answered no longer swallows an unclaimed `select`, which now reports `consumed: false` and keeps its
+default (`src/intent-bus.ts:195-197`). Every other intent a trap met and nobody answered is still
+swallowed, a scope the trap silences is still never asked, and a `"native"` answer behaves as
+decision 5 says: it ends the walk with the default kept, through a trap or not.

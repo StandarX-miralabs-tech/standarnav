@@ -116,6 +116,18 @@ describe("createIntentBus", () => {
     expect(outer).toHaveBeenCalledTimes(3);
   });
 
+  it("leaves a select nobody claimed unconsumed through a trap, the page still silenced", () => {
+    const bus = createIntentBus();
+    const outer = vi.fn(() => true);
+    bus.pushScope(outer);
+    bus.pushScope(() => false, { trapped: true });
+
+    const result = bus.dispatch({ intent: "select", source: "gamepad" });
+
+    expect(result).toMatchObject({ consumed: false, defaultPrevented: false });
+    expect(outer).not.toHaveBeenCalled();
+  });
+
   it("survives a handler that opens or closes a scope mid-dispatch", () => {
     const bus = createIntentBus();
     const outer = vi.fn();

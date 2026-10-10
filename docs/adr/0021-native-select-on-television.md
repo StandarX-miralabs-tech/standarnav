@@ -186,3 +186,13 @@ their trap with `{ trapped: true }` and no `within` (`playground/widgets.ts:277`
 silence exactly what the Decision above says they silence. Naming the list would change nothing
 either: each trap is pushed on the user's A, above every scope already open, and nothing inside
 the list opens a scope of its own — its options are plain buttons the `base` engine moves through.
+
+## Amendment, 2026-10-10: an unclaimed select no longer stands down inside a trap
+
+[ADR-0032](0032-trap-leaves-unclaimed-select.md) changes one statement of the Decision above: "Inside
+a trap, A does not click the focused element" no longer holds for an unclaimed `select`. A trap that
+claims nothing now leaves `select` to its default, so `activateFocused` clicks the focused element
+for a pad and the browser keeps Enter and Space. The listbox and `attachNativeSelect` are unaffected:
+their scope claims `select` itself, the claim wins, and the dispatch is consumed as before. The other
+half of that bullet stands: `select` is still not one of the three intents allowed to escape a trap
+(`src/intent-bus.ts:122-126`), and every other unclaimed intent is still swallowed.

@@ -278,7 +278,13 @@ this working tree, run 2026-09-20.
   unclaimed: the dispatch reports `consumed: false` and the event's own `defaultPrevented`, exactly
   as for an intent nobody answered. A `"native"` answer from any scope the walk asks, through a trap
   too, keeps the default; a trap nobody answered still swallows (`src/intent-bus.test.ts`,
-  "createIntentBus — the native answer (ADR-0026)").
+  "createIntentBus — the native answer (ADR-0026)"). Amended by
+  [ADR-0032](adr/0032-trap-leaves-unclaimed-select.md): a trap nobody answered no longer swallows
+  `select`; the dispatch reports `consumed: false` (`src/intent-bus.ts:195-197`), so a pad `select`
+  clicks the focused element (R6) and Enter and Space keep their native activation. `select` is not
+  an escape: a scope outside the trap's `within` surface is still never asked, a scope inside it that
+  claims `select` still wins, and every other intent is still swallowed (`src/intent-bus.test.ts`,
+  "leaves a select nobody claimed unconsumed through a trap, the page still silenced").
 - **R5.** `createInputSystem({ doc, plugins, keymap, allowVerticalInText })` is an instance, never a
   global singleton (`InputSystemOptions`, `src/input-system.ts:50-56`): two coexist in one page,
   and no `document` or `window` access happens outside initialisation, so hydration is safe.

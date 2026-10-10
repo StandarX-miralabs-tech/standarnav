@@ -100,6 +100,11 @@ Measured on 2026-10-10, with `scripts/check-citations.test.ts` added (20 tests o
 on chromium is 507 passed and 1 skipped in 18 files — 648 passed and 1 skipped in 33
 files in total, the skip unchanged.
 
+Measured again later on 2026-10-10, with the tests of
+[ADR-0032](docs/adr/0032-trap-leaves-unclaimed-select.md): `bun run test:unit` is 142 tests in 15
+files, `bun run test:browser` on chromium is 511 passed and 1 skipped in 18 files — 653 passed and 1
+skipped in 33 files in total, the skip unchanged.
+
 ## Conventional commits
 
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/):
