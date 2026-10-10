@@ -264,4 +264,26 @@ describe("createIntentBus — a trap confined to its surface", () => {
     expect(outside).not.toHaveBeenCalled();
     expect(result).toMatchObject({ consumed: true, defaultPrevented: true });
   });
+
+  it("lets a contained scope claim select through the trap", () => {
+    const bus = createIntentBus();
+    const dialog = element();
+    const picker = element(dialog);
+    bus.pushScope(() => true, { within: picker });
+    bus.pushScope(() => false, { trapped: true, within: dialog });
+
+    expect(press(bus, "select")).toBe(true);
+  });
+
+  it("never asks a scope outside the surface for a select nobody inside claimed", () => {
+    const bus = createIntentBus();
+    const dialog = element();
+    const page = element();
+    const outside = vi.fn(() => true);
+    bus.pushScope(outside, { within: page });
+    bus.pushScope(() => false, { trapped: true, within: dialog });
+
+    expect(press(bus, "select")).toBe(false);
+    expect(outside).not.toHaveBeenCalled();
+  });
 });

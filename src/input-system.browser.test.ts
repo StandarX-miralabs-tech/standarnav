@@ -121,19 +121,33 @@ describe("createInputSystem — activation", () => {
     expect(clicks).not.toHaveBeenCalled();
   });
 
-  it("stands down inside a trap, even one that claimed nothing", () => {
+  it("activates the focused element inside a trap that claimed nothing", () => {
     const input = system();
     const { clicks } = focusedButton();
-    // A scope that handles nothing at all. `select` is not among the three intents
-    // allowed to escape a trap, so the dispatch reports it consumed anyway.
     cleanups.push(input.pushScope(() => false, { trapped: true }));
 
-    input.emit({ intent: "select", source: "gamepad" });
+    // The trap keeps the focus inside its surface, so the click lands there too: a
+    // modal that swallowed A left every button in it dead to a pad (issue #40).
+    const result = input.emit({ intent: "select", source: "gamepad" });
 
-    // Which means a trapped surface gets no activation convenience: A on its focused
-    // element is its own business. Found by writing a listbox that assumed otherwise
-    // and picked nothing — worth a test here rather than a comment there.
-    expect(clicks).not.toHaveBeenCalled();
+    expect(result.consumed).toBe(false);
+    expect(clicks).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves Enter's native activation alone inside a trap that claimed nothing", () => {
+    const input = system();
+    const { button } = focusedButton();
+    cleanups.push(input.pushScope(() => false, { trapped: true }));
+
+    expect(pressOn(button, "Enter").defaultPrevented).toBe(false);
+  });
+
+  it("still lets a trap swallow a move nobody claimed", () => {
+    const input = system();
+    const { button } = focusedButton();
+    cleanups.push(input.pushScope(() => false, { trapped: true }));
+
+    expect(pressOn(button, "ArrowDown").defaultPrevented).toBe(true);
   });
 });
 
