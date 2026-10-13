@@ -151,8 +151,8 @@ The two parity cases of decision 8, "asks a composite nested in a trapping surfa
 their element" (`src/adapter-parity.ts:207`) and "keeps silencing that composite when neither
 scope passes its element" (`:220`), run under all four adapters, React included
 (`src/react/react.browser.test.tsx:895`), on chromium, firefox and webkit in CI and on the four
-peer floors, whose jobs each run `bun run test:browser` (`.github/workflows/ci.yml:99`, `:159`,
-`:191`, `:224`). So the order this record relied on for React holds for the three others, and the
+peer floors, whose jobs each run `bun run test:browser` (`.github/workflows/ci.yml:99`, `:161`,
+`:193`, `:226`). So the order this record relied on for React holds for the three others, and the
 rule of decision 2 is what lets each of them keep a dialog's own composite reachable.
 
 Nothing in the decision changes. The sentence in the Context keeps its text and gains a pointer

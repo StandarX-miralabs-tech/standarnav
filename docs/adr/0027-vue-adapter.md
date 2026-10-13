@@ -65,7 +65,7 @@ reactive, and a second way to pass them would be surface without a use.
 `MaybeRefOrGetter` and the setup-function form of `defineComponent` (Evidence). Vue 3.2.47 fails
 to typecheck the adapter on exactly those and fails to import it at run time. Nothing newer is
 used — no `useTemplateRef` or `onWatcherCleanup` (3.5), no previous value in `computed` (3.4) —
-and the `vue-floor` job keeps that true (`.github/workflows/ci.yml:136-161`). `vue` is an
+and the `vue-floor` job keeps that true (`.github/workflows/ci.yml:136-163`). `vue` is an
 optional peer at `>=3.3.0` and a devDependency at `^3.5.43` (`package.json`).
 
 **9. A budget line of its own**, `vue adapter`, with `vue`, `../input-system.js` and
@@ -138,3 +138,15 @@ undefined; the browser project defines them to Vue's defaults (`vitest.config.ts
   `m` then `l` and ArrowUp `m` again with the focus following, ArrowRight moved to OK with `m`
   still checked, ArrowDown from OK stayed inside the dialog, and Escape closed it. Each engine's
   console carried Vue's feature-flag warning, that page having no bundler config to define them.
+
+## Amendment, 2026-10-13: the floor job runs the unit project
+
+Decision 8 says the `vue-floor` job keeps the floor true, and the job ran `bun run typecheck` and
+`bun run test:browser` on chromium only. `src/vue/vue.test.ts`, the server render, is in the unit
+project, so it never ran against `vue@3.3.0`, while `svelte-floor` and `angular-floor` already ran
+`bun run test:unit` for the same reason.
+
+The job now runs `bun run test:unit` after `bun run typecheck`
+(`.github/workflows/ci.yml:151`), and spans `.github/workflows/ci.yml:136-163`. Measured on
+2026-10-13 on a `git archive` copy of the tree with `bun add --dev vue@3.3.0`: `bun run typecheck`
+exit 0, `bun run test:unit` 142 passed in 15 files, exit 0.

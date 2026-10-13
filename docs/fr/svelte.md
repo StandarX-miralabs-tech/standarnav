@@ -234,7 +234,7 @@ fermé sur Escape ([ADR-0028](../adr/0028-svelte-adapter.md), Evidence).
 `svelte/store` — est dans Svelte 5.0.0, et rien de plus récent n'est utilisé. Un job CI installe
 exactement `svelte@5.0.0` par-dessus le 5.57 du lockfile et lance contre lui la vérification des
 types, le projet unitaire et la suite navigateur (`svelte-floor`,
-`.github/workflows/ci.yml:169-193`) ; Svelte 4 n'a ni `untrack`, ni `toStore`, ni `fromStore`, et
+`.github/workflows/ci.yml:171-195`) ; Svelte 4 n'a ni `untrack`, ni `toStore`, ni `fromStore`, et
 pourquoi le plancher est là où il est, c'est [ADR-0028](../adr/0028-svelte-adapter.md).
 
 L'adaptateur est tenu à la suite partagée `src/adapter-parity.ts`, les mêmes 16 cas que React et

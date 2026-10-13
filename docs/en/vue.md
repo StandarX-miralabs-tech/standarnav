@@ -201,8 +201,8 @@ fetched 2026-09-23), as this repository's test config does (`vitest.config.ts`, 
 
 **The floor is 3.3.0, and it is run.** The adapter uses `toValue`, `MaybeRefOrGetter` and the
 setup-function form of `defineComponent`, all three first shipped in Vue 3.3. A CI job installs
-exactly `vue@3.3.0` over the lockfile's 3.5 and runs the typecheck and the browser suite against it
-(`vue-floor`, `.github/workflows/ci.yml:136-161`); why that version and not an older one is
+exactly `vue@3.3.0` over the lockfile's 3.5 and runs the typecheck, the unit project and the browser suite against it
+(`vue-floor`, `.github/workflows/ci.yml:136-163`); why that version and not an older one is
 [ADR-0027](../adr/0027-vue-adapter.md).
 
 The adapter is held to the shared suite `src/adapter-parity.ts`, the same 16 cases React passes —

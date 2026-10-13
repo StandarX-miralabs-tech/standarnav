@@ -209,7 +209,7 @@ défaut de Vue `true`, `false` et `false`
 **Le plancher est 3.3.0, et il est exécuté.** L'adaptateur utilise `toValue`, `MaybeRefOrGetter` et
 la forme de `defineComponent` qui prend une fonction `setup`, tous trois apparus dans Vue 3.3. Un
 job CI installe exactement `vue@3.3.0` par-dessus le 3.5 du lockfile et lance contre lui la
-vérification des types et la suite navigateur (`vue-floor`, `.github/workflows/ci.yml:136-161`) ;
+vérification des types, le projet unitaire et la suite navigateur (`vue-floor`, `.github/workflows/ci.yml:136-163`) ;
 pourquoi cette version et pas une plus ancienne, c'est [ADR-0027](../adr/0027-vue-adapter.md).
 
 L'adaptateur est tenu à la suite partagée `src/adapter-parity.ts`, les mêmes 16 cas que React
