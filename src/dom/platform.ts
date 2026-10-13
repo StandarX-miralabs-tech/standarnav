@@ -17,7 +17,13 @@ export function prefersReducedMotion(win: Window): boolean {
  */
 export function rectOf(element: Element): Rect {
   const image = element.localName === "area" ? imageOf(element) : null;
-  if (image === null) return element.getBoundingClientRect();
+  if (image === null) {
+    const own = element.getBoundingClientRect();
+    const label = (element as HTMLInputElement).labels?.[0];
+    // A visually-hidden input is a 1px box at its label's corner, outside any beam that the
+    // label it stands for is inside; the label is what the user sees and aims at.
+    return label && own.width <= 1 && own.height <= 1 ? label.getBoundingClientRect() : own;
+  }
   const box = image.getBoundingClientRect();
   const shape = element.getAttribute("shape")?.toLowerCase();
   if (shape === "default") return box;

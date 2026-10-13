@@ -105,6 +105,11 @@ Measured again later on 2026-10-10, with the tests of
 files, `bun run test:browser` on chromium is 511 passed and 1 skipped in 18 files — 653 passed and 1
 skipped in 33 files in total, the skip unchanged.
 
+Measured on 2026-10-13, with the tests of
+[ADR-0033](docs/adr/0033-visually-hidden-input-measured-by-its-label.md): `bun run test:unit` is 142
+tests in 15 files, `bun run test:browser` on chromium is 513 passed and 1 skipped in 18 files — 655
+passed and 1 skipped (656) in 33 files in total, the skip unchanged.
+
 ## Conventional commits
 
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/):

@@ -129,4 +129,26 @@ describe("platform", () => {
       height: 40,
     });
   });
+
+  it("measures a visually-hidden input by its label, and any other input by itself", () => {
+    const hidden = "position:absolute;width:1px;height:1px;padding:0;margin:-1px;border-width:0";
+    const host = mount(
+      `<label id="wrap" style="position:fixed;left:40px;top:30px;width:120px;height:24px">` +
+        `<input id="small" type="checkbox" style="${hidden}"></label>` +
+        `<input id="alone" type="checkbox" style="${hidden};position:fixed;left:300px;top:30px">` +
+        `<input id="real" type="checkbox" style="position:fixed;left:300px;top:80px;width:20px;height:20px;margin:0">` +
+        `<label for="real" style="position:fixed;left:340px;top:80px;width:60px;height:20px">real</label>`,
+    );
+    const at = (id: string): Element => host.querySelector(`#${id}`) as Element;
+    const plain = (rect: { x: number; y: number; width: number; height: number }) => ({
+      x: rect.x,
+      y: rect.y,
+      width: rect.width,
+      height: rect.height,
+    });
+
+    expect(plain(rectOf(at("small")))).toEqual({ x: 40, y: 30, width: 120, height: 24 });
+    expect(plain(rectOf(at("alone")))).toEqual({ x: 299, y: 29, width: 1, height: 1 });
+    expect(plain(rectOf(at("real")))).toEqual({ x: 300, y: 80, width: 20, height: 20 });
+  });
 });

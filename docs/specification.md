@@ -388,9 +388,11 @@ this working tree, run 2026-09-20.
   measured by its shape since 2026-09-26** ([ADR-0031](adr/0031-image-map-area-candidate.md)):
   chromium and webkit give it an all-zero `getBoundingClientRect()` and firefox the whole image's,
   so its rect is its `shape` and `coords` laid over the border box of the image that uses its map
-  (`rectOf`, `src/dom/platform.ts:14-48`), read by `collectNavNodes` and for the origin of a move
+  (`rectOf`, `src/dom/platform.ts:14-54`), read by `collectNavNodes` and for the origin of a move
   (`src/spatial/spatial.ts:182`, `:502`); every other element is still measured with
-  `getBoundingClientRect`. Webkit lays the coords over the image's content box instead, a
+  `getBoundingClientRect`, except that a visually-hidden input (at most 1 px on both axes) with a
+  label is measured by its first label since 2026-10-13
+  ([ADR-0033](adr/0033-visually-hidden-input-measured-by-its-label.md)). Webkit lays the coords over the image's content box instead, a
   difference of the image's border and padding the engine does not follow. `explainMove`
   (`src/debug.ts:60`) and the focus ring (R32) read the same rect. When an area lands, its image
   is scrolled into view, since chromium and webkit do not scroll an area
