@@ -1659,3 +1659,29 @@ describe("spatialPlugin — what the visibility rule keeps (ADR-0009)", () => {
     await vi.waitFor(() => expect(list.scrollTop).toBeGreaterThan(0));
   });
 });
+
+describe("spatialPlugin — a visually-hidden input", () => {
+  const hidden =
+    "position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;" +
+    "clip:rect(0,0,0,0);clip-path:inset(50%);white-space:nowrap;border-width:0";
+
+  function radio(id: string): string {
+    return (
+      `<label style="display:inline-block;width:80px;height:40px">` +
+      `<input type="radio" name="group" id="${id}" style="${hidden}">${id}</label>`
+    );
+  }
+
+  it("is reached through its label when a d-pad steps into the group", () => {
+    const view = scene(
+      box("before", 0, 0) +
+        `<div style="position:absolute;left:0;top:60px;white-space:nowrap">${radio("r1")}${radio("r2")}</div>` +
+        box("after", 0, 120),
+    );
+    view.plugin.focus("#before");
+
+    view.move("down");
+
+    expect(view.active()).toBe("r1");
+  });
+});
