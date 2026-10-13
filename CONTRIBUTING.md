@@ -1,6 +1,6 @@
 # Contributing to standarnav
 
-standarnav (npm package `@standarx/nav`) is published, `0.3.1` since 2026-10-10, <!-- x-release-please-version-date -->
+standarnav (npm package `@standarx/nav`) is published, `0.3.2` since 2026-10-13, <!-- x-release-please-version-date -->
 the first, `0.1.0`, on 2026-09-22 and every release since in the CHANGELOG, and v0
 is in progress: the public API is not frozen. This document explains how to
 set up the project, what is expected of a pull request, and how to report a

@@ -46,7 +46,7 @@ adapter `/svelte` and the Angular adapter `/angular`
 decision reserved is now built.
 `vanilla` is the core itself, and `/auto` is its start-up helper rather than an
 adapter ([ADR-0023](0023-vanilla-auto-mount.md)).
-`0.3.1` is on npm since 2026-10-10, <!-- x-release-please-version-date -->
+`0.3.2` is on npm since 2026-10-13, <!-- x-release-please-version-date -->
 after `0.1.0` on 2026-09-22 ([ADR-0012](0012-versioning-and-release.md)); v0 is in progress.
 
 Attributes read from the markup by the spatial engine: `data-snav="container"`,
