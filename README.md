@@ -9,7 +9,7 @@
 
 Spatial navigation for the web: d-pad, gamepad sticks, TV remotes and arrow keys drive real DOM focus, declared in data attributes.
 
-**Status:** `0.3.1` is on npm since 2026-10-10. The public API is not frozen and the `data-snav-*` attribute names are not final ([ADR-0001](docs/adr/0001-name-scope-and-attribute-prefix.md)); while the major is 0, a minor may break. See [ROADMAP.md](ROADMAP.md). <!-- x-release-please-version-date -->
+**Status:** `0.3.2` is on npm since 2026-10-13. The public API is not frozen and the `data-snav-*` attribute names are not final ([ADR-0001](docs/adr/0001-name-scope-and-attribute-prefix.md)); while the major is 0, a minor may break. See [ROADMAP.md](ROADMAP.md). <!-- x-release-please-version-date -->
 
 ## What it does
 

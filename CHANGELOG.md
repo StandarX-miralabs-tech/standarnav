@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.2](https://github.com/StandarX-miralabs-tech/standarnav/compare/v0.3.1...v0.3.2) (2026-10-13)
+
+
+### Bug Fixes
+
+* **spatial:** measure a visually-hidden input by its label ([09dbaf7](https://github.com/StandarX-miralabs-tech/standarnav/commit/09dbaf79d91978c7c11aba07f6755fd8671d36f6))
+
 ## [0.3.1](https://github.com/StandarX-miralabs-tech/standarnav/compare/v0.3.0...v0.3.1) (2026-10-10)
 
 

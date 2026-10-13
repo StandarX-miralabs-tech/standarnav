@@ -1,6 +1,6 @@
 # Roadmap
 
-Status: `@standarx/nav@0.3.1` is on npm since 2026-10-10 ([ADR-0012](docs/adr/0012-versioning-and-release.md)). <!-- x-release-please-version-date -->
+Status: `@standarx/nav@0.3.2` is on npm since 2026-10-13 ([ADR-0012](docs/adr/0012-versioning-and-release.md)). <!-- x-release-please-version-date -->
 The first, `0.1.0`, went out on 2026-09-22; every release since is in [CHANGELOG.md](CHANGELOG.md).
 Nothing has been run on a television, and no demo exists yet.
 
