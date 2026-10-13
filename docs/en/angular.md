@@ -240,7 +240,7 @@ ArrowUp, left it for the button beside it on ArrowRight, and closed on Escape
 and `effect`, `afterRenderEffect` and the callback form of `afterNextRender` are public API there.
 A CI job installs exactly 20.0.0 of `@angular/core` and of the Angular packages the tests load,
 over the lockfile's 22.2, and runs the typecheck, the unit project and the browser suite against it
-(`angular-floor`, `.github/workflows/ci.yml:202-226`); on 19.2 the adapter does not load, "does not
+(`angular-floor`, `.github/workflows/ci.yml:204-228`); on 19.2 the adapter does not load, "does not
 provide an export named 'DOCUMENT'", and why the floor sits where it does is
 [ADR-0029](../adr/0029-angular-adapter.md). Angular 20 is in long-term support until 2026-11-28
 (https://angular.dev/reference/releases, fetched 2026-09-24). On 20.0.0 to 20.1.6, a destroyed

@@ -252,7 +252,7 @@ sur Escape ([ADR-0029](../adr/0029-angular-adapter.md), Evidence).
 sont des API publiques. Un job CI installe exactement la 20.0.0 d'`@angular/core` et des paquets
 Angular que les tests chargent, par-dessus le 22.2 du lockfile, et lance contre elle la
 vérification des types, le projet unitaire et la suite navigateur (`angular-floor`,
-`.github/workflows/ci.yml:202-226`) ; sur 19.2 l'adaptateur ne se charge pas, « does not provide
+`.github/workflows/ci.yml:204-228`) ; sur 19.2 l'adaptateur ne se charge pas, « does not provide
 an export named 'DOCUMENT' », et pourquoi le plancher est là où il est, c'est
 [ADR-0029](../adr/0029-angular-adapter.md). Angular 20 est en support à long terme jusqu'au
 2026-11-28 (https://angular.dev/reference/releases, consulté le 2026-09-24). De 20.0.0 à 20.1.6,

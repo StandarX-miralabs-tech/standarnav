@@ -70,7 +70,7 @@ apart by the component's own context map from `getAllContexts` (`:142-147`, `:18
 
 **9. The floor is 5.0.0.** Every name in decision 1 is in the 5.0.0 release, and the `svelte-floor`
 job installs exactly 5.0.0 and runs the typecheck, the unit project and the chromium browser
-suite (`.github/workflows/ci.yml:169-193`). Nothing later is used: no `createSubscriber` (5.7), no
+suite (`.github/workflows/ci.yml:171-195`). Nothing later is used: no `createSubscriber` (5.7), no
 attachment (5.29), no `createContext` (5.40). `svelte` is an optional peer at `>=5.0.0` and a
 devDependency at `^5.57.1`, with `@sveltejs/vite-plugin-svelte` `^7.3.1` (`package.json`).
 

@@ -225,7 +225,7 @@ ArrowDown and ArrowUp, left it for the button beside it on ArrowRight, and close
 `getAllContexts`, `onMount`, `untrack`, and `writable`, `toStore` and `fromStore` from
 `svelte/store` — is in Svelte 5.0.0, and nothing newer is used. A CI job installs exactly
 `svelte@5.0.0` over the lockfile's 5.57 and runs the typecheck, the unit project and the browser
-suite against it (`svelte-floor`, `.github/workflows/ci.yml:169-193`); Svelte 4 has none of
+suite against it (`svelte-floor`, `.github/workflows/ci.yml:171-195`); Svelte 4 has none of
 `untrack`, `toStore` or `fromStore`, and why the floor sits where it does is
 [ADR-0028](../adr/0028-svelte-adapter.md).
 

@@ -135,8 +135,8 @@ it work on a 2021 Tizen set" is "no, and there is no work in progress".
   (`.github/workflows/ci.yml`) now runs nine jobs — lint (`:18`), typecheck (`:32`), build (`:42`),
   test (`:60`, the unit suite), react-floor (`:75-101`, the declared peer floor re-typechecked and
   re-run on chromium), browser (`:103-129`, a matrix over chromium, firefox and webkit),
-  vue-floor (`:136-161`, the same for Vue), svelte-floor (`:169-193`, the same for Svelte, with the
-  unit suite too) and angular-floor (`:202-226`, the same for Angular, with the unit suite too),
+  vue-floor (`:136-163`, the same for Vue, with the unit suite too), svelte-floor (`:171-195`, the same for Svelte, with the
+  unit suite too) and angular-floor (`:204-228`, the same for Angular, with the unit suite too),
   which is eleven checks — and the build job runs `bun run build`, the `git diff --exit-code` exports-map drift
   gate (`:53`), `check:package` (`:55`) and `check:size` (`:57`). **None of them is this grep**:
   neither `WeakRef` nor `.at(` appears anywhere in that file. Without it, one refactor silently

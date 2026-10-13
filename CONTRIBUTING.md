@@ -228,14 +228,14 @@ fixes.
   without that job the floor of the range is a promise nothing keeps. A change
   that needs a React 19 API narrows the peer range in the same pull request.
   The Vue adapter has the same guard, the `vue-floor` job
-  (`.github/workflows/ci.yml:136-161`), which installs exactly `vue@3.3.0`: a change
+  (`.github/workflows/ci.yml:136-163`), which installs exactly `vue@3.3.0` and runs the unit project as well, for the server render: a change
   that needs a later Vue API raises the `>=3.3.0` peer range in the same pull request.
   The Svelte adapter has it too, the `svelte-floor` job
-  (`.github/workflows/ci.yml:169-193`), which installs exactly `svelte@5.0.0` and runs the
+  (`.github/workflows/ci.yml:171-195`), which installs exactly `svelte@5.0.0` and runs the
   unit project as well, for the server render: a change that needs a later Svelte API raises
   the `>=5.0.0` peer range in the same pull request.
   The Angular adapter has it too, the `angular-floor` job
-  (`.github/workflows/ci.yml:202-226`), which installs exactly 20.0.0 of `@angular/core` and of
+  (`.github/workflows/ci.yml:204-228`), which installs exactly 20.0.0 of `@angular/core` and of
   the four Angular packages the tests load, and runs the unit project as well: a change that
   needs a later Angular API raises the `>=20.0.0` peer range in the same pull request.
 - A pull request without a test for the behaviour it changes is not merged.

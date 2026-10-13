@@ -86,7 +86,7 @@ ADR-0025.
 `afterRenderEffect` and the callback form of `afterNextRender` are public API in its typings. The
 `angular-floor` job installs exactly 20.0.0 of `@angular/core` and of the four Angular packages the
 tests load, and runs the typecheck, the unit project and the chromium browser suite
-(`.github/workflows/ci.yml:202-226`). `@angular/core` is an optional peer at `>=20.0.0` and the only
+(`.github/workflows/ci.yml:204-228`). `@angular/core` is an optional peer at `>=20.0.0` and the only
 peer, and a devDependency at `^22.2.0` with `@angular/compiler`, `@angular/common`,
 `@angular/platform-browser`, `@angular/platform-server` and `rxjs`, the required peer of
 `@angular/core` (`package.json`).

@@ -147,6 +147,8 @@ jobs:
       # The adapter's exported types are written against what 3.3 declares, which is where
       # `defineComponent` over a setup function returned a plain function type.
       - run: bun run typecheck
+      # The server render of `src/vue/vue.test.ts` is in the unit project, as in `svelte-floor`.
+      - run: bun run test:unit
       - name: Resolve the playwright version
         id: playwright
         run: echo "version=$(bun pm ls | grep -oP '(?<![-\w])playwright@\K[0-9.]+' | head -1)" >> "$GITHUB_OUTPUT"

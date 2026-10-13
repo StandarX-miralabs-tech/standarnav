@@ -217,8 +217,8 @@ of the table remain planned, Svelte and Angular.
 **The peer rule of this record holds for a second framework.** `vue` is declared the way `react`
 is: a peer at `>=3.3.0` (`package.json`, `:54`) with `"optional": true` (`:69`), so a consumer of
 `@standarx/nav/spatial` alone is asked for neither. And the floor is kept the way React's is,
-by a job that installs it over the lockfile and runs typecheck and the chromium browser suite,
-`vue-floor` (`.github/workflows/ci.yml:136-161`), exactly `vue@3.3.0` rather than the newest 3.3
+by a job that installs it over the lockfile and runs typecheck, the unit project and the chromium browser suite,
+`vue-floor` (`.github/workflows/ci.yml:136-163`), exactly `vue@3.3.0` rather than the newest 3.3
 patch, because 3.3.0 is the version the range names.
 
 **`src/internal/` gained a module with a second importer.** The ordered scope registry
@@ -252,7 +252,7 @@ action ships.
 
 **The peer rule of this record holds for a third framework.** `svelte` is a peer at `>=5.0.0`
 (`package.json`, `:53`) with `"optional": true` (`:66`), and the floor is kept the way React's and
-Vue's are, by `svelte-floor` (`.github/workflows/ci.yml:169-193`), exactly `svelte@5.0.0`. That job
+Vue's are, by `svelte-floor` (`.github/workflows/ci.yml:171-195`), exactly `svelte@5.0.0`. That job
 runs the unit project too, since the server render is a unit case.
 
 **One framework, two externals.** The adapter imports `svelte` and `svelte/store`, and both are
@@ -286,7 +286,7 @@ directive ships.
 `>=20.0.0` (`package.json`, `:50`) with `"optional": true` (`:57`), and the only Angular peer:
 `DOCUMENT` has been exported from `@angular/core` since 20.0, so `@angular/common` is a
 devDependency for the tests and nothing more. The floor is kept by `angular-floor`
-(`.github/workflows/ci.yml:202-226`), exactly 20.0.0 of every Angular package the tests load, the
+(`.github/workflows/ci.yml:204-228`), exactly 20.0.0 of every Angular package the tests load, the
 unit project included.
 
 **The one adapter whose provider is a factory.** React, Vue and Svelte
