@@ -16,7 +16,7 @@ This file is for an assistant helping someone use the package. The facts below a
 
 Fourteen entry points in `package.json` `exports`; the root deliberately does not re-export the engines, so a consumer pays only for what it imports.
 
-- `@standarx/nav` — `createInputSystem`, `pushEngageScope`, `createIntentBus`, `createIntentEvent`, `resolveKeyIntent`, `isTextEntryTarget`, `isIntentAllowedInTextEntry`, modality helpers (`getInputModality`, `setInputModality`, `trackInputModality`, `isFocusVisible`, `isFocusVisibleModality`, `MODALITY_ATTRIBUTE`), focusability primitives (`FOCUSABLE_SELECTOR`, `focusElement`, `getFocusables`, `isFocusable`, `isTabbable`), and the types.
+- `@standarx/nav` — `createInputSystem`, `pushEngageScope`, `createIntentBus`, `createIntentEvent`, `resolveKeyIntent`, `isTextEntryTarget`, `isIntentAllowedInTextEntry`, modality helpers (`getInputModality`, `setInputModality`, `trackInputModality`, `isFocusVisible`, `isFocusVisibleModality`, `MODALITY_ATTRIBUTE`), focusability primitives (`FOCUSABLE_SELECTOR`, `focusElement`, `getFocusables`, `isFocusable`, `isTabbable`, and since 2026-11-09 the tab order `getTabbables`, `getTabbableEdges`, `getFirstTabbable`, `getLastTabbable`), and the types.
 - `@standarx/nav/spatial` — `spatialPlugin(options)`: the engine that turns `moveUp/Down/Left/Right` into a focus move. Without it, arrow keys and d-pads produce intents and nothing moves.
 - `@standarx/nav/gamepad` — `gamepadPlugin(options)`: polls `navigator.getGamepads`, standard mapping, dead zones, repeat, rumble.
 - `@standarx/nav/focus-ring` — `focusRingPlugin(options)`: one overlay element that follows `focusin`, painted inline, styled through six custom properties.
