@@ -462,4 +462,19 @@ describe("tabbable", () => {
       Object.defineProperty(proto, "checkVisibility", descriptor);
     }
   });
+
+  it("exports the tab order and its edges from the root entry, the same functions", async () => {
+    const root = await import("./index");
+    const host = mount(
+      `<button id="a"></button><button id="skip" tabindex="-1"></button><div id="editor" contenteditable>text</div>`,
+    );
+
+    expect(root.getTabbables).toBe(getTabbables);
+    expect(root.getTabbableEdges).toBe(getTabbableEdges);
+    expect(root.getTabbables(host).map((node) => node.id)).toEqual(["a", "editor"]);
+    expect(root.getFirstTabbable(host)?.id).toBe("a");
+    expect(root.getLastTabbable(host)?.id).toBe("editor");
+    expect(root.getFirstTabbable(null)).toBeNull();
+    expect(root.getLastTabbable(null)).toBeNull();
+  });
 });
