@@ -171,8 +171,20 @@ export function collectNavNodes(container: HTMLElement, root: HTMLElement): NavN
   const nodes: NavNode[] = [];
   const seen = new Set<HTMLElement>();
 
-  for (const element of getFocusables(container)) {
+  const focusables = getFocusables(container);
+  for (let index = 0; index < focusables.length; index++) {
+    const element = focusables[index] as HTMLElement;
     if (element.closest(IGNORE_SELECTOR) !== null) continue;
+    // A host taken out of the tab order, or declared a container, is a way in to what
+    // it holds, not a stop of its own. In document order its first focusable descendant
+    // is the next entry, so one `contains` decides it. The attribute, not `tabIndex`,
+    // which reads -1 on an editing host that is still a stop. ADR-0034.
+    if (
+      (Number(element.getAttribute("tabindex")) < 0 || element.matches(CONTAINER_SELECTOR)) &&
+      element.contains(focusables[index + 1] ?? null)
+    ) {
+      continue;
+    }
 
     const owner = containerOf(element, root);
     const target = owner === container ? element : childContainerOf(owner, container);

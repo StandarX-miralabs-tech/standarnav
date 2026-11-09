@@ -507,6 +507,80 @@ describe("what a d-pad will and will not steer to", () => {
 });
 
 /**
+ * ADR-0034. A scrolling group gets `tabindex="-1"` so Firefox does not make it a tab
+ * stop of its own, which puts it in `FOCUSABLE_SELECTOR`; it holds the controls, so it
+ * is the larger box and the nearest edge, and it won every move into the group.
+ */
+describe("a focusable host that holds focusables", () => {
+  function hosted(attributes: string): string {
+    return (
+      box("above", 0, 0, 100, 40) +
+      `<div id="host" ${attributes} style="position:absolute;left:0;top:80px;width:400px;height:60px;overflow:auto">` +
+      box("one", 200, 10, 80, 40) +
+      box("two", 300, 10, 80, 40) +
+      `</div>`
+    );
+  }
+
+  it("is never the target of a move, and its children are", () => {
+    const view = scene(hosted('tabindex="-1"'));
+    view.plugin.focus("#above");
+
+    view.move("down");
+
+    expect(view.active()).toBe("one");
+  });
+
+  it("is entered as a container when it is also declared one", () => {
+    const view = scene(hosted('tabindex="-1" data-snav="container" data-snav-enter="first"'));
+    view.plugin.focus("#above");
+
+    view.move("down");
+
+    expect(view.active()).toBe("one");
+  });
+
+  it("is entered as a container when it is declared one and stays in the tab order", () => {
+    const view = scene(hosted('tabindex="0" data-snav="container" data-snav-enter="first"'));
+    view.plugin.focus("#above");
+
+    view.move("down");
+
+    expect(view.active()).toBe("one");
+  });
+
+  it("stays a target while it holds nothing focusable", () => {
+    const view = scene(
+      box("above", 0, 0, 100, 40) +
+        `<div id="host" tabindex="-1" style="position:absolute;left:0;top:80px;width:400px;height:60px"></div>`,
+    );
+    view.plugin.focus("#above");
+
+    view.move("down");
+
+    expect(view.active()).toBe("host");
+  });
+
+  it("keeps an editing host that holds a control, whatever its tabIndex reads", () => {
+    const view = scene(hosted('contenteditable="true"'));
+    view.plugin.focus("#above");
+
+    view.move("down");
+
+    expect(view.active()).toBe("host");
+  });
+
+  it("keeps a host that is in the tab order and not a container", () => {
+    const view = scene(hosted('tabindex="0"'));
+    view.plugin.focus("#above");
+
+    view.move("down");
+
+    expect(view.active()).toBe("host");
+  });
+});
+
+/**
  * A rail inside a row inside a page — the ordinary television layout, and the one
  * the inherited suite never built: its only two containers are siblings, so
  * `childContainerOf`, the container-scored-as-one-unit rule and the recursive
