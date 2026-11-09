@@ -57,34 +57,34 @@ they would become Tab stops.
 
 **2. The refusals the engines split on are left to a retry, in the spatial engine.** A static rule
 cannot follow them without sniffing the engine. `commit()` reads the deepest active element before
-and after the focus call, through open shadow roots (`src/spatial/spatial.ts:338-345`, `:360-364`):
+and after the focus call, through open shadow roots (`src/spatial/spatial.ts:350-357`, `:372-376`):
 
-- the target, in its own root (`landed`, `:354-356`): the move landed;
+- the target, in its own root (`landed`, `:366-368`): the move landed;
 - unchanged: the browser refused; the target joins the move's refused set, `commit` answers `null`;
 - anything else: an application's focus handler moved it; the move stops, `false`, nothing written.
 
 **3. After a refusal, in order:** the next best in the same container, rescored without what
 refused; the wrap candidate of that same filtered list if the container wraps; the scroll and
 rescan; the parent container, and outwards; and `onBoundsHit` when everything refused
-(`attempt`, `:378-391`, driven by `move`, `:483-528`). A redirect whose target refuses falls through
+(`attempt`, `:390-403`, driven by `move`, `:495-540`). A redirect whose target refuses falls through
 to the geometry, as one whose target is not focusable does (R28); a vetoed redirect, or one the
 application sent elsewhere, stops. `enter="last"` skips a remembered child that refused and enters by
 geometry, `enter="first"` takes the next node, and a nested container with nothing that lands counts
-as refused as a unit (`enterContainer`, `:393-427`). `focusFirst` tries its nodes in order
-(`:530-538`). `focus(target)` names one target and has no next best: a refusal is its answer
-(`:639`). A veto still ends the move, with no retry and no `onBoundsHit`. `onWillMove` fires once
+as refused as a unit (`enterContainer`, `:405-439`). `focusFirst` tries its nodes in order
+(`:542-550`). `focus(target)` names one target and has no next best: a refusal is its answer
+(`:651`). A veto still ends the move, with no retry and no `onBoundsHit`. `onWillMove` fires once
 per attempted candidate.
 
 **4. The refused set belongs to one operation.** It is a parameter of `move`, created per call, and
-local to `focusFirst` and `focus`; the public `move` takes the direction alone (`:629`), so a caller
+local to `focusFirst` and `focus`; the public `move` takes the direction alone (`:641`), so a caller
 passing it as a callback cannot hand an index in as the set. The rescan frame receives the move's
-own set, so an element that refused before the scroll is not tried again after it (`:471-475`).
+own set, so an element that refused before the scroll is not tried again after it (`:483-487`).
 Nothing keeps it on the plugin, so no element that refused is held once the operation and its frame
 are over, on the `WeakRef` fallback path of [ADR-0013](0013-browser-baseline-and-fallbacks.md) as
 on any other.
 
 **5. A hover marks only what took the focus.** The `pointerover` handler writes the marker and the
-memory only when `landed` says so (`:601`), and still bypasses `onWillMove` (ADR-0005, amendment
+memory only when `landed` says so (`:613`), and still bypasses `onWillMove` (ADR-0005, amendment
 of this date).
 
 **6. `explainMove` keeps not focusing,** so its winner may be an element the engine skips, now a

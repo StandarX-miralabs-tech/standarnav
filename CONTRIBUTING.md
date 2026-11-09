@@ -81,7 +81,7 @@ reports them on the pull request. Measured on the same date: `bun run test:unit`
 is 110 tests in 11 files, `bun run test:browser` is 257 passed and 1 skipped in
 13 files — 367 passed and 1 skipped in total. The
 one skip is a documented shadow-DOM fixture
-(`src/spatial/spatial.browser.test.ts:921`, [ADR-0008](docs/adr/0008-shadow-dom.md)),
+(`src/spatial/spatial.browser.test.ts:995`, [ADR-0008](docs/adr/0008-shadow-dom.md)),
 not a test someone silenced. A red CI is about your change; treat it that way.
 
 Measured again on 2026-09-26 with the same commands: `bun run test:unit` is
@@ -109,6 +109,11 @@ Measured on 2026-10-13, with the tests of
 [ADR-0033](docs/adr/0033-visually-hidden-input-measured-by-its-label.md): `bun run test:unit` is 142
 tests in 15 files, `bun run test:browser` on chromium is 513 passed and 1 skipped in 18 files — 655
 passed and 1 skipped (656) in 33 files in total, the skip unchanged.
+
+Measured on 2026-11-09, with the tests of
+[ADR-0034](docs/adr/0034-focusable-host-entered-not-landed-on.md): `bun run test:unit` is 142
+tests in 15 files, `bun run test:browser` on chromium is 519 passed and 1 skipped in 18 files — 661
+passed and 1 skipped (662) in 33 files in total, the skip unchanged.
 
 ## Conventional commits
 

@@ -100,6 +100,17 @@ that looks like it. The attributes the walk reads are in [attributes.md](attribu
   from the d-pad. `isFocusable` rejects a non-matching selector, a disabled element, a hidden
   element, an inert one, and the link or editable-only element of a host above, and nothing else.
   Use `data-snav-ignore`, `inert`, or `display: none`.
+- A focusable host that holds focusables is entered, never landed on, when its `tabindex`
+  attribute is negative or it is declared `data-snav="container"`: the move goes to what it holds,
+  and a declared container is entered through its entry strategy
+  ([ADR-0034](../adr/0034-focusable-host-entered-not-landed-on.md)). A scrolling composite, such as
+  a toggle group or a tab list given `tabindex="-1"` so that Firefox does not make the overflowing
+  box a Tab stop, needs nothing else; add `data-snav="container"` to give it an entry strategy. A
+  host that holds nothing focusable, an editing host and a host with `tabindex="0"` that is not a
+  container stay candidates. Do not reach for `data-snav-ignore` here: it would drop the items too.
+  Tests: "is never the target of a move, and its children are", "is entered as a container when it
+  is also declared one" and "keeps an editing host that holds a control, whatever its tabIndex
+  reads" (`src/spatial/spatial.browser.test.ts`).
 - Disabled means what the browser means: a form control with `disabled`, or one inside a
   `<fieldset disabled>` anywhere but in its first `<legend>`. A link or a `tabindex` element
   inside that fieldset stays a candidate, as it stays focusable in the browser. Tests: "drops what

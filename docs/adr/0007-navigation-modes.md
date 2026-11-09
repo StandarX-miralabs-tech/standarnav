@@ -54,7 +54,7 @@ would steal focus from a form the user is filling in.
 
 Mode is a property of the engine instance, not of a container: it is read once from
 the options at construction and no attribute changes it
-(`src/spatial/spatial.ts:238-239` — `options.mode ?? "composite"` on one line and
+(`src/spatial/spatial.ts:250-251` — `options.mode ?? "composite"` on one line and
 `options.pointerFollowsFocus ?? mode === "app"` on the next).
 
 ## Consequences
@@ -79,7 +79,7 @@ the options at construction and no attribute changes it
   the page anyway in `composite`, and `app` gives the arrow keys the run of the page.
 - `pointerFollowsFocus` was recorded as a known coverage gap in
   [ADR-0018](0018-testing-strategy.md) — a default-on path with nothing pinning it.
-  It has three tests now (`src/spatial/spatial.browser.test.ts:577-610`): off in
+  It has three tests now (`src/spatial/spatial.browser.test.ts:651-684`): off in
   `composite` so a hover changes nothing, on in `app`, and bypassing the `onWillMove`
   veto — which a hover is not subject to.
 - The gamepad crossing composites in `composite` mode is deliberate, and it means a
@@ -106,7 +106,7 @@ running engine watches it.
 **"No attribute changes it" is still true, and is the precise wording that survives.** The
 attribute does not *change* the mode — it *sources* the option, at construction, in the place
 where a caller would otherwise have typed a string. `spatialPlugin` is untouched: it still
-reads `options.mode ?? "composite"` on one line (`src/spatial/spatial.ts:238-239`) and still
+reads `options.mode ?? "composite"` on one line (`src/spatial/spatial.ts:250-251`) and still
 has no idea an attribute exists. A consumer calling `createInputSystem` directly sees no
 change at all.
 
@@ -154,15 +154,15 @@ above the engine answers first, which was already true of a scope answering `tru
 
 - The mechanism, with its comment: "APG-strict by default: arrow keys belong to
   whatever composite has the focus, and only Tab crosses between them. A gamepad has
-  no Tab, so it crosses anyway" — `handleIntent` in `src/spatial/spatial.ts:562-573`;
+  no Tab, so it crosses anyway" — `handleIntent` in `src/spatial/spatial.ts:574-585`;
   the mode test `if (mode === "composite" && event.source === "keyboard") return
-  false;` is at `:571`, one line, the whole of the filter.
+  false;` is at `:583`, one line, the whole of the filter.
 - Defaults: `mode` is `composite` and `followPointer` is `options.pointerFollowsFocus
-  ?? mode === "app"` — `src/spatial/spatial.ts:238-239`. `SpatialPluginOptions`
+  ?? mode === "app"` — `src/spatial/spatial.ts:250-251`. `SpatialPluginOptions`
   documents which world each mode is for at `:73-87`.
 - The pointer handler that `followPointer` installs, which focuses on `pointerover`
   and checks `isFocusable` and root containment before it does:
-  `src/spatial/spatial.ts:590-606`.
+  `src/spatial/spatial.ts:602-618`.
 - Unclaimed intents keep the native default: "The native default survives unless
   someone actually wanted the intent — otherwise arrow keys would stop scrolling a
   page that has no navigation", `src/input-system.ts:180-183`.
@@ -179,6 +179,6 @@ above the engine answers first, which was already true of a scope answering `tru
   https://www.w3.org/WAI/ARIA/apg/practices/keyboard-interface/ — the external rule
   this ADR follows.
 - Coverage: `src/spatial/spatial.browser.test.ts:203-232` (the two modes) and
-  `:577-610` (`pointerFollowsFocus`).
+  `:651-684` (`pointerFollowsFocus`).
 - Related: [ADR-0005](0005-real-dom-focus.md) (what "focused" means) and
   [ADR-0006](0006-declarative-first.md) (what the engine reads from the markup).

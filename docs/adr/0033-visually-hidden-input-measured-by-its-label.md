@@ -7,8 +7,8 @@ Deciders: Wesley Cormier
 ## Context
 
 `rectOf` (`src/dom/platform.ts:18-26`) is the one place the engine measures an element. It feeds
-`collectNavNodes` (`src/spatial/spatial.ts:182`, the candidate's rect), the origin of a move
-(`src/spatial/spatial.ts:502`), the focus ring (`src/focus-ring/focus-ring.ts:107`) and `explainMove`
+`collectNavNodes` (`src/spatial/spatial.ts:194`, the candidate's rect), the origin of a move
+(`src/spatial/spatial.ts:514`), the focus ring (`src/focus-ring/focus-ring.ts:107`) and `explainMove`
 (`src/debug.ts:60`). Before this record it returned `getBoundingClientRect()` for everything but an
 `<area>` ([ADR-0031](0031-image-map-area-candidate.md)).
 
@@ -54,11 +54,11 @@ already, so all three follow without a line of their own.
 
 ## Evidence
 
-- Code: `src/dom/platform.ts:18-26` (`rectOf`), read at `src/spatial/spatial.ts:182`
-  (`collectNavNodes`) and `:502` (origin of a move), `src/focus-ring/focus-ring.ts:107` and
+- Code: `src/dom/platform.ts:18-26` (`rectOf`), read at `src/spatial/spatial.ts:194`
+  (`collectNavNodes`) and `:514` (origin of a move), `src/focus-ring/focus-ring.ts:107` and
   `src/debug.ts:60` (`explainMove`).
 - Tests: `src/dom/dom.browser.test.ts:133`, "measures a visually-hidden input by its label, and any
-  other input by itself"; `src/spatial/spatial.browser.test.ts:1663`, the describe
+  other input by itself"; `src/spatial/spatial.browser.test.ts:1737`, the describe
   "spatialPlugin — a visually-hidden input", test "is reached through its label when a d-pad steps
   into the group" (line 1675).
 - Measured 2026-10-13 on this branch, without the rule: both new tests fail on chromium, firefox and

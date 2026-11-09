@@ -157,7 +157,7 @@ request that carried it (second amendment of that date).
       `contains` in `src/dom/query.ts:24` already walks out through hosts and is deliberately unused
       — the seam the v1 path will call. The inconsistency is deliberate and documented in
       [ADR-0008](docs/adr/0008-shadow-dom.md), whose skipped acceptance fixture stays in place until
-      this lands (`src/spatial/spatial.browser.test.ts:920-942`). The direction is full coherence:
+      this lands (`src/spatial/spatial.browser.test.ts:994-1016`). The direction is full coherence:
       walk from the scan root collecting `element.shadowRoot`, one `querySelectorAll` per open root
       concatenated in document order, replace `Node.contains` with the shadow-aware `contains` in
       the spatial hot path, and resolve `document.activeElement` through `shadowRoot.activeElement`

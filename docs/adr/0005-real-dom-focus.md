@@ -54,7 +54,7 @@ The engine moves the real DOM focus, and only the real DOM focus.
   `src/spatial/spatial.ts:113-141`). It is a hint for re-entry, never a source of
   truth: the engine re-checks that the remembered element is still contained and
   still focusable before landing on it (`contains` and `isFocusable`,
-  `src/spatial/spatial.ts:404-409`).
+  `src/spatial/spatial.ts:416-421`).
 - The attributes the engine writes (`data-snav-focused` on the focused element,
   `data-snav-active` on every container on the path) are styling hooks that
   mirror the real focus. They are never read back as state.
@@ -84,8 +84,8 @@ Consequence for the public surface: the library has no `getFocusedKey()` and no
 - Cost: every move queries and measures live DOM, and a focus call can trigger
   scrolling, focus events and framework effects the library does not control. The
   `onWillMove` veto exists for that, and it runs before the focus call
-  (the `onWillMove` block of `commit()`, `src/spatial/spatial.ts:321-336`; the
-  `focusElement` call is `:339`, after it).
+  (the `onWillMove` block of `commit()`, `src/spatial/spatial.ts:333-348`; the
+  `focusElement` call is `:351`, after it).
 - Cost: the engine cannot move focus into a closed shadow root or a cross-origin
   iframe, because `focus()` cannot either — see [ADR-0008](0008-shadow-dom.md).
 
@@ -175,8 +175,8 @@ refused the focus got `data-snav-focused` while the focus stayed where it was, a
 remembered a child that never had it ([issue #19](https://github.com/StandarX-miralabs-tech/standarnav/issues/19)).
 
 The handler now writes the marker and the memory only when the focus landed on the hovered element,
-through the same `landed` check as `commit()` (`src/spatial/spatial.ts:601`, the check at
-`:354-356`). A refusal, or an application focus handler that sends the focus elsewhere, writes
+through the same `landed` check as `commit()` (`src/spatial/spatial.ts:613`, the check at
+`:366-368`). A refusal, or an application focus handler that sends the focus elsewhere, writes
 nothing and leaves the previous marker where it was. The hover still bypasses `onWillMove`, as
 "bypasses the onWillMove veto, which a hover is not subject to" requires. Three cases pin it, in the
 `describe` "spatialPlugin — a hover marks only what took the focus (ADR-0005)" of
@@ -220,19 +220,19 @@ modes), not this decision alone.
   a `closest("[inert]")` walk). `aria-disabled` stays focusable on purpose, and the comment
   saying why is at `:82-83`.
 - `commit()` is veto, then focus, then a check that the focus landed, then remember, then scroll
-  into view: `src/spatial/spatial.ts:312-349` — the `onWillMove` block at `:321-336`, the
-  `focusElement` call at `:339`, the landing check at `:340` (since 2026-09-23: the target must be
-  the active element of its own root, or nothing is written), `remember()` at `:346`,
-  `scrollFocusIntoView()` at `:347`.
+  into view: `src/spatial/spatial.ts:324-361` — the `onWillMove` block at `:333-348`, the
+  `focusElement` call at `:351`, the landing check at `:352` (since 2026-09-23: the target must be
+  the active element of its own root, or nothing is written), `remember()` at `:358`,
+  `scrollFocusIntoView()` at `:359`.
 - The focus query reads the document, not a stored field: `activeElement()` returns
-  `doc()?.activeElement` narrowed by `isHTMLElement` (`src/spatial/spatial.ts:271-274`). The one
-  `focused` field (`:259`) is written only by `remember()` (`:276-292`), which uses it to strip
+  `doc()?.activeElement` narrowed by `isHTMLElement` (`src/spatial/spatial.ts:283-286`). The one
+  `focused` field (`:271`) is written only by `remember()` (`:288-304`), which uses it to strip
   the styling attribute from the element that had focus before.
 - Container memory is a `WeakMap<HTMLElement, ElementHandle>` of elements, not of keys:
-  `src/spatial/spatial.ts:248`, filled by `remember()` at `:286`. The handle is a `WeakRef` where
+  `src/spatial/spatial.ts:260`, filled by `remember()` at `:298`. The handle is a `WeakRef` where
   the runtime has one and a self-releasing strong reference where it does not (`elementHandle`,
   `:127-141`). Re-entry re-validates the remembered element with `contains` and `isFocusable`
-  at `:404-409`.
+  at `:416-421`.
 - Everything the engine focuses is reached through real nodes: `queryAll`
   (`src/dom/query.ts:10-15`) is how `getFocusables` collects candidates, `getEventTarget`
   (`:45-48`) reads `composedPath()[0]` rather than the retargeted `event.target`, and `contains`

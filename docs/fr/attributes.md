@@ -10,7 +10,7 @@ et le CHANGELOG le dit quand c'est le cas.
 
 | Attribut | Posé sur | Valeur | Effet |
 |---|---|---|---|
-| `data-snav="container"` | n'importe quel élément | fixe | Déclare un conteneur de navigation ; les déplacements sont d'abord évalués à l'intérieur. |
+| `data-snav="container"` | n'importe quel élément | fixe | Déclare un conteneur de navigation ; les déplacements sont d'abord évalués à l'intérieur. Un conteneur qui est aussi focalisable est abordé, non visé ([ADR-0034](../adr/0034-focusable-host-entered-not-landed-on.md)). |
 | `data-snav-enter` | un conteneur | `last` \| `first` \| `nearest` | Quel élément prend le focus quand un déplacement entre. Par défaut `last`, qui retombe sur `nearest` quand l'élément mémorisé a disparu ou refuse le focus ; avec `first`, un premier enfant qui refuse passe la main au suivant. |
 | `data-snav-wrap` | un conteneur | `x` \| `y` \| `both`, ou nu | Reboucle sur le bord opposé au lieu de quitter le conteneur. |
 | `data-snav-block` | un conteneur | des directions séparées par des espaces, ou nu | Bloque ces sorties ; nu, bloque toutes. |
