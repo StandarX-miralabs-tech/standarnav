@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.3](https://github.com/StandarX-miralabs-tech/standarnav/compare/v0.3.2...v0.3.3) (2026-11-09)
+
+
+### Bug Fixes
+
+* **spatial:** enter a negative-tabindex or container host instead of landing on it ([19d7461](https://github.com/StandarX-miralabs-tech/standarnav/commit/19d746160cf8fd589338e36538628fff7f5dac0e))
+
 ## [0.3.2](https://github.com/StandarX-miralabs-tech/standarnav/compare/v0.3.1...v0.3.2) (2026-10-13)
 
 
