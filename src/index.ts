@@ -42,7 +42,11 @@ export type { FocusOptions } from "./tabbable";
 export {
   FOCUSABLE_SELECTOR,
   focusElement,
+  getFirstTabbable,
   getFocusables,
+  getLastTabbable,
+  getTabbableEdges,
+  getTabbables,
   isFocusable,
   isTabbable,
 } from "./tabbable";

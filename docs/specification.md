@@ -207,9 +207,9 @@ and `tabindex="-1"` takes a host out. Measured on chromium, firefox and webkit (
 three, and the native Tab order visits a host, a `plaintext-only` host and an editable island inside
 `contenteditable="false"`, and never a nested editable. Tests: "counts an editing host as a Tab
 stop, and not what is editable inside it" and "reports an editing host as the last edge" in
-`src/tabbable.browser.test.ts`. `isTabbable` is public; `getTabbables`, `getTabbableEdges`,
-`getFirstTabbable` and `getLastTabbable` are module-internal, and no entry point exports them
-(`src/index.ts`).
+`src/tabbable.browser.test.ts`. `isTabbable` is public, and since 2026-11-09 so are `getTabbables`,
+`getTabbableEdges`, `getFirstTabbable` and `getLastTabbable`, re-exported by the root entry
+(`src/index.ts`, [ADR-0035](adr/0035-tab-order-helpers-exported.md)).
 
 The rule has exactly six documented exceptions, the sixth since 2026-09-26. Each is deliberate,
 and each must be stated in the user documentation the README sends a reader to —

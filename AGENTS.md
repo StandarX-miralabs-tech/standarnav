@@ -49,6 +49,10 @@ check:size`, the bytes being the script's own min+gzip figure before it rounds t
 | keyboard layout qwerty | 459 B | 512 B (0.50 kB) | 53 bytes |
 | svelte adapter | 1 481 B | 1 536 B (1.50 kB) | 55 bytes |
 
+Measured 2026-11-09 the same way, with the four tab-order exports of ADR-0035: the core line is
+3 570 B of a 3 584 B cap (3.50 kB), 14 bytes left. A change to `src/tabbable.ts`, `src/index.ts` or
+anything the root entry pulls in can go red the same way.
+
 A one-line change to `src/debug.ts`, `src/gamepad/`, `src/keyboard/layouts/azerty.ts`,
 `src/keyboard/layouts/qwerty.ts` or `src/svelte/` can go red, and so can one to `src/internal/`,
 which every adapter line carries. Run `bun run build && bun run check:size` first, and if the line
@@ -66,12 +70,12 @@ will not fit, write the amendment commit before the code commit.
   the next one below it. The pull request body follows the same rule: sections are dated
   and appended.
 - Test counts are written in prose in several documents. After adding or removing a test,
-  grep the tree for the old totals (`661 passed`, `662`, `33 files`, and the per-project
+  grep the tree for the old totals (`662 passed`, `663`, `33 files`, and the per-project
   figures) and fix every one in the same commit. A count that carries its own date —
   "on 2026-09-21", or a dated amendment — is a measurement, not a stale claim: leave it.
 - Numbers, `sed` and scripted replacements corrupt Markdown and TypeScript in ways a diff
   hides. Reread the whole diff before committing.
-- ADRs: one per pull request, next free number is ADR-0035, the skeleton and the index are
+- ADRs: one per pull request, next free number is ADR-0036, the skeleton and the index are
   in `docs/adr/README.md`. ADR-0004 was withdrawn on 2026-09-20 and its number is not reused.
 
 ## What never reaches a committed file

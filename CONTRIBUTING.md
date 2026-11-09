@@ -115,6 +115,11 @@ Measured on 2026-11-09, with the tests of
 tests in 15 files, `bun run test:browser` on chromium is 519 passed and 1 skipped in 18 files — 661
 passed and 1 skipped (662) in 33 files in total, the skip unchanged.
 
+Measured again later on 2026-11-09, with the test of
+[ADR-0035](docs/adr/0035-tab-order-helpers-exported.md): `bun run test:unit` is 142 tests in 15
+files, `bun run test:browser` on chromium is 520 passed and 1 skipped in 18 files — 662 passed and 1
+skipped (663) in 33 files in total, the skip unchanged.
+
 ## Conventional commits
 
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/):
