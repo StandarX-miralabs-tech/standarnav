@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.0](https://github.com/StandarX-miralabs-tech/standarnav/compare/v0.3.3...v0.4.0) (2026-11-09)
+
+
+### Features
+
+* **tabbable:** export the tab order and its edges from the root entry ([b8ad1f3](https://github.com/StandarX-miralabs-tech/standarnav/commit/b8ad1f3eef30f44d3c4d5490c4e223b4bac6c6a9))
+
 ## [0.3.3](https://github.com/StandarX-miralabs-tech/standarnav/compare/v0.3.2...v0.3.3) (2026-11-09)
 
 
