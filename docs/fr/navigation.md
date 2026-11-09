@@ -107,6 +107,18 @@ chose qui y ressemble. Les attributs que le parcours lit sont dans [attributes.m
   à la croix directionnelle. `isFocusable` rejette un sélecteur non correspondant, un élément
   désactivé, un élément caché, un élément inerte, et le lien ou l'élément seulement éditable d'un
   hôte ci-dessus, et rien d'autre. Utilisez `data-snav-ignore`, `inert`, ou `display: none`.
+- Un hôte focalisable qui contient des éléments focalisables est traversé, jamais visé, quand son
+  attribut `tabindex` est négatif ou qu'il est déclaré `data-snav="container"` : le déplacement va
+  vers ce qu'il contient, et un conteneur déclaré est abordé selon sa stratégie d'entrée
+  ([ADR-0034](../adr/0034-focusable-host-entered-not-landed-on.md)). Un composite défilant, comme un
+  groupe de boutons à bascule ou une liste d'onglets munie de `tabindex="-1"` pour que Firefox ne
+  fasse pas de la boîte qui déborde un arrêt de tabulation, n'a besoin de rien d'autre ; ajoutez
+  `data-snav="container"` pour lui donner une stratégie d'entrée. Un hôte qui ne contient rien de
+  focalisable, un hôte d'édition et un hôte à `tabindex="0"` qui n'est pas un conteneur restent des
+  candidats. N'utilisez pas `data-snav-ignore` ici : il écarterait aussi les éléments. Tests :
+  « is never the target of a move, and its children are », « is entered as a container when it is
+  also declared one » et « keeps an editing host that holds a control, whatever its tabIndex reads »
+  (`src/spatial/spatial.browser.test.ts`).
 - Désactivé veut dire ce que le navigateur entend par là : un contrôle de formulaire portant
   `disabled`, ou placé dans un `<fieldset disabled>` ailleurs que dans sa première `<legend>`. Un
   lien ou un élément à `tabindex` dans ce fieldset reste un candidat, comme il reste focalisable

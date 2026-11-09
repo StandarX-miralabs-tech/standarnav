@@ -17,7 +17,7 @@ the vanilla API; the only vanilla-specific artefact is an auto-mount helper"
 That sentence sets the bar this record has to clear. The core already mounts in one call —
 `createInputSystem({ plugins: [spatialPlugin()] })` — and the spatial engine already reads the
 markup with no configuration: it defaults its root to `document.body` and finds containers by
-`[data-snav="container"]` alone (`src/spatial/spatial.ts:265-269`,
+`[data-snav="container"]` alone (`src/spatial/spatial.ts:277-281`,
 `src/spatial/containers.ts:10`), then reads `data-snav-enter`, `-wrap`, `-block`, `-trap`,
 `-scroll`, `-ignore` and the four `data-snav-<direction>` redirections off the elements as it
 walks them (`src/spatial/containers.ts:10-18`, `:45-47`). [ROADMAP.md](../../ROADMAP.md)
@@ -141,7 +141,7 @@ in the Evidence below are what was measured on the day they name.
   `AutoPlugins` (`:47`), `AutoMountOptions` (`:49-56`), `AutoMount` (`:58-63`), `readMode`
   (`:65-67`), `autoMount` (`:69`), the still-parsing branch (`:97-103`).
 - What the spatial engine already reads without a helper: `rootOf` defaulting to `document.body`
-  (`src/spatial/spatial.ts:265-269`), `CONTAINER_SELECTOR` and the eight container attributes
+  (`src/spatial/spatial.ts:277-281`), `CONTAINER_SELECTOR` and the eight container attributes
   (`src/spatial/containers.ts:10-18`), `directionAttribute` (`:45-47`).
 - That `data-snav-mode` was new on this date: `MODALITY_ATTRIBUTE = "data-snav-input"`
   (`src/modality.ts:19`) is the only other `mode`-shaped name in the package and is written by

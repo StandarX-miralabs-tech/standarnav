@@ -60,20 +60,20 @@ coords work. The coords are the numbers in the attribute, commas and spaces both
 negative and decimal accepted (`:26-30`). A circle with fewer than three numbers or a negative
 radius, a polygon with fewer than six and a rectangle with fewer than four describe nothing: a zero
 rect (`:32-34`), which filter C1 of [ADR-0009](0009-hidden-candidates.md) drops
-(`src/spatial/spatial.ts:188`). `rectOf` is not beside `imageOf` because of the hole
+(`src/spatial/spatial.ts:200`). `rectOf` is not beside `imageOf` because of the hole
 [ADR-0017](0017-size-budgets.md) records in its amendment of 2026-09-26: a helper at the foot of
 `tabbable.js` that `index.js` does not re-export is charged to no size line. `dom/platform.js` is
 charged to the spatial and focus ring lines and no root export reaches it; it imports `imageOf` from
 `tabbable.ts`, which imports only `dom/query`, so there is no cycle.
 
 **3. Every reader of a candidate's geometry goes through it.** `collectNavNodes`
-(`src/spatial/spatial.ts:182`) and the origin of `move` (`:502`) read `rectOf`.
-`scrollFocusIntoView` scrolls the image when the landing element is an area (`:298`), since chromium
+(`src/spatial/spatial.ts:194`) and the origin of `move` (`:514`) read `rectOf`.
+`scrollFocusIntoView` scrolls the image when the landing element is an area (`:310`), since chromium
 and webkit do not scroll an area; the container and its `data-snav-scroll` are still read off the
-area (`:300`). `explainMove` reads its origin through `rectOf` (`src/debug.ts:60`), so it agrees
+area (`:312`). `explainMove` reads its origin through `rectOf` (`src/debug.ts:60`), so it agrees
 with the engine ([ADR-0010](0010-dev-mode-diagnostics.md), decision 4), and so does the focus ring
 (`src/focus-ring/focus-ring.ts:107`). Left alone: `focusFirst`'s origin, a container
-(`src/spatial/spatial.ts:535`), and the ring's own live rect (`src/focus-ring/focus-ring.ts:175`).
+(`src/spatial/spatial.ts:547`), and the ring's own live rect (`src/focus-ring/focus-ring.ts:175`).
 
 **4. What the engines split on is left to the retry of ADR-0030.** The first five splits of the
 Context are candidates, and so is an area inside an editing host, which chromium refused on

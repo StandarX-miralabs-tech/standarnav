@@ -105,8 +105,8 @@ Three rules complete the decision.
   that sub-tree through an attribute, and two mounted roots can steal from each
   other. Options: resolve within `root`, keep document scope and document it, or
   make it an option. Still not resolved: the behaviour is unchanged at HEAD
-  (`src/spatial/spatial.ts:492-500`, and `spatial.focus(target)` resolves a selector
-  the same way at `:636`). That is why this ADR is Accepted on
+  (`src/spatial/spatial.ts:504-512`, and `spatial.focus(target)` resolves a selector
+  the same way at `:648`). That is why this ADR is Accepted on
   the principle and this paragraph is flagged as pending.
 - The attribute constants themselves stay private to the package: they are read
   from the markup, so the contract is the attribute names of
@@ -143,20 +143,20 @@ than an invention. See the [competitor comparison](../research/competitors.md).
   becomes navigable with no application code. The imperative surface is for the cases
   attributes cannot express" — `src/spatial/spatial.ts:9-11`.
 - `body` is the default root, which is rule 1: `rootOf()` returns
-  `options.root ?? document.body`, `src/spatial/spatial.ts:265-269`; and `containerOf()`
+  `options.root ?? document.body`, `src/spatial/spatial.ts:277-281`; and `containerOf()`
   returns that root when no declared container encloses the element, `:148-151`.
 - The imperative surface is exactly five members, and countably so: the
   `SpatialPlugin` interface at `src/spatial/spatial.ts:89-96` declares `move`, `focus`,
   `focusFirst`, `onWillMove` and `onBoundsHit` and nothing else, and the returned object
-  at `:629-650` implements those five — `move` and `focusFirst` delegated, the other
+  at `:641-662` implements those five — `move` and `focusFirst` delegated, the other
   three inline.
 - Redirection selectors are resolved on the document rather than on the configured
-  root: `src/spatial/spatial.ts:492-500`, and `focus(target)` resolves a string the
-  same way at `:632-640`.
+  root: `src/spatial/spatial.ts:504-512`, and `focus(target)` resolves a string the
+  same way at `:644-652`.
 - The written attributes are output and never read back as configuration: `remember()`
   clears the stale markers, sets `FOCUSED_ATTRIBUTE` on the element and
   `ACTIVE_ATTRIBUTE` on every container up the path to it —
-  `src/spatial/spatial.ts:276-292`. Both tables of the Decision are the published
+  `src/spatial/spatial.ts:288-304`. Both tables of the Decision are the published
   contract, and `README.md` carries both under Usage — the attributes read, then the
   nine written. That second table has grown since this record was accepted: the
   on-screen keyboard ([ADR-0022](0022-virtual-keyboard.md)) added `data-snav-editing`

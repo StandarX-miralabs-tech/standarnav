@@ -10,7 +10,7 @@ does.
 
 | Attribute | Placed on | Value | Effect |
 |---|---|---|---|
-| `data-snav="container"` | any element | fixed | Declares a navigation container; moves are scored inside it first. |
+| `data-snav="container"` | any element | fixed | Declares a navigation container; moves are scored inside it first. A container that is also focusable is entered, not landed on ([ADR-0034](../adr/0034-focusable-host-entered-not-landed-on.md)). |
 | `data-snav-enter` | a container | `last` \| `first` \| `nearest` | Which element takes focus when a move enters. Default `last`, which falls back to `nearest` when the remembered element is gone or refuses the focus; under `first`, a first child that refuses hands over to the next. |
 | `data-snav-wrap` | a container | `x` \| `y` \| `both`, or bare | Wraps to the opposite edge instead of leaving the container. |
 | `data-snav-block` | a container | directions separated by spaces, or bare | Blocks those exits; bare blocks every one. |

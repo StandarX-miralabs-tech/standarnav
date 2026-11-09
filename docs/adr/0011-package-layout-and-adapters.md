@@ -171,7 +171,7 @@ different question. Those figures are inherited from the predecessor implementat
   `check:package` is the fourth `run:` step of the `build` job (`.github/workflows/ci.yml:55-56`) and
   passes, as does the `git diff --exit-code` drift gate before it (`:53-54`).
 - `sideEffects: false` is a promise: a module registering a listener at import time would break
-  tree-shaking. Entries stay factory-based — `spatialPlugin` (`src/spatial/spatial.ts:237`),
+  tree-shaking. Entries stay factory-based — `spatialPlugin` (`src/spatial/spatial.ts:249`),
   `gamepadPlugin` (`src/gamepad/gamepad.ts:146`), `focusRingPlugin`
   (`src/focus-ring/focus-ring.ts:86`) — so nothing runs until a consumer calls one.
 

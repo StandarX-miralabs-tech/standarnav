@@ -59,7 +59,7 @@ These are refusals, not backlog items. Each will be reconsidered only through an
 
 | Non-goal | Reason |
 |---|---|
-| Shadow DOM traversal in v0 | Piercing open roots means walking every root on every move; the module is light-DOM-only by explicit choice (`src/tabbable.ts:10-12`). So `getFocusables` stops at a shadow boundary while the `contains` of `src/dom/query.ts:24-39` walks `getRootNode()` and hosts and crosses one — an inconsistency this version keeps deliberately, pinned by the skipped fixture at `src/spatial/spatial.browser.test.ts:921`, with coherence a v1 goal. Components that need it can pass their own root. See [ADR-0008](adr/0008-shadow-dom.md). |
+| Shadow DOM traversal in v0 | Piercing open roots means walking every root on every move; the module is light-DOM-only by explicit choice (`src/tabbable.ts:10-12`). So `getFocusables` stops at a shadow boundary while the `contains` of `src/dom/query.ts:24-39` walks `getRootNode()` and hosts and crosses one — an inconsistency this version keeps deliberately, pinned by the skipped fixture at `src/spatial/spatial.browser.test.ts:995`, with coherence a v1 goal. Components that need it can pass their own root. See [ADR-0008](adr/0008-shadow-dom.md). |
 | RTL mirroring of directions | `moveLeft` means left on the screen. An application that mirrors its layout decides what its left arrow means; the engine does not guess. |
 | A component library | No menu, no dialog, no grid. The engine navigates whatever markup it is given, and the boundary that keeps it that way is [ADR-0003](adr/0003-package-boundaries.md). |
 | Styling beyond focus ring defaults | The package ships the focus ring overlay and the six custom properties it reads (R33). No stylesheet ships at all — the overlay paints itself inline ([ADR-0020](adr/0020-focus-ring-defaults.md)) — and there is no theme, no reset, no component CSS. |
@@ -261,7 +261,7 @@ this working tree, run 2026-09-20.
   can tell them apart except by reading `source`, and the engine branches on it in exactly two
   places, both documented: the unclaimed `select` that a keyboard must not double-fire
   (R6, `src/input-system.ts:127`) and the composite-mode arrow rule (R29,
-  `src/spatial/spatial.ts:571`). `grep -rn "source ===" src` on 2026-09-20 returns five hits: those
+  `src/spatial/spatial.ts:583`). `grep -rn "source ===" src` on 2026-09-20 returns five hits: those
   two, one assertion in `src/input-system.browser.test.ts`, and two in `src/react/react.tsx` (`:96`,
   `:105`) that are an unrelated local of the same name in the adapter's value-or-thunk helper.
 - **R4.** Dispatch is a LIFO scope stack (`src/intent-bus.ts`);
@@ -368,7 +368,7 @@ this working tree, run 2026-09-20.
   recorded it. `commit()` now compares the target with the active element of the target's own root
   after the focus call — `to.getRootNode()`, so a root inside a shadow tree
   ([ADR-0008](adr/0008-shadow-dom.md)) still sees its landing — and on a refusal writes nothing:
-  no attribute, no memory, no scroll (`src/spatial/spatial.ts:339-348`). **A refusal hands the
+  no attribute, no memory, no scroll (`src/spatial/spatial.ts:351-360`). **A refusal hands the
   move on since 2026-09-24** ([ADR-0030](adr/0030-refused-focus-next-candidate.md)); from
   2026-09-23 to then, the move was reported as not made and the engine did not try the next
   candidate. `commit()` reads the deepest active element, through open shadow roots, before and
@@ -389,15 +389,23 @@ this working tree, run 2026-09-20.
   chromium and webkit give it an all-zero `getBoundingClientRect()` and firefox the whole image's,
   so its rect is its `shape` and `coords` laid over the border box of the image that uses its map
   (`rectOf`, `src/dom/platform.ts:14-54`), read by `collectNavNodes` and for the origin of a move
-  (`src/spatial/spatial.ts:182`, `:502`); every other element is still measured with
+  (`src/spatial/spatial.ts:194`, `:514`); every other element is still measured with
   `getBoundingClientRect`, except that a visually-hidden input (at most 1 px on both axes) with a
   label is measured by its first label since 2026-10-13
   ([ADR-0033](adr/0033-visually-hidden-input-measured-by-its-label.md)). Webkit lays the coords over the image's content box instead, a
   difference of the image's border and padding the engine does not follow. `explainMove`
   (`src/debug.ts:60`) and the focus ring (R32) read the same rect. When an area lands, its image
   is scrolled into view, since chromium and webkit do not scroll an area
-  (`src/spatial/spatial.ts:298`). Tests: the `describe` "spatialPlugin — an image-map area is
+  (`src/spatial/spatial.ts:310`). Tests: the `describe` "spatialPlugin — an image-map area is
   scored by its shape over its image (ADR-0031)" in `src/spatial/spatial.browser.test.ts`.
+  **A focusable host that holds focusables is entered, not landed on, since 2026-11-09**
+  ([ADR-0034](adr/0034-focusable-host-entered-not-landed-on.md)): `collectNavNodes`
+  (`src/spatial/spatial.ts:174-187`) skips a focusable element whose `tabindex` attribute is
+  negative, or that matches `[data-snav="container"]`, when it contains the next entry of the
+  document-order focusable list; its children stay candidates and a declared container is scored as
+  a container. A host holding nothing focusable, an editing host and a host in the tab order that is
+  not a container are candidates as before. Tests: the `describe` "a focusable host that holds
+  focusables" in `src/spatial/spatial.browser.test.ts`.
 - **R22.** Declarative containers, attributes renamed to this project's prefix — the owner's decision
   of 2026-09-18, recorded in [ADR-0001](adr/0001-name-scope-and-attribute-prefix.md). Read:
   `data-snav="container"`, `data-snav-enter`, `data-snav-wrap`, `data-snav-block`, `data-snav-trap`,
@@ -439,7 +447,7 @@ this working tree, run 2026-09-20.
   counts as refused as a unit (R21).
 - **R27.** With no candidate, in order: wrap if the container wraps on that axis; else scroll one
   step and rescan; else bubble to the parent container, unless it traps or blocks that direction;
-  else no-op and emit `onBoundsHit` (`src/spatial/spatial.ts:505-527`). The rescan waits exactly one
+  else no-op and emit `onBoundsHit` (`src/spatial/spatial.ts:517-539`). The rescan waits exactly one
   frame, because a virtualised list mounts its next rows on the scroll (`spatial.ts`).
   Since 2026-09-24 a candidate the browser refuses is taken out and the search goes on in the same
   order: the next best of the container, rescored without it, then that list's wrap candidate, the
@@ -449,8 +457,8 @@ this working tree, run 2026-09-20.
   component can refuse a move; a veto ends it (`spatial.ts`).
 - **R28.** Explicit redirections `data-snav-up|down|left|right` take CSS selectors resolved against
   the whole document, read off the focused element and answered *before* anything is scored
-  (`src/spatial/spatial.ts:492-500`) — documented as the last resort for pathological layouts.
-  A redirect is taken only when its target passes `isFocusable` (`:495`). A selector that matches
+  (`src/spatial/spatial.ts:504-512`) — documented as the last resort for pathological layouts.
+  A redirect is taken only when its target passes `isFocusable` (`:507`). A selector that matches
   nothing, or a target that is disabled, hidden, inert or not focusable at all, is ignored, and
   the geometric search runs as if the attribute were absent — the owner's decision of 2026-09-23.
   Test: "ignores a redirection to a target that cannot take the focus" in
@@ -462,7 +470,7 @@ this working tree, run 2026-09-20.
 - **R29.** Two modes. `composite` (default): arrows are spatial only inside composites, as the APG
   requires, and only the gamepad crosses composite boundaries, so an ordinary site becomes
   pad-drivable without losing its keyboard conventions. In this package the rule is one line —
-  `mode === "composite" && event.source === "keyboard"` returns `false` (`src/spatial/spatial.ts:571`)
+  `mode === "composite" && event.source === "keyboard"` returns `false` (`src/spatial/spatial.ts:583`)
   — so the engine declines every keyboard arrow in that mode and the composite's own arrow handling
   belongs to whoever pushed a scope above it. This package ships no component layer, so under
   `composite` a keyboard arrow moves focus only if the application acts on
@@ -473,7 +481,7 @@ this working tree, run 2026-09-20.
   `tabNext`, `tabPrev`, `secondary` and `contextMenu`. The keymap and the pad mapping produce them
   (R8, R17), and `tabNext`/`tabPrev` are even allowed past a trap (R4), but no module in the
   extraction perimeter acts on any of them: the spatial engine handles the four moves and the two
-  scrolls and returns `false` for everything else (`src/spatial/spatial.ts:562-573`), the input
+  scrolls and returns `false` for everything else (`src/spatial/spatial.ts:574-585`), the input
   system acts on `select` alone (`src/input-system.ts:119-133`), and engage mode consumes `select`,
   `back` and its eight adjust intents (`src/engage.ts:18-26`, read at `:61-72`). `pageUp`,
   `pageDown`, `home` and `end` likewise do nothing
@@ -483,8 +491,8 @@ this working tree, run 2026-09-20.
   built-in tab-order handler is a v1 item, not a port, because it has to decide whether the engine
   or the application owns sequential focus.
 - **R30.** `pointerFollowsFocus`, default on in `app` mode and off in `composite`
-  (`src/spatial/spatial.ts:239`), so mouse and pad do not fight over two cursors. Covered by the
-  browser fixtures at `src/spatial/spatial.browser.test.ts:577` — it is no longer the untested
+  (`src/spatial/spatial.ts:251`), so mouse and pad do not fight over two cursors. Covered by the
+  browser fixtures at `src/spatial/spatial.browser.test.ts:651` — it is no longer the untested
   option it was in the predecessor implementation ([ADR-0002](adr/0002-license-and-copyright.md)).
   Since 2026-09-24 a hover writes `data-snav-focused` and the container memory only when the focus
   landed on the hovered element; a refusal, or a focus sent elsewhere, writes nothing
@@ -497,7 +505,7 @@ this working tree, run 2026-09-20.
   a zero dimension paints nothing and its projection onto the cross axis is empty, so the alignment
   pass can never call it aligned and it is scored on the distance to a centre that is really an
   edge. Three fixtures pin it, including the one that says the rule is zero and not small — a
-  one-pixel hairline stays a candidate (`src/spatial/spatial.browser.test.ts:663-695`).
+  one-pixel hairline stays a candidate (`src/spatial/spatial.browser.test.ts:737-769`).
   Filter **C2 is refused for v0** and deferred to v1: dropping `opacity: 0` candidates costs a
   `getComputedStyle` per candidate in the hot loop, and an opacity inherited from an ancestor
   escapes the test anyway. The two do not ship together, which is the premise the ADR was written
@@ -656,7 +664,7 @@ physical gamepad are recorded in a device report issue
    risk, not specific to this project.
 5. **Shadow DOM after v0.** Half answered. v0's position is settled and deliberate: no traversal in
    `getFocusables`, a shadow-aware `contains` beside it, the inconsistency documented, and the
-   skipped fixture at `src/spatial/spatial.browser.test.ts:921` kept as the acceptance test of any
+   skipped fixture at `src/spatial/spatial.browser.test.ts:995` kept as the acceptance test of any
    future attempt ([ADR-0008](adr/0008-shadow-dom.md)). Coherence between the two is a v1 goal. What
    stays open is the shape — an opt-in root list or real traversal — and what it costs per move.
 6. **Controls that hold a value: settled as recipes, not as shipped behaviour.** `pushEngageScope`
