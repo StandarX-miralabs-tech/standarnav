@@ -600,11 +600,25 @@ export function spatialPlugin(options: SpatialPluginOptions = {}): SpatialPlugin
       const teardowns = [pluginContext.bus.pushScope(handleIntent, { base: true })];
 
       if (followPointer) {
+        let lastX: number | undefined;
+        let lastY = 0;
+        const moved = (event: PointerEvent): boolean => {
+          const changed =
+            lastX !== undefined && (event.clientX !== lastX || event.clientY !== lastY);
+          lastX = event.clientX;
+          lastY = event.clientY;
+          return changed;
+        };
         teardowns.push(
+          addDomEvent(pluginContext.doc, "pointermove", moved, { capture: true, passive: true }),
           addDomEvent(
             pluginContext.doc,
             "pointerover",
             (event: PointerEvent) => {
+              // Engines send pointerover to a node mounted or scrolled under a resting
+              // mouse, at the coordinates it already had; following it would let the
+              // layout steal the focus from a pad (ADR-0036).
+              if (!moved(event)) return;
               const target = event.target;
               if (!isHTMLElement(target) || !isFocusable(target)) return;
               const root = rootOf();
