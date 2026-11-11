@@ -120,6 +120,11 @@ Measured again later on 2026-11-09, with the test of
 files, `bun run test:browser` on chromium is 520 passed and 1 skipped in 18 files — 662 passed and 1
 skipped (663) in 33 files in total, the skip unchanged.
 
+Measured on 2026-11-11, with the four tests of
+[ADR-0036](docs/adr/0036-pointer-follows-the-mouse-not-the-layout.md): `bun run test:unit` is 142
+tests in 15 files, `bun run test:browser` on chromium is 524 passed and 1 skipped in 19 files — 666
+passed and 1 skipped (667) in 34 files in total, the skip unchanged.
+
 ## Conventional commits
 
 Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/):

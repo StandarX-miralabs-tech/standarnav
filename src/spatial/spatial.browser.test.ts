@@ -653,7 +653,7 @@ describe("spatialPlugin — pointerFollowsFocus", () => {
     const view = scene(grid());
     view.plugin.focus("#c00");
 
-    view.at("c22").dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
+    pointAt(view.at("c22"));
 
     expect(view.active()).toBe("c00");
   });
@@ -662,7 +662,7 @@ describe("spatialPlugin — pointerFollowsFocus", () => {
     const view = scene(grid(), { mode: "app" });
     view.plugin.focus("#c00");
 
-    view.at("c22").dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
+    pointAt(view.at("c22"));
 
     expect(view.active()).toBe("c22");
     expect(document.querySelector("[data-snav-focused]")?.id).toBe("c22");
@@ -674,7 +674,7 @@ describe("spatialPlugin — pointerFollowsFocus", () => {
     view.plugin.focus("#c00");
     cleanups.push(view.plugin.onWillMove(veto));
 
-    view.at("c22").dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
+    pointAt(view.at("c22"));
 
     // Deliberate: the handler calls focusElement and remember directly rather than
     // commit, so a machine that vetoes d-pad moves does not also freeze the mouse.
@@ -1365,7 +1365,7 @@ describe("spatialPlugin — a refused candidate hands the move on (ADR-0030)", (
 
 describe("spatialPlugin — a hover marks only what took the focus (ADR-0005)", () => {
   function hover(element: HTMLElement): void {
-    element.dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
+    pointAt(element);
   }
 
   it("writes nothing on a hovered element that refuses, and the marker stays where it was", () => {
@@ -1604,7 +1604,7 @@ describe("spatialPlugin — an image-map area is scored by its shape over its im
     );
     view.plugin.focus("#before");
 
-    view.at("under").dispatchEvent(new PointerEvent("pointerover", { bubbles: true }));
+    pointAt(view.at("under"));
 
     expect(view.active()).toBe("under");
     expect(document.querySelector("[data-snav-focused]")?.id).toBe("under");
@@ -1759,3 +1759,12 @@ describe("spatialPlugin — a visually-hidden input", () => {
     expect(view.active()).toBe("r1");
   });
 });
+
+let pointerX = 0;
+
+/** A mouse that moves onto `element`: a move at one point, then the crossing at the next (ADR-0036). */
+function pointAt(element: HTMLElement): void {
+  pointerX += 2;
+  document.dispatchEvent(new PointerEvent("pointermove", { clientX: pointerX - 1 }));
+  element.dispatchEvent(new PointerEvent("pointerover", { bubbles: true, clientX: pointerX }));
+}

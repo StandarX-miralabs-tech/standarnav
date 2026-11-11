@@ -162,7 +162,7 @@ above the engine answers first, which was already true of a scope answering `tru
   documents which world each mode is for at `:73-87`.
 - The pointer handler that `followPointer` installs, which focuses on `pointerover`
   and checks `isFocusable` and root containment before it does:
-  `src/spatial/spatial.ts:602-618`.
+  `src/spatial/spatial.ts:602-632`.
 - Unclaimed intents keep the native default: "The native default survives unless
   someone actually wanted the intent — otherwise arrow keys would stop scrolling a
   page that has no navigation", `src/input-system.ts:180-183`.

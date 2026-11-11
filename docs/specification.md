@@ -496,7 +496,10 @@ this working tree, run 2026-09-20.
   option it was in the predecessor implementation ([ADR-0002](adr/0002-license-and-copyright.md)).
   Since 2026-09-24 a hover writes `data-snav-focused` and the container memory only when the focus
   landed on the hovered element; a refusal, or a focus sent elsewhere, writes nothing
-  ([ADR-0005](adr/0005-real-dom-focus.md), amendment of that date).
+  ([ADR-0005](adr/0005-real-dom-focus.md), amendment of that date). Since 2026-11-11 a
+  `pointerover` at the coordinates of the last pointer event the plugin saw, or before it has seen
+  any, is not followed: it comes from a layout change under a resting mouse, not from the mouse
+  ([ADR-0036](adr/0036-pointer-follows-the-mouse-not-the-layout.md)).
 - **R31.** Visible limits, documented because a user meets them: container nesting is bounded at
   `MAX_CONTAINER_DEPTH = 16` (`src/spatial/spatial.ts:60`), and the zero-size filter is
   `width === 0 || height === 0` (`spatial.ts`) — **either** dimension, so a 0×40 element
