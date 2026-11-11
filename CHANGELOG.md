@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.4.1](https://github.com/StandarX-miralabs-tech/standarnav/compare/v0.4.0...v0.4.1) (2026-11-11)
+
+
+### Bug Fixes
+
+* **spatial:** follow the mouse, not a layout change under a resting one ([bed247d](https://github.com/StandarX-miralabs-tech/standarnav/commit/bed247d35ca9dd1a9bdc1f11f81d458c10dff805))
+
 ## [0.4.0](https://github.com/StandarX-miralabs-tech/standarnav/compare/v0.3.3...v0.4.0) (2026-11-09)
 
 
