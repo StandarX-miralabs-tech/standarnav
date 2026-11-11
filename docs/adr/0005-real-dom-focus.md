@@ -175,7 +175,7 @@ refused the focus got `data-snav-focused` while the focus stayed where it was, a
 remembered a child that never had it ([issue #19](https://github.com/StandarX-miralabs-tech/standarnav/issues/19)).
 
 The handler now writes the marker and the memory only when the focus landed on the hovered element,
-through the same `landed` check as `commit()` (`src/spatial/spatial.ts:613`, the check at
+through the same `landed` check as `commit()` (`src/spatial/spatial.ts:627`, the check at
 `:366-368`). A refusal, or an application focus handler that sends the focus elsewhere, writes
 nothing and leaves the previous marker where it was. The hover still bypasses `onWillMove`, as
 "bypasses the onWillMove veto, which a hover is not subject to" requires. Three cases pin it, in the
